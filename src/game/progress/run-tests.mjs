@@ -1,5 +1,5 @@
 /**
- * Lance les tests du moteur (étapes A–F).
+ * Lance les tests du moteur (étapes A–H).
  * node src/game/progress/run-tests.mjs
  */
 import { spawnSync } from 'node:child_process';

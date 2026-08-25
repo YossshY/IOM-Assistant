@@ -1,5 +1,5 @@
 /* ============================================================
-   progress/fragments/index.js — assemblage des fragments (B + C + D + E)
+   progress/fragments/index.js — assemblage des fragments (B–F, H)
    ============================================================ */
 
 import { compileGraph } from '../compile.js';
@@ -28,7 +28,7 @@ export {
 } from './docks.js';
 export {
   buildFishingNodes, legendaryId, fishTributeId, starResource,
-  TRIBUTE_COSTS, SKIP_TRIBUTE_IDS, legendaryPolyUnknown,
+  TRIBUTE_COSTS, legendaryPolyUnknown,
   LEGENDARY_CATCH_UNKNOWN, TRIBUTE_BAR_UNKNOWN,
 } from './fishing.js';
 

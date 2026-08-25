@@ -1,6 +1,6 @@
 /* ============================================================
-   progress/fragments/fishing.js — étape F
-   Légendaires + tributes (sauf Laviathan, stubs C). Catalogues non modifiés.
+   progress/fragments/fishing.js — étape F + recâblage H (Laviathan)
+   Légendaires + tributes (11×2). Catalogues non modifiés.
    Notices / Enhance / upgrades hors bateau : hors graphe.
    ============================================================ */
 
@@ -9,8 +9,6 @@ import { all, node, resource, unknown } from '../conditions.js';
 import { LEGENDARY_FISH } from '../../fishingData.js';
 import { dockId, fishResource } from './docks.js';
 import { veinResource } from './construct.js';
-
-export const SKIP_TRIBUTE_IDS = Object.freeze(['laviathan']);
 
 export function legendaryId(catalogId) {
   return `fish.legendary.${catalogId}`;
@@ -34,7 +32,7 @@ export const TRIBUTE_BAR_UNKNOWN = 'tribute-bar-suffix';
 /**
  * Coûts wiki Fishing#Tributes.
  * k/m/b/t/q convertis (comme Construct). qi/sx/oc/no/sp → unknown dans le coût.
- * Laviathan volontairement absent (nœuds C inchangés).
+ * Laviathan : même modèle (étape H) ; bars oc → TRIBUTE_BAR_UNKNOWN.
  */
 export const TRIBUTE_COSTS = [
   { id: 'rainbow_trout', t1: { gems: 25e3, star: 'aries', starN: 50e6, vein: 'stone', veinN: 20e9, fish: 'golden_trout', fishN: 15e6 },
@@ -51,6 +49,8 @@ export const TRIBUTE_COSTS = [
     t2: { gems: 750e3, star: 'draco', starN: 20e9, vein: 'warfront', veinN: 2e12, fish: 'wreckshell_pilferer', fishN: 1e9 } },
   { id: 'glimmering_geoduck', t1: { gems: 225e3, star: 'hercules', starN: 8e9, vein: 'neon', veinN: 10e12, fish: 'arapaim_al', fishN: 300e6 },
     t2: { gems: 1.1e6, star: 'cetus', starN: 35e9, vein: 'neon', veinN: 50e12, fish: 'arapaim_al', fishN: 1.5e9 } },
+  { id: 'laviathan', t1: { gems: 266e3, star: 'aries', starN: 16e9, vein: 'magma', veinN: 60e12, fish: 'basalturtle', fishN: 666e6 },
+    t2: { gems: 1.26e6, star: 'aries', starN: 66e9, vein: 'volcano', veinN: 160e12, fish: 'basalturtle', fishN: 6.66e9 } },
   { id: 'storm_serpent', t1: { gems: 275e3, star: 'phoenix', starN: 40e9, vein: 'valley', veinN: 250e12, fish: 'lunar_sunfish', fishN: 999e6 },
     t2: { gems: 1.38e6, star: 'orion', starN: 150e9, vein: 'warfront', veinN: 700e12, fish: 'lunar_sunfish', fishN: 9.99e9 } },
   { id: 'melting_gibbous', t1: { gems: 650e3, star: 'draco', starN: 5e12, vein: 'wonderland', veinN: 425e12, fish: 'planetary_jellyfish', fishN: 40e9 },

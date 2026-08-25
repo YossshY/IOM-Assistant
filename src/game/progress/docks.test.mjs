@@ -186,14 +186,15 @@ test('Galaxy n’exige pas monument W4 (carte world:4 n’est pas un unlock dock
   assert(ev.status === STATUS.unlocked, ev.status);
 });
 
-test('Laviathan T1 reste incomplete (C non recâblé)', () => {
+test('Laviathan T1 locked tant que le catch n’est pas en inventaire (H)', () => {
   const p = playerView({
     nodes: { [boatT2Id(2)]: 1 },
     stats: { [STAT_OB]: 99 },
   });
   const ev = evaluateNode(graph, p, tributeId(1));
-  assert(ev.status === STATUS.incomplete, ev.status);
+  assert(ev.status === STATUS.locked, ev.status);
   assert(ev.actionable === false);
+  assert(!(ev.unknownRequired || []).some(c => c.reason === 'fishing-dock-chain'));
 });
 
 test('pas de nœud par poisson aquarium / notice / enhance', () => {

@@ -60,7 +60,6 @@ export {
   fishTributeId,
   starResource,
   TRIBUTE_COSTS,
-  SKIP_TRIBUTE_IDS,
   legendaryPolyUnknown,
   LEGENDARY_CATCH_UNKNOWN,
   TRIBUTE_BAR_UNKNOWN,

@@ -1,7 +1,7 @@
 # Architecture du moteur de progression
 
-Document de conception. **Aucun code n’est implémenté ici.**  
-Ce fichier fige les ajustements validés avant l’étape A (squelette + tests, UI inchangée).
+Document de conception vivant (étapes A–H implémentées ; I–K = suite).
+Ce fichier fige les ajustements validés. L’UI et `app.js` restent **non branchés** tant que K n’est pas ouverte.
 
 Il complète la proposition déjà validée (graphe compilé depuis les catalogues, `PlayerView`, AST de conditions, fragments wiki, axes plutôt qu’une priorité unique). Seules les sections ci-dessous **remplacent** les parties correspondantes de cette proposition.
 
@@ -420,6 +420,14 @@ Quand on ajoutera les arêtes wiki, dans cet ordre :
 6. **Notices / Enhance Fishing** — hors graphe (farm).
 7. **Ressources et coûts détaillés** (et seulement là, `produces` / `progresses` IOM s’ils sont sourcés)
 
+Suite produit (après A–F) :
+
+8. **G — audit global** — §14 (inventaire, inconnus, spec H–K). Pas de nouveau fragment.
+9. **H — recâblage Laviathan** — §15. Même modèle que F ; stubs C retirés.
+10. **I — ExportStats → PlayerView** — adaptateur, pas d’UI.
+11. **J — planification / optimisation** — sur un PlayerView réel ; pas de producteurs inventés.
+12. **K — UI** — brancher le moteur ; reco actuelle reste hint jusqu’à bascule.
+
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
 
 ---
@@ -495,7 +503,7 @@ Fragment additif `src/game/progress/fragments/polyInfernal.js`, **non branché**
 | Wiki Cards « unlocked at Obelisk Level 15 » / `OBELISK_UNLOCKS` | `cards.feature` = `stat(ob, 15)` | certaine |
 | Wiki + `poly_while` (`skillsData.js`) | `cards.poly_system` (milestone) ← `skill.poly_while` ; 10 shards poly ; gilded d’abord (`stat(card.{key}, 2)`) | certaine |
 | Wiki Infernal Card Set Unlocks | un nœud `cards.infernal_set.{cat}` par catégorie `CARD_SETS` | certaine comme **table** |
-| Laviathan tributes (`fishingData.js`) | ores/bars ← T1 ; fish / legendary_fish ← T2 | source **nommée** ; chaîne dock encore `unknown('fishing-dock-chain')` |
+| Laviathan tributes (`fishingData.js`) | ores/bars ← T1 ; fish / legendary_fish ← T2 | source **nommée** ; chaîne dock recâblée à l’étape H |
 | `flaming_veins` / `astral_forge` | veins / stars | certaine (catalogue skills) |
 | `petsData.js` Scorchwing 250 000 gems | pets ← `pets.skin.butterfly.scorchwing` | coût gemmes certain ; unlock pets `unknown('pets-fragment')` |
 | Wiki « Infernal Cards Coal Upgrade » / Hestia / Hades | drones / misc / arch | source **nommée**, fragments drones/arch absents → stubs `unknown` |
@@ -580,13 +588,137 @@ Fragment additif `src/game/progress/fragments/fishing.js`, **non branché** à `
 
 - `fish.legendary.{id}` — **kind: unlock** (inventaire « attrapé »). L’analyse parlait de milestone ; unlock est requis pour enregistrer le catch malgré des `unknown` d’éligibilité (même motif que les stubs tribute C).
 - Unlock légendaire : `node(fish.dock.{dock})` (**derived**) + `unknown('legendary-poly-cards-{dock}')` + `unknown('legendary-catch-chance-100')` (**explicit** comme règles, **unknown** comme feuilles).
-- `fish.tribute.{id}.t1` / `.t2` — actions. T1 ← légendaire (**derived**) ; T2 ← T1 (**derived**, paliers). **Pas** Laviathan (ids C).
+- `fish.tribute.{id}.t1` / `.t2` — actions. T1 ← légendaire (**derived**) ; T2 ← T1 (**derived**, paliers). Laviathan : stubs C jusqu’à H.
 - Coût : gemmes + star + veine + poisson (k/m/b/t/q **explicit**) + `unknown('tribute-bar-suffix')` (qi/sx/oc/no).
 
 ### Hors étape F
 
 - Notices, Enhance, upgrades hors bateau
-- Recâblage Laviathan C ; stubs bombs/drones/items débloqués par tributes
+- Recâblage Laviathan C → **étape H** (§15)
+- Stubs bombs/drones/items débloqués par tributes
 - Producteurs stars / veines / poissons / gemmes
 - Branchement UI
+
+---
+
+## 14. Étape G (audit global A–F)
+
+Pas de nouveau fragment. Inventaire du graphe compilé `buildProgressGraph()` (avant H) et spec des étapes H–K. Catalogues **non modifiés**. Moteur **non branché** à `app.js`.
+
+### 14.1 Inventaire
+
+| | Compte | Note |
+|---|---|---|
+| Nœuds | 169 | 0 cycle, 0 dépendance dangling |
+| `kind: action` | 123 | skills, bateaux, veines, monuments, 20 tributes F, Scorchwing |
+| `kind: milestone` | 30 | features, docks, poly system, 15 sets infernal |
+| `kind: unlock` | 16 | 11 légendaires F + 2 stubs Laviathan C + 2 idoles arch + 1 drone coal |
+| `producersOf` / `progressorsOf` | vides | `Acquire` / `Reach` + `UnknownStep` |
+| Skills catalogue | 68 / 68 | tous ont un parent wiki (plus de `skill-tree-parent`) |
+| Docks / légendaires | 11 / 11 | Lake starter + 10 bateaux |
+| Cartes catalogue | 308 | **pas** de nœud `card.*` (gates seulement) |
+| `FISH_CARDS` | 12 | incomplet vs aquarium wiki → poly×4 par dock reste `unknown` |
+
+Préfixes : `skill.*` 68 · `research.vein.*` 21 · `cards.infernal_set.*` 15 · `fish.legendary.*` 11 · `fish.dock.*` 11 · `fish.upgrade.boat.*` 10 · `fish.tribute.*` 22 (dont 2 stubs C) · `monument.w2–w4` · features cards/construct/fishing.
+
+### 14.2 Inconnus restants (avant H)
+
+| Raison | Où | Effet |
+|---|---|---|
+| `fishing-dock-chain` | stubs C Laviathan T1/T2 | tribute **incomplete** même si volcan ouvert → **H les retire** |
+| `legendary-poly-cards-{dock}` | 11 légendaires | `incomplete` si dock ouvert |
+| `legendary-catch-chance-100` | 11 légendaires | idem |
+| `tribute-bar-suffix` | 20 coûts F (qi/sx/oc/no) | `available` possible, jamais `actionable` |
+| `vein-cost-qi-suffix` | Enchanted / Candyland unlock | `incomplete` |
+| `research-bar-cost-suffix` | 5 veines W4+ coût | `available` possible, jamais `actionable` |
+| `pets-fragment` | Scorchwing unlock | `incomplete` même avec 250k gems |
+| `drone-coal-upgrades` / `archaeology-idols` | stubs C | sets drones/misc/arch `incomplete` |
+| `infernal-bombs-source` / `infernal-arcanist-source` | wiki N/A | sets bombs/essence/runes/spells/orbs `incomplete` |
+| `no-documented-producer` / `no-documented-progressor` | plan | SP, gems, poissons, veines, lingots, étoiles, OB |
+
+Hors graphe (volontaire) : notices, Enhance, rod/drone/tick, skill levels 2+, gild costs, un nœud par carte, items débloqués par tributes (Golden Plenty, +1 drone, …).
+
+### 14.3 Écarts déjà assumés
+
+- Légendaire = `kind: unlock` (inventaire catch), pas milestone — nécessaire pour enregistrer le catch malgré les `unknown` d’éligibilité.
+- UI Fishing légendaire : **un** niveau 0–2 (`collections.fishing.legendary`) qui fusionne catch + T1 + T2. Le graphe a **trois** nœuds. À trancher en I.
+- UI docks : toggles indépendants des bateaux. Le graphe dérive le dock du bateau. À trancher en I (bateau = source de vérité).
+- Monuments W3←W2 / W4←W3 : **derived**. `deriveProfile.monuments` est une **inférence export** (statues / floors), pas un inventaire certain.
+- `have` sur `Acquire`/`Reach` = stock actuel, pas un solde après les `Do` frères (§8).
+- Reco `recommendationEngine.js` : hints orthogonaux ; **pas** branchée au graphe.
+
+### 14.4 Spec I — ExportStats → PlayerView
+
+Module additif (ex. `src/game/progress/fromExport.js`), **sans** `app.js`. Entrée : `parseExportStats` + `deriveProfile` + `collections`. Sortie : `{ nodes, stats, resources }`.
+
+| Cible graphe | Source | Confiance |
+|---|---|---|
+| `stats.ob` | `profile.obeliskLevel` ← `xp_level_cap` | confirmed |
+| `nodes[skill.{id}]` | `collections.skills` | confirmed si renseigné ; absent = 0 |
+| `stats[card.{key}]` | `collections.cards` (0–4) | confirmed si renseigné |
+| `nodes[fish.upgrade.boat.t1.N]` | `getFishLv(col,'upgrades','u1_boat') >= N` | confirmed si renseigné |
+| `nodes[fish.upgrade.boat.t2.N]` | idem `u2_boat` | confirmed si renseigné |
+| `nodes[fish.dock.*]` | **dérivés des bateaux** (pas des toggles UI) | derived |
+| `nodes[monument.wN]` | `profile.monuments[N]` | **partial** (inférence) |
+| `nodes[research.vein.{id}]` | `hasResearchUnlock` | confirmed si renseigné |
+| ressources gems/SP/poissons/veines/lingots/étoiles | **absentes** de `exportstats` | 0 → `Acquire` / jamais `actionable` sur tributs |
+| 4 cartes poly d’un dock / 100 % catch | **absentes** | feuilles `unknown` conservées |
+
+Légendaires / tributs (à valider, pas inventer un 4ᵉ état UI) :
+
+- `lv >= 1` → `fish.legendary.{id}` **et** `fish.tribute.{id}.t1`
+- `lv >= 2` → aussi `.t2`
+- `lv = 0` → rien (on **ne** distingue **pas** « attrapé sans tribut »)
+
+Signal `fishing_rod_power > 0` : le fishing existe, **pas** un palier de bateau. Ne pas en déduire un dock.
+
+Tests I : sample `exportstats-v2.2.6.json` (OB64, W3, fishing stats présentes, W4 fermé) + collections vides / partielles. `check.mjs` inchangé.
+
+### 14.5 Spec J — planification / optimisation
+
+Après I (PlayerView réel). **Pas** de producteurs inventés.
+
+Dans le moteur actuel, à traiter seulement si un test le demande :
+
+- dédup `Reach`/`Acquire` **globale** (aujourd’hui locale au niveau)
+- simulation de dépense le long du plan (écart §8, volontaire)
+- choix d’une branche `any` (aujourd’hui toutes)
+- classement des `Do` `actionable` : **pas** un second moteur de reco ; K pourra afficher les feuilles `Do` telles quelles
+
+Hors J : notices/Enhance comme actions, progressors OB.
+
+### 14.6 Spec K — UI
+
+Après I (+ J si besoin). Brancher `evaluate`/`plan` sur le dashboard. Phrases = tableau §1.1. `recommendationEngine` reste hint jusqu’à bascule explicite. Pas de câblage anticipé.
+
+### 14.7 Spec H — recâblage Laviathan (validé par cet audit)
+
+Même modèle que F. Wiki Fishing#Tributes **explicit**.
+
+| | T1 | T2 |
+|---|---|---|
+| Bonus | Unlock Infernal Ore/Bar Cards | Unlock Infernal Fish + Legendary Fish Cards |
+| Gems | 266k | 1.26m |
+| Star | 16b Aries | 66b Aries |
+| Vein | 60t Magma | 160t Volcano |
+| Fish | 666m Basalturtle | 6.66b Basalturtle |
+| Bars | 66oc Demonite / 666oc Infernite | → `unknown('tribute-bar-suffix')` |
+
+Comportement après H :
+
+- Stubs C `kind: unlock` + `unknown('fishing-dock-chain')` **retirés**. Ids inchangés (`tributeId` / `fishTributeId('laviathan', …)`).
+- T1/T2 = **actions** F ; T1 ← `fish.legendary.laviathan` ; T2 ← T1.
+- Dock volcan fermé → légendaire `locked` → T1 `locked` (plus `incomplete` via la chaîne dock).
+- Volcan ouvert, pas de catch en inventaire → légendaire `incomplete` → T1 `locked`.
+- Catch en inventaire → T1 `available`, jamais `actionable` (suffixe oc).
+- Sets infernal ores/bars/fish/legendary_fish : **inchangés** (milestone ← nœud tribute). Sans T1 possédé : set `locked`. Avec T1 : `unlocked`.
+- 4 cartes poly volcan + 100 % catch : `unknown` conservés. Notices/Enhance hors graphe. Pas de stubs bombs.
+
+---
+
+## 15. Étape H (implémentée) — Recâblage Laviathan
+
+Les nœuds `fish.tribute.laviathan.t1/t2` sont créés par `fishing.js` comme les 10 autres. `polyInfernal.js` ne pose plus de stubs ; `INFERNAL_SET_SOURCES` pointe toujours vers ces ids.
+
+Tests C/E/F mis à jour : plus d’attente `incomplete` + `fishing-dock-chain`. `node check.mjs` inchangé.
 

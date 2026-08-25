@@ -1,6 +1,7 @@
 /* ============================================================
    progress/fragments/polyInfernal.js — étape C
    Gates Polychrome / Infernal (wiki Cards). Pas de nœud par carte.
+   Laviathan T1/T2 : nœuds créés par fishing.js (étape H). tributeId() inchangé.
    ============================================================ */
 
 import { KIND } from '../ids.js';
@@ -96,18 +97,6 @@ export function buildPolyInfernalNodes() {
       name: 'Polychrome Cards',
       kind: KIND.milestone,
       unlock: node(skillNodeId('poly_while')),
-    },
-    {
-      id: tributeId(1),
-      name: 'Laviathan Tribute 1',
-      kind: KIND.unlock,
-      unlock: unknown('fishing-dock-chain'),
-    },
-    {
-      id: tributeId(2),
-      name: 'Laviathan Tribute 2',
-      kind: KIND.unlock,
-      unlock: all(node(tributeId(1)), unknown('fishing-dock-chain')),
     },
     stubUnknown('drones.upgrade.infernal_cards', 'Unlock Drone Infernal Cards', 'drone-coal-upgrades'),
     stubUnknown('arch.idol.hestia', 'Hestia Common Idol', 'archaeology-idols'),

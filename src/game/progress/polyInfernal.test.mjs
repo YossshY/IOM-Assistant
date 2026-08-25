@@ -112,10 +112,11 @@ test('infernal stars : sans astral_forge → locked confirmed', () => {
   assert(ev.confidence === CONFIDENCE.confirmed, ev.confidence);
 });
 
-test('infernal ores : tribute T1 incomplete (fishing unknown) ; set locked tant que non possédé', () => {
+test('infernal ores : tribute T1 locked sans catch ; set locked tant que non possédé', () => {
   const p = playerView({ stats: { [STAT_OB]: 60 } });
   const tribute = evaluateNode(graph, p, tributeId(1));
-  assert(tribute.status === STATUS.incomplete, tribute.status);
+  assert(tribute.status === STATUS.locked, tribute.status);
+  assert(tribute.kind === 'action', tribute.kind);
   const ev = evaluateNode(graph, p, infernalSetId('ores'));
   assert(ev.status === STATUS.locked, ev.status);
   assert(ev.actionable === false);
@@ -126,6 +127,15 @@ test('infernal ores : tribute T1 possédé → set unlocked (inventaire)', () =>
   const p = playerView({ nodes: { [tributeId(1)]: 1 } });
   const ev = evaluateNode(graph, p, infernalSetId('ores'));
   assert(ev.status === STATUS.unlocked, ev.status);
+});
+
+test('plan(infernal ores) remonte au légendaire Laviathan, plus fishing-dock-chain', () => {
+  const p = playerView({ stats: { [STAT_OB]: 60 } });
+  const out = planNode(graph, p, infernalSetId('ores'));
+  assert(collect(out, s => s.reason === 'fishing-dock-chain').length === 0, 'stub C leftover');
+  assert(collect(out, s => s.step === STEP.Unlock && s.nodeId === 'fish.legendary.laviathan').length === 1);
+  assert(collect(out, s => s.reason === 'legendary-poly-cards-volcano').length >= 1);
+  assert(collect(out, s => s.reason === 'legendary-catch-chance-100').length >= 1);
 });
 
 test('infernal bombs / arcanist : unknown, jamais available', () => {

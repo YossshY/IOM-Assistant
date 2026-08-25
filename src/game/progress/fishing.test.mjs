@@ -1,5 +1,5 @@
 /**
- * Étape F — légendaires + tributes (sauf Laviathan).
+ * Étape F + H — légendaires + tributes (Laviathan recâblé).
  * node src/game/progress/fishing.test.mjs
  */
 import { LEGENDARY_FISH } from '../fishingData.js';
@@ -7,8 +7,8 @@ import {
   STATUS, CONFIDENCE, STEP, KIND,
   evaluateNode, planNode, playerView, walkPlan,
   buildProgressGraph, STAT_OB, tributeId, FISHING_UNLOCK_OB,
-  dockId, boatT1Id, legendaryId, fishTributeId, fishResource, starResource,
-  veinResource, TRIBUTE_COSTS, SKIP_TRIBUTE_IDS,
+  dockId, boatT1Id, boatT2Id, legendaryId, fishTributeId, fishResource, starResource,
+  veinResource, TRIBUTE_COSTS,
   LEGENDARY_CATCH_UNKNOWN, TRIBUTE_BAR_UNKNOWN,
 } from './index.js';
 
@@ -43,7 +43,7 @@ function formatPlan(p) {
   return lines.join('\n');
 }
 
-console.log('fishing legendaries / tributes fragment');
+console.log('fishing legendaries / tributes fragment (F+H)');
 
 test('11 légendaires du catalogue, kind unlock (inventaire catch)', () => {
   for (const f of LEGENDARY_FISH) {
@@ -53,19 +53,17 @@ test('11 légendaires du catalogue, kind unlock (inventaire catch)', () => {
   }
 });
 
-test('20 tributes (11×2 − Laviathan C)', () => {
-  const skip = new Set(SKIP_TRIBUTE_IDS);
+test('22 tributes (11×2, Laviathan recâblé)', () => {
   let n = 0;
   for (const f of LEGENDARY_FISH) {
-    if (skip.has(f.id)) continue;
     assert(graph.nodes[fishTributeId(f.id, 1)], `${f.id} t1`);
     assert(graph.nodes[fishTributeId(f.id, 2)], `${f.id} t2`);
     n += 2;
   }
-  assert(n === 20, n);
-  assert(TRIBUTE_COSTS.length === 10, TRIBUTE_COSTS.length);
-  assert(graph.nodes[tributeId(1)], 'C laviathan t1 still present');
-  assert(graph.nodes[tributeId(2)], 'C laviathan t2 still present');
+  assert(n === 22, n);
+  assert(TRIBUTE_COSTS.length === 11, TRIBUTE_COSTS.length);
+  assert(graph.nodes[tributeId(1)] === graph.nodes[fishTributeId('laviathan', 1)]);
+  assert(graph.nodes[tributeId(1)].kind === KIND.action, graph.nodes[tributeId(1)].kind);
 });
 
 test('Lake unlocked OB37 : trout incomplete (poly + catch unknown), jamais available', () => {
@@ -142,14 +140,43 @@ test('T2 après T1 → available pas actionable', () => {
   assert(ev.actionable === false);
 });
 
-test('Laviathan T1 C reste incomplete (non recâblé)', () => {
+test('Laviathan T1 locked sans catch même dock volcan ouvert', () => {
   const p = playerView({
-    nodes: { [legendaryId('laviathan')]: 1, [boatT1Id(5)]: 1 },
+    nodes: { [boatT2Id(2)]: 1 },
     stats: { [STAT_OB]: 99 },
   });
+  const leg = evaluateNode(graph, p, legendaryId('laviathan'));
+  assert(leg.status === STATUS.incomplete, leg.status);
   const ev = evaluateNode(graph, p, tributeId(1));
-  assert(ev.status === STATUS.incomplete, ev.status);
-  assert((ev.unknownRequired || []).some(c => c.reason === 'fishing-dock-chain'));
+  assert(ev.status === STATUS.locked, ev.status);
+  assert(ev.actionable === false);
+  assert(!(ev.unknownRequired || []).some(c => c.reason === 'fishing-dock-chain'));
+});
+
+test('Laviathan T1 : catch → available, pas actionable (oc)', () => {
+  const p = playerView({
+    nodes: { [legendaryId('laviathan')]: 1 },
+    stats: { [STAT_OB]: 99 },
+    resources: {
+      gems: 1e18,
+      [starResource('aries')]: 1e18,
+      [veinResource('magma')]: 1e18,
+      [fishResource('basalturtle')]: 1e18,
+    },
+  });
+  const ev = evaluateNode(graph, p, tributeId(1));
+  assert(ev.status === STATUS.available, ev.status);
+  assert(ev.actionable === false);
+  assert(ev.confidence === CONFIDENCE.partial, ev.confidence);
+});
+
+test('Laviathan T2 locked sans T1', () => {
+  const p = playerView({
+    nodes: { [legendaryId('laviathan')]: 1 },
+    stats: { [STAT_OB]: 99 },
+  });
+  const ev = evaluateNode(graph, p, tributeId(2));
+  assert(ev.status === STATUS.locked, ev.status);
 });
 
 test('pas de nœud notice / enhance / rod / guppy', () => {
@@ -188,9 +215,9 @@ test('pas de prérequis monument W3 sur tributes', () => {
   }
 });
 
-test('pas de cycle fishing F', () => {
+test('pas de cycle fishing F+H', () => {
   const ids = new Set(Object.keys(graph.nodes).filter(id =>
-    id.startsWith('fish.legendary.') || (id.startsWith('fish.tribute.') && !id.includes('laviathan'))));
+    id.startsWith('fish.legendary.') || id.startsWith('fish.tribute.')));
   for (const c of graph.cycles) {
     assert(!c.some(id => ids.has(id)), JSON.stringify(c));
   }
