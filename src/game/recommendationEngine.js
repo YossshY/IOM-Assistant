@@ -1,161 +1,239 @@
 /* ============================================================
    recommendationEngine.js — Moteur de recommandations
-   Retourne des objets structurés, JAMAIS de conseil inventé :
-   chaque règle déclare ses prérequis de données et son niveau
-   de confiance (confirmed / probable / insufficient).
+   Lit stats d'export + collections locales. Pas de conseil inventé.
    ============================================================ */
-import { OBELISK, PRESTIGE, ARTIFACTS, SKILLS, DRONES, SOURCES } from './knowledgeBase.js';
+import { OBELISK, ARTIFACTS, SKILLS, DRONES, SOURCES } from './knowledgeBase.js';
+import { getArtifactLevel, hasSkill, getStatueState } from './collections.js';
 
 export const CONFIDENCE = {
   confirmed:    { icon:'🟢', label:'Confirmé',          hint:'Données du joueur + base de connaissances suffisantes.' },
   probable:     { icon:'🟡', label:'Probable',          hint:'Certaines informations manquent ; recommandation à valider.' },
-  insufficient: { icon:'🔴', label:'Données insuffisantes', hint:'Réponds aux questions du profil pour permettre une recommandation fiable.' },
+  insufficient: { icon:'🔴', label:'Données insuffisantes', hint:'Complète Prestige / Skill-Tree pour affiner.' },
 };
 
 /**
- * generateRecommendations(parsedStats, profile) -> [ rec, ... ] triées par priorité.
- * profile = fusion(deriveProfile(parsed), réponses du questionnaire).
+ * generateRecommendations(stats, profile, col?)
+ * profile = deriveProfile(parsed) ; col = collections locales (artefacts, skills, monuments override)
  */
-export function generateRecommendations(stats, profile) {
+export function generateRecommendations(stats, profile, col = {}) {
   const recs = [];
   const ob = profile.obeliskLevel ?? null;
-  if (ob === null) return [insufficientProfile('Obelisk level')];
+  if (ob === null) return [insufficientProfile('Obelisk level (xp_level_cap)')];
 
-  const nextArmor = OBELISK.armor(ob + 1);
-  const nextHealth = OBELISK.health(ob + 1);
-  const pick = stats.pickaxe_damage ?? null;
-  const canDamageNext = pick != null && pick > nextArmor;
+  const pick = stats.pickaxe_damage ?? profile.pickaxeDamage ?? null;
+  const armorRed = stats.obelisk_armor_reduction ?? profile.armorReduction ?? 0;
+  const nextArmorEff = OBELISK.effectiveArmor(ob + 1, armorRed);
+  const canDamageNext = pick != null && pick > nextArmorEff;
 
-  /* ---------- R1 : drones équipés non alimentés (donnée directe) ---------- */
+  /* R1 : drone équipé mais pas fuelé */
   for (const d of DRONES) {
-    if (stats[d.fuelKey] === true && d.gradeKey && (stats[d.gradeKey] ?? 0) === 0) {
+    if (stats[d.equipKey] === true && stats[d.fueledKey] === false) {
       recs.push({
         priority: 1, category: 'drones',
-        title: `Alimenter le drone ${d.suit}`,
-        reason: `Le drone ${d.suit} est équipé mais son grade de carburant est à 0 : son bonus actif est perdu.`,
+        title: `Fueler le drone ${d.suit}`,
+        reason: `${d.suit} est équipé mais pas fuelé — tu perds le bonus actif.`,
         confidence: 'confirmed',
-        source: 'exportstats: is_' + d.id + '_equipped=true & ' + d.gradeKey + '=0',
+        source: `exportstats: ${d.equipKey}=true & ${d.fueledKey}=false`,
       });
-      break; // une seule reco drone suffit
+      break;
     }
   }
 
-  /* ---------- R2 : mur d'armure Obelisk ---------- */
+  /* R2 : mur d'armure (avec réduction) */
   if (pick != null && !canDamageNext) {
-    const ratio = +(nextArmor / pick).toFixed(2);
     recs.push({
-      priority: canDamageNext ? 5 : 2,
-      category: 'damage',
+      priority: 2, category: 'damage',
       title: `Briser l'armure de l'Obelisk ${ob + 1}`,
-      reason: `Ta pioche (${fmt(pick)}) est ${ratio}× sous l'armure OB${ob+1} (${fmt(nextArmor)}). Les bombes ne font aucun dégât à l'Obelisk : seule la pioche compte.`,
+      reason: `Pioche ${fmt(pick)} vs armure effective OB${ob + 1} ${fmt(nextArmorEff)} (−${(armorRed * 100).toFixed(0)}% réduction). Les bombes ne touchent pas l'Obelisk.`,
       confidence: 'confirmed',
-      requirements: [{ resource:'Pickaxe damage vs Armor', current:pick, required:nextArmor }],
-      progress: pick / nextArmor,
-      source: 'wiki Obelisk (armure ×9.5/niveau au-delà de OB60)',
+      requirements: [{ resource: 'Pickaxe vs Armor', current: pick, required: nextArmorEff }],
+      progress: pick / nextArmorEff,
+      source: SOURCES.wiki_obelisk,
     });
   } else if (canDamageNext) {
     recs.push({
-      priority: 3, category: 'obelisk',
-      title: `Attaquer l'Obelisk ${ob + 1}`,
-      reason: `Ta pioche dépasse l'armure OB${ob+1}. Les dégâts s'accumulent entre tentatives — active tes items dégâts avant chaque fenêtre de combat.`,
+      priority: 5, category: 'obelisk',
+      title: `Pousser l'Obelisk ${ob + 1}`,
+      reason: `Ta pioche dépasse l'armure effective OB${ob + 1} (${fmt(nextArmorEff)}). Active items dégâts / crit avant chaque fenêtre — les PV s'accumulent.`,
       confidence: 'confirmed',
-      source: S_WIKI_OBELISK,
+      source: SOURCES.wiki_obelisk,
     });
   }
 
-  /* ---------- R3 : artefacts dégâts (dépend du profil joueur) ---------- */
-  const aStatue = numOrNull(profile.answers?.a_statue);
-  const aArmor  = numOrNull(profile.answers?.a_armorred);
-  if (aStatue == null || aArmor == null) {
-    recs.push(insufficientRec('Prioriser les artefacts T3/T4',
-      'Indique tes niveaux T4 Pickaxe per Statue et T3 Armor Reduction dans le profil pour savoir où investir tes PP.',
-      ['artifacts_t34']));
-  } else if (aStatue < capOf('statue_dmg') ) {
+  /* R3 : artefacts depuis Prestige (collections), pas answers fantômes */
+  const aStatue = getArtifactLevel(col, 'statue_dmg');
+  const aArmor = getArtifactLevel(col, 'armorred');
+  const aPick3 = getArtifactLevel(col, 'pick_t3');
+  const anyArt = ARTIFACTS.some(a => getArtifactLevel(col, a.id) > 0);
+
+  if (!anyArt && ob >= 14) {
     recs.push({
-      priority: 2, category: 'artifacts',
-      title: 'Monter Pickaxe Damage per Statue (T4)',
-      reason: `Niveau actuel ${aStatue}/${capOf('statue_dmg')} : meilleur multiplicateur long terme (+10%/niv × statues possédées).`,
-      confidence: 'probable', // dépend aussi des statues possédées (questionnaire)
-      requirements:[{ resource:`Artefact niveau`, current:aStatue, required:capOf('statue_dmg') }],
-      progress: aStatue / capOf('statue_dmg'),
-      source: 'wiki Prestige/Costs Tier 4',
+      priority: 6, category: 'prestige',
+      title: 'Renseigner tes artefacts (menu Prestige)',
+      reason: 'L\'export donne les caps (+' + (stats.artifact_cap_increase ?? '?') + ' / T4 +' + (stats.artifact_tier4_cap_increase ?? '?') + ') mais pas les niveaux. Note-les sous Prestige pour prioriser les PP.',
+      confidence: 'insufficient',
+      source: SOURCES.wiki_prestige,
     });
+  } else {
+    const capStatue = capOf('statue_dmg') + (stats.artifact_tier4_cap_increase ?? 0);
+    const capArmor = capOf('armorred') + (stats.artifact_cap_increase ?? 0);
+    if (aStatue > 0 && aStatue < capStatue) {
+      recs.push({
+        priority: 3, category: 'artifacts',
+        title: 'Continuer Pickaxe Damage per Statue (T4)',
+        reason: `Niveau ${aStatue}/${capStatue} (+10%/niv × statues). Fort levier long terme.`,
+        confidence: 'confirmed',
+        progress: aStatue / capStatue,
+        source: SOURCES.wiki_prestige,
+      });
+    }
+    if (aArmor > 0 && aArmor < capArmor) {
+      recs.push({
+        priority: 4, category: 'artifacts',
+        title: 'Continuer Obelisk Armor Reduction (T3)',
+        reason: `Niveau ${aArmor}/${capArmor}. Export : −${(armorRed * 100).toFixed(0)}% armure déjà actifs.`,
+        confidence: 'confirmed',
+        progress: aArmor / capArmor,
+        source: SOURCES.wiki_prestige,
+      });
+    }
+    if (aPick3 > 0 && aPick3 < capOf('pick_t3') + (stats.artifact_cap_increase ?? 0)) {
+      recs.push({
+        priority: 5, category: 'artifacts',
+        title: 'Pickaxe Damage T3',
+        reason: `Niveau ${aPick3}. Utile si tu pousses encore des Obelisks.`,
+        confidence: 'probable',
+        source: SOURCES.wiki_prestige,
+      });
+    }
   }
-  if (aArmor != null && aArmor < capOf('armorred')) {
+
+  /* R4 : skills — collections ; Stonks déductible de l'export */
+  const skillTouched = SKILLS.some(k => hasSkill(col, k.id));
+  if (skillTouched) {
+    const missing = SKILLS.filter(k => k.sTier && !hasSkill(col, k.id) && !(k.id === 'stonks' && profile.hasStonks))
+      .map(k => k.name);
+    if (missing.length) {
+      recs.push({
+        priority: 4, category: 'skills',
+        title: 'Skills S-Tier manquants',
+        reason: missing.join(', '),
+        confidence: 'confirmed',
+        source: SOURCES.wiki_skilltree,
+      });
+    }
+  } else if (!profile.hasStonks) {
     recs.push({
-      priority: 3, category: 'artifacts',
-      title: 'Continuer Obelisk Armor Reduction (T3)',
-      reason: `Niveau ${aArmor}/${capOf('armorred')} (-2%/niv). Chaque niveau réduit l'armure à percer sur tous les futurs Obelisks.`,
-      confidence: 'confirmed',
-      requirements:[{ resource:'Niveau artefact', current:aArmor, required:capOf('armorred') }],
-      progress: aArmor / capOf('armorred'),
-      source: 'wiki Prestige/Costs Tier 3',
+      priority: 7, category: 'skills',
+      title: 'Vérifier les skills S-Tier',
+      reason: 'Coche ce que tu as dans Skill-Tree (Gem Bomb, Auto-Bomber, Free?, Stonks). L\'export ne liste pas les skills.',
+      confidence: 'insufficient',
+      source: SOURCES.wiki_skilltree,
     });
   }
 
-  /* ---------- R4 : skills S-Tier manquants ---------- */
-  const missingSkills = SKILLS.filter(k => k.sTier && profile.answers?.[skillKey(k.id)] !== true)
-                              .map(k => k.name);
-  if (missingSkills.length) {
-    recs.push({
-      priority: 4, category: 'skills',
-      title: 'Acquérir les skills S-Tier manquants',
-      reason: `Manquants d'après ton profil : ${missingSkills.join(', ')}.`,
-      confidence: Object.values(profile.answers||{}).some((v,k)=>String(k).startsWith('sk_')) ? 'confirmed' : 'insufficient',
-      needsAnswers: ['skills_sTier'],
-      source: 'wiki Skill-Tree (stratégie)',
-    });
-  }
-
-  /* ---------- R5 : Monument W4 si pas construit ---------- */
-  if (ob >= 64 && profile.answers?.monument_w4 === false) {
+  /* R5 : Monument / statues W4 depuis export */
+  const mon4 = col.monuments?.[4] ?? profile.monuments?.[4] ?? profile.w4Open;
+  const w4StatuesBuilt = countWorldStatues(col, profile, 4, 1);
+  if (ob >= 64 && !mon4 && !profile.w4Open) {
     recs.push({
       priority: 2, category: 'construct',
       title: 'Construire le Monument World 4',
-      reason: 'Débloqué à OB64 : ouvre le Monde 4 (floors 103-132), nouvelles statues, upgrades Workshop W4.',
+      reason: 'OB64 atteint, aucune statue W4 / signal Prismatic dans l\'export. Coût : 1M gemmes + veines Industrial / Warfront / Neon.',
       confidence: 'confirmed',
       requirements: KB_MONUMENT_W4_REQ(),
-      source: 'wiki Construct/Monuments',
+      source: SOURCES.wiki_construct,
+    });
+  } else if (ob >= 64 && (mon4 || profile.w4Open) && w4StatuesBuilt < 9) {
+    recs.push({
+      priority: 2, category: 'construct',
+      title: `Construire les statues World 4 (${w4StatuesBuilt}/9)`,
+      reason: 'W4 ouvert : priorise les 9 statues (ordre aléatoire). Ne gilde qu\'après les 9 construites.',
+      confidence: 'confirmed',
+      progress: w4StatuesBuilt / 9,
+      source: SOURCES.wiki_construct,
     });
   }
 
-  /* ---------- R6 : après OB65/66/70 ---------- */
-  if (ob >= 64) {
+  /* R6 : W1/W3 plat OK → focus late-game utile */
+  const w1Plat = countWorldStatues(col, profile, 1, 3);
+  const w3Plat = countWorldStatues(col, profile, 3, 3);
+  if (w1Plat >= 9 && w3Plat >= 9 && ob >= 64) {
+    recs.push({
+      priority: 3, category: 'roadmap',
+      title: 'Late OB64 : W4 + farming',
+      reason: 'W1 et W3 sont platinisés. Enchaîne Monument W4 (si pas fait), veines W4, puis OB66 (Arch Ascension) / OB70 (Arcanist).',
+      confidence: 'confirmed',
+      source: SOURCES.wiki_progression,
+    });
+  }
+
+  /* R7 : lootfrogs — big/massive à 0 alors que frogs farmés */
+  if ((stats.lootfrogs_caught ?? 0) > 100 && (stats.lootfrog_big_chance ?? 0) === 0) {
+    recs.push({
+      priority: 6, category: 'lootfrogs',
+      title: 'Débloquer Big / Massive Lootfrogs',
+      reason: `${Math.round(stats.lootfrogs_caught)} frogs catchés, big/massive chance à 0. Suit le guide Progression (Blackhole → Lootfrogs).`,
+      confidence: 'probable',
+      source: SOURCES.wiki_progression,
+    });
+  }
+
+  /* R8 : horizon OB66/70 — une seule fois, priorité basse */
+  if (ob >= 64 && ob < 66) {
     recs.push({
       priority: 8, category: 'roadmap',
-      title: 'Préparer OB66 → Archaeology Ascension',
-      reason: 'OB66 déblocque Arch Ascension + Lootfrog Loot Multi ; OB70 ouvre l\'Arcanist.',
+      title: 'Objectif suivant : OB66',
+      reason: 'Archaeology Ascension + Lootfrog Loot Multi. OB70 = Arcanist + Minotaur.',
       confidence: 'confirmed',
-      source: 'wiki Obelisk/Unlocks',
+      source: SOURCES.wiki_obelisk,
+    });
+  } else if (ob >= 66 && ob < 70) {
+    recs.push({
+      priority: 8, category: 'roadmap',
+      title: 'Objectif suivant : OB70 Arcanist',
+      reason: 'Débloque Arcanist et le suit Minotaur.',
+      confidence: 'confirmed',
+      source: SOURCES.wiki_obelisk,
     });
   }
 
-  return recs.sort((a,b)=>a.priority-b.priority);
+  return recs.sort((a, b) => a.priority - b.priority);
 }
 
-/* ---------- helpers ---------- */
-const S_WIKI_OBELISK = SOURCES.wiki_obelisk;
-function capOf(id){ const a=ARTIFACTS.find(x=>x.id===id); return a ? a.maxBase : Infinity; }
-function skillKey(id){ return 'sk_'+id.replace(/^sk_/,''); } // sk_gem_bomb -> gem_bomb key mapping
-function numOrNull(v){ return (v===''||v==null) ? null : Math.max(0,+v)||0; }
-function fmt(n){
-  if(!isFinite(n))return '—';
-  const u=['','k','m','b','t','q','qi','sx','sp','oc','no','dc'];
-  const i=Math.min(Math.floor(Math.log10(Math.abs(n))/3),u.length-1);
-  return i<=0?Math.round(n).toString():(n/Math.pow(1e3,i)).toFixed(2)+u[i];
+function countWorldStatues(col, profile, world, minState) {
+  const fromExport = profile.statueStates || {};
+  const range = world === 1 ? [1, 9] : world === 3 ? [10, 18] : [19, 27];
+  let n = 0;
+  for (let num = range[0]; num <= range[1]; num++) {
+    const st = col.statueStates?.[num] ?? fromExport[num] ?? getStatueState(col, num);
+    if (st >= minState) n++;
+  }
+  return n;
 }
-function insufficientRec(title,reason,gaps){
-  return { priority:0, category:'profile', title, reason, confidence:'insufficient', needsAnswers:gaps };
+
+function capOf(id) {
+  const a = ARTIFACTS.find(x => x.id === id);
+  return a ? a.maxBase : Infinity;
 }
-function insufficientProfile(missing){ 
-  return { priority:0, category:'profile', title:'Profil incomplet',
-    reason:`Information manquante : ${missing}. Réponds aux questions pour activer l'analyse.`,
-    confidence:'insufficient' }; }
-function KB_MONUMENT_W4_REQ(){
+function fmt(n) {
+  if (!isFinite(n)) return '—';
+  const u = ['', 'k', 'm', 'b', 't', 'q', 'qi', 'sx', 'sp', 'oc', 'no', 'dc', 'udc', 'ddc'];
+  const i = Math.min(Math.floor(Math.log10(Math.abs(n)) / 3), u.length - 1);
+  return i <= 0 ? Math.round(n).toString() : (n / Math.pow(1e3, i)).toFixed(2) + u[i];
+}
+function insufficientProfile(missing) {
+  return {
+    priority: 0, category: 'profile', title: 'Profil incomplet',
+    reason: `Information manquante : ${missing}.`,
+    confidence: 'insufficient',
+  };
+}
+function KB_MONUMENT_W4_REQ() {
   return [
-    { resource:'Gemmes', required:1e6 },
-    { resource:'Industrial Veins', required:1e15 },
-    { resource:'Warfront Veins',  required:1e15 },
-    { resource:'Neon Veins',      required:1e15 },
+    { resource: 'Gemmes', required: 1e6 },
+    { resource: 'Industrial Veins', required: 1e15 },
+    { resource: 'Warfront Veins', required: 1e15 },
+    { resource: 'Neon Veins', required: 1e15 },
   ];
 }

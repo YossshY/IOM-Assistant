@@ -168,7 +168,6 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
       <div class="menu-btn" data-go="prestige"><span class="ic"><img src="assets/menu/Prestige_Button.png" alt=""></span><span class="lb">Prestige</span></div>
       <div class="menu-btn" data-go="cards"><span class="ic"><img src="assets/menu/Cards_Button.png" alt=""></span><span class="lb">Cards</span></div>
       <div class="menu-btn" data-go="pets"><span class="ic"><img src="assets/menu/Pets_Button.png" alt=""></span><span class="lb">Pets</span></div>
-      <div class="menu-btn" data-go="artifacts"><span class="ic">🏺</span><span class="lb">Artefacts</span></div>
       <div class="menu-btn" data-go="skills"><span class="ic"><img src="assets/menu/Skill-Tree_Button.png" alt=""></span><span class="lb">Skill-Tree</span></div>
       <div class="menu-btn" data-go="construct"><span class="ic"><img src="assets/menu/Construct_Button_Gilded.png" alt=""></span><span class="lb">Construct</span></div>
       <div class="menu-btn" data-go="stars"><span class="ic"><img src="assets/menu/Stargazing_Button.png" alt=""></span><span class="lb">Stargazing</span></div>
@@ -229,9 +228,13 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
   <p class="muted">Total niveaux requis pour débloquer le suivant. Skins : -15 à -30% de coût de level up + bonus (ex : Not A Duck = armure Obelisk -10%).</p></div>
 </section>
 
-<!-- ARTEFACTS -->
-<section id="page-artifacts" class="page hidden">
-  <div class="panel"><h2>Artefacts Prestige — niveaux actuels</h2><div class="artgrid" id="artGrid"></div></div>
+<!-- PRESTIGE (= artefacts, comme dans le jeu) -->
+<section id="page-prestige" class="page hidden">
+  <div class="panel">
+    <h2>Prestige — Artefacts</h2>
+    <p class="muted">Comme dans le jeu : les artefacts se notent ici. L'export donne les caps, pas les niveaux — renseigne-les pour le coach.</p>
+    <div class="artgrid" id="artGrid"></div>
+  </div>
 </section>
 
 <!-- SKILLS -->
@@ -242,7 +245,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- CONSTRUCT -->
 <section id="page-construct" class="page hidden">
   <div class="panel"><h2>Construct — Statues</h2>
-    <p class="muted">Note tes statues possédées par monde. W3/W4 : noms à confirmer — champ libre pour l'instant.</p>
+    <p class="muted">Remplies automatiquement depuis exportstats (statue_N_set1/2/3 = W1/W3/W4). Clic pour corriger.</p>
     <div id="statueList"></div></div>
   <div class="panel"><h2>Monuments</h2><div id="monumentList"></div></div>
 </section>

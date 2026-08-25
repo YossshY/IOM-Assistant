@@ -1,13 +1,13 @@
 /* ============================================================
    statsParser.js — Parsing dynamique de exportstats
-   Aucune structure rigide : les clés inconnues sont conservées
-   et signalées (support des futures versions du jeu).
    ============================================================ */
-import { ALL_KNOWN_KEYS, STATS_CATALOG, GAME_VERSIONS, LATEST_KNOWN_VERSION } from './knowledgeBase.js';
+import {
+  ALL_KNOWN_KEYS, STATS_CATALOG, GAME_VERSIONS, LATEST_KNOWN_VERSION,
+  PRESTIGE, STATUE_EXPORT, OBELISK,
+} from './knowledgeBase.js';
 
 /**
  * parseExportStats(rawText) -> { ok, version, stats, unknownKeys, categorized, error }
- * Ne jette rien : tout est conservé.
  */
 export function parseExportStats(rawText) {
   let raw;
@@ -20,11 +20,9 @@ export function parseExportStats(rawText) {
   const version = typeof raw.version === 'string' ? raw.version : 'inconnue';
   const stats = raw.stats;
 
-  // Détection des clés inconnues (nouvelles stats d'une future version)
   const knownKeys = Object.keys(stats);
   const unknownKeys = knownKeys.filter(k => !ALL_KNOWN_KEYS.has(k));
 
-  // Catégorisation pour l'affichage ; le reste va dans "autres"
   const categorized = {};
   for (const [cat, map] of Object.entries(STATS_CATALOG)) {
     categorized[cat] = {};
@@ -33,7 +31,6 @@ export function parseExportStats(rawText) {
   categorized.autres = {};
   for (const k of unknownKeys) categorized.autres[k] = stats[k];
 
-  // Statistiques réellement nouvelles par rapport à notre base de connaissances
   const versionKnown = !!GAME_VERSIONS[version];
 
   return {
@@ -51,7 +48,6 @@ export function parseExportStats(rawText) {
   };
 }
 
-/** Compare "v2.2.10" vs "v2.2.6" numériquement. Retourne >0 / 0 / <0. */
 export function compareVersions(a, b) {
   const pa = a.replace(/^v/, '').split('.').map(Number);
   const pb = b.replace(/^v/, '').split('.').map(Number);
@@ -62,21 +58,69 @@ export function compareVersions(a, b) {
   return 0;
 }
 
-/** Dérivations sûres à partir des stats brutes (jamais d'invention :
-    si la clé manque, la valeur dérivée est null). */
+/**
+ * statue_{0-8}_set{1|2|3} → { num:1-27, state:0-3 }
+ * set1=W1 (1-9), set2=W3 (10-18), set3=W4 (19-27)
+ */
+export function parseStatuesFromStats(stats) {
+  const out = {};
+  for (let i = 0; i < 9; i++) {
+    for (const set of [1, 2, 3]) {
+      const key = `statue_${i}_set${set}`;
+      if (!(key in stats)) continue;
+      const num = STATUE_EXPORT.numFrom(i, set);
+      out[num] = Math.max(0, Math.min(3, Math.round(+stats[key] || 0)));
+    }
+  }
+  return out;
+}
+
+/** Infère monuments / monde max depuis l'export (sans inventer de niveaux artefacts). */
+export function inferWorldProgress(stats, statueStates) {
+  const hasW3Statue = Object.entries(statueStates).some(([n, st]) => +n >= 10 && +n <= 18 && st >= 1);
+  const hasW4Statue = Object.entries(statueStates).some(([n, st]) => +n >= 19 && st >= 1);
+  const w4Signal = hasW4Statue
+    || (stats.prismatic_floor_chance ?? 0) > 0
+    || (stats.prism_fuel_grade ?? 0) > 0
+    || stats.is_drone_prism_equipped === true;
+
+  const monuments = {
+    2: hasW3Statue || (stats.rainbow_floor_chance ?? 0) > 0 || (stats.fishing_rod_power ?? 0) > 0,
+    3: hasW3Statue || (stats.galactic_floor_chance ?? 0) > 0,
+    4: w4Signal,
+  };
+  let maxWorld = 1;
+  if (monuments[2]) maxWorld = 2;
+  if (monuments[3]) maxWorld = 3;
+  if (monuments[4]) maxWorld = 4;
+  return { monuments, maxWorld, w4Open: !!w4Signal };
+}
+
 export function deriveProfile(parsed) {
   const s = parsed.stats;
   const cap = s.xp_level_cap ?? null;
+  const ob = cap != null ? PRESTIGE.obeliskFromCap(cap) : null;
+  const armorRed = s.obelisk_armor_reduction ?? 0;
+  const pick = s.pickaxe_damage ?? null;
+  const nextArmor = ob != null ? OBELISK.effectiveArmor(ob + 1, armorRed) : null;
+  const statueStates = parseStatuesFromStats(s);
+  const worlds = inferWorldProgress(s, statueStates);
+
   return {
     version: parsed.version,
-    obeliskLevel: cap != null ? PRESTIGE_SAFE.obeliskFromCap(cap) : null,
+    obeliskLevel: ob,
     xpLevelCap: cap,
-    pickaxeDamage: s.pickaxe_damage ?? null,
+    pickaxeDamage: pick,
     bombDamage: s.bomb_damage ?? null,
     ppMulti: s.prestige_point_multi ?? null,
-    armorReduction: s.obelisk_armor_reduction ?? null,
-    playtimeHours: parsed.playtimeSeconds != null ? +(parsed.playtimeSeconds/3600).toFixed(1) : null,
+    armorReduction: armorRed,
+    nextObeliskArmor: nextArmor,
+    canDamageNext: pick != null && nextArmor != null ? pick > nextArmor : null,
+    playtimeHours: parsed.playtimeSeconds != null ? +(parsed.playtimeSeconds / 3600).toFixed(1) : null,
+    statueStates,
+    monuments: worlds.monuments,
+    maxWorld: worlds.maxWorld,
+    w4Open: worlds.w4Open,
+    hasStonks: (s.stonks_chance ?? 0) > 0,
   };
 }
-// import tardif évitant la dépendance circulaire à l'exécution
-import { PRESTIGE as PRESTIGE_SAFE } from './knowledgeBase.js';

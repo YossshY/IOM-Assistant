@@ -64,3 +64,10 @@ export function cardCounts(col){
   }
   return {owned,gilded,poly,infernal};
 }
+
+/** Applique statues + monuments dérivés de l'export (écrase les états statue). */
+export function applyExportProgress(col, profile){
+  col.statueStates = { ...(profile.statueStates || {}) };
+  col.monuments = { ...(col.monuments || {}), ...(profile.monuments || {}) };
+  return col;
+}

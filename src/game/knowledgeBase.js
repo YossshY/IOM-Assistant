@@ -1,11 +1,6 @@
 /* ============================================================
    knowledgeBase.js — Base de connaissances Idle Obelisk Miner
-   ------------------------------------------------------------
-   Source : wiki officiel (shminer.miraheze.org, v2.2.6) + outils
-   communautaires. Toutes les données du jeu vivent ICI, jamais
-   dans les composants. Structure pensée pour être étendue :
-   - ajouter une entrée dans un registre = nouvelle connaissance
-   - les moteurs lisent KB, ne codent rien en dur
+   Source : wiki officiel (shminer.miraheze.org, v2.2.6) + EXPORTSTATS réel.
    ============================================================ */
 
 export const GAME_VERSIONS = {
@@ -16,21 +11,28 @@ export const GAME_VERSIONS = {
 export const LATEST_KNOWN_VERSION = 'v2.2.6';
 
 /* ---------- Obelisk : armure & santé (wiki "Obelisk") ----------
-   OB1..OB60  : armure ×2.8 / niveau ; santé ×2.8 / niveau
-   OB61+      : armure ×9.5 / niveau ; santé ×30 / niveau
-   (saut combiné à OB61) */
+   OB1 exception : half expected → round(5 * 2.8^(L-1)) via special case.
+   OB1..OB60  : armure/santé ×2.8 / niveau
+   OB61+      : armure ×9.5 ; santé ×30 (saut combiné à OB61) */
 export const OBELISK = {
-  armorBefore61: l => Math.round(10 * Math.pow(2.8, l - 1)),
-  armorAfter60:  l => Math.round(10 * Math.pow(2.8, 60) * Math.pow(9.5, l - 60)),
-  healthBefore61:l => Math.round(1e5 * Math.pow(2.8, l - 1)),
-  healthAfter60: l => Math.round(1e5 * Math.pow(2.8, 59) * Math.pow(30, l - 59)),
+  armorBefore61(l) {
+    if (l <= 1) return 5;
+    return Math.round(10 * Math.pow(2.8, l - 1));
+  },
+  armorAfter60: l => Math.round(10 * Math.pow(2.8, 60) * Math.pow(9.5, l - 60)),
+  healthBefore61: l => Math.round(1e5 * Math.pow(2.8, l - 1)),
+  healthAfter60: l => Math.round(1e5 * Math.pow(2.8, 60) * Math.pow(30, l - 60)),
   armor(level)  { return level <= 60 ? this.armorBefore61(level)  : this.armorAfter60(level); },
   health(level) { return level <= 60 ? this.healthBefore61(level) : this.healthAfter60(level); },
+  /** Armure effective après réduction (export: 0.12 = −12 %). */
+  effectiveArmor(level, reduction = 0) {
+    const r = Math.min(0.95, Math.max(0, Number(reduction) || 0));
+    return this.armor(level) * (1 - r);
+  },
 };
 
 /* ---------- Prestige (wiki "Prestige") ---------- */
 export const PRESTIGE = {
-  // PP sous/niveau 200 et au-dessus
   points(level, gainMulti = 1) {
     let v = 12 * Math.pow(1.084, level - 10);
     if (level > 200) v *= 1 + 0.05 * (level - 200);
@@ -41,7 +43,7 @@ export const PRESTIGE = {
   minLevelToPrestige: 20,
 };
 
-/* ---------- Artefacts par tier (wiki "Prestige/Costs") ---------- */
+/* ---------- Artefacts par tier (wiki "Prestige/Costs") — liste partielle OK pour coach ---------- */
 export const ARTIFACTS = [
   { id:'pick_t1',  tier:1, name:'Pickaxe Damage',              bonus:'+10%/niv', maxBase:32 },
   { id:'xp_t1',    tier:1, name:'Experience Gain Multiplier',  bonus:'+10%/niv', maxBase:27 },
@@ -56,17 +58,16 @@ export const ARTIFACTS = [
   { id:'barout',   tier:4, name:'Bar Output Multiplier',       bonus:'+0.40%/niv', maxBase:37, unlockOb:19 },
 ];
 
-/* ---------- Skill Tree (wiki "Skill-Tree") ---------- */
+/* ---------- Skill Tree — S-Tier wiki + quelques clés ---------- */
 export const SKILLS = [
   { id:'gem_bomb',   name:'Gem Bomb',                  cost:5,  sTier:true },
   { id:'auto_bomber',name:'Auto-Bomber',               cost:10, sTier:true },
-  { id:'free_price', name:"Free? That's a great price",cost:0,  sTier:true },
-  { id:'stonks',     name:'Stonks',                    cost:0,  sTier:true },
+  { id:'free_price', name:"Free? That's a great price",cost:12, sTier:true },
+  { id:'stonks',     name:'Stonks',                    cost:22, sTier:true },
   { id:'easy_prog',  name:'Easy Progressor',           cost:3 },
-  { id:'auto_prestige',name:'Take It Back Now Yall',   cost:0 },
+  { id:'auto_prestige',name:'Take It Back Now Yall',   cost:65 },
 ];
 
-/* ---------- Déblocages par niveau d'Obelisk (wiki "Obelisk/Unlocks") ---------- */
 export const OBELISK_UNLOCKS = [
   { ob:1,  feature:'Workshop' },        { ob:2,  feature:'Drones' },
   { ob:4,  feature:'Skill-Tree' },      { ob:10, feature:'Challenges' },
@@ -79,50 +80,41 @@ export const OBELISK_UNLOCKS = [
   { ob:66, feature:'Archaeology Ascension' }, { ob:70, feature:'Arcanist' },
 ];
 
-/* ---------- Monuments / Mondes (wiki "Construct") ---------- */
 export const WORLDS = [
-  { world:1, monumentOb:null, bars:['Adamant','Runite'] },
-  { world:2, monumentOb:21 },
+  { world:1, monumentOb:null },
+  { world:2, monumentOb:null },
   { world:3, monumentOb:42 },
   { world:4, monumentOb:64, cost:{ gems:1e6, veins:['Industrial','Warfront','Neon'] } },
 ];
 
-/* ---------- Statues (wiki "Construct") — noms réels W3/W4.
-   NOTE v1 : liste partielle, à compléter depuis la page wiki Statues. ---------- */
-export const STATUES = {
-  W1: ['Pickaxe Damage','Bomb Damage','Ore Income','Experience','Crit Chance','Bar Output'],
-  W2: ['Golden Vein Chance','Vein Spawn Rate','Void Portal Chance','Star Spawn Rate','Contract Points','Ores Per Screen'],
-  // W3 : noms à confirmer via le wiki avant d'afficher des choix nommés au joueur.
-  W3: null,
-  W4: null,
+/* Statues détail : statuesData.js. Export : statue_{0-8}_set{1|2|3} → W1/W3/W4. */
+export const STATUE_EXPORT = {
+  /** set index dans exportstats → monde Construct */
+  setToWorld: { 1:1, 2:3, 3:4 },
+  /** numéro wiki (1-27) depuis index 0-8 + set */
+  numFrom(index, set) {
+    const base = { 1:1, 2:10, 3:19 }[set];
+    return base + index;
+  },
 };
 
-/* ---------- Drones (wiki "Drones") ---------- */
 export const DRONES = [
-  { id:'basic',     suit:'Basic',     fuelKey:'is_drone_basic_equipped' },
-  { id:'bear',      suit:'Bear',      fuelKey:'is_drone_bear_equipped',      gradeKey:'bear_fuel_grade' },
-  { id:'chain',     suit:'Chain',     fuelKey:'is_drone_chain_equipped',     gradeKey:'chain_fuel_grade' },
-  { id:'angler',    suit:'Angler',    fuelKey:'is_drone_angler_equipped',    gradeKey:'angler_fuel_grade',  unlockOb:37 },
-  { id:'midas',     suit:'Midas',     fuelKey:'is_drone_midas_equipped',     gradeKey:'midas_fuel_grade',   unlockOb:6 },
-  { id:'minotaur',  suit:'Minotaur',  fuelKey:'is_drone_minotaur_equipped',  gradeKey:'minotaur_fuel_grade',unlockOb:70 },
-  { id:'prism',     suit:'Prism',     fuelKey:'is_drone_prism_equipped',     gradeKey:'prism_fuel_grade',   unlockOb:64 },
-  { id:'starburst', suit:'Starburst', fuelKey:'is_drone_starburst_equipped', gradeKey:'starburst_fuel_grade'},
-  { id:'elixir',    suit:'Elixir',    fuelKey:'is_drone_elixir_equipped',    gradeKey:'elixir_fuel_grade' },
-  { id:'frogger',   suit:'Frogger',   fuelKey:'is_drone_frogger_equipped',   gradeKey:'frogger_fuel_grade', unlockOb:8 },
-  { id:'veinseeker',suit:'Veinseeker',fuelKey:'is_drone_veinseeker_equipped',gradeKey:'veinseeker_fuel_grade', unlockOb:19 },
-  { id:'void',      suit:'Void',      fuelKey:'is_drone_void_equipped',      gradeKey:'void_fuel_grade',    unlockOb:23 },
+  { id:'basic',     suit:'Basic',     equipKey:'is_drone_basic_equipped',     fueledKey:'is_drone_basic_equipped_and_fueled' },
+  { id:'bear',      suit:'Bear',      equipKey:'is_drone_bear_equipped',      fueledKey:'is_drone_bear_equipped_and_fueled',      gradeKey:'bear_fuel_grade' },
+  { id:'chain',     suit:'Chain',     equipKey:'is_drone_chain_equipped',     fueledKey:'is_drone_chain_equipped_and_fueled',     gradeKey:'chain_fuel_grade' },
+  { id:'angler',    suit:'Angler',    equipKey:'is_drone_angler_equipped',    fueledKey:'is_drone_angler_equipped_and_fueled',    gradeKey:'angler_fuel_grade',  unlockOb:37 },
+  { id:'midas',     suit:'Midas',     equipKey:'is_drone_midas_equipped',     fueledKey:'is_drone_midas_equipped_and_fueled',     gradeKey:'midas_fuel_grade',   unlockOb:6 },
+  { id:'minotaur',  suit:'Minotaur',  equipKey:'is_drone_minotaur_equipped',  fueledKey:'is_drone_minotaur_equipped_and_fueled',  gradeKey:'minotaur_fuel_grade',unlockOb:70 },
+  { id:'prism',     suit:'Prism',     equipKey:'is_drone_prism_equipped',     fueledKey:'is_drone_prism_equipped_and_fueled',     gradeKey:'prism_fuel_grade',   unlockOb:64 },
+  { id:'starburst', suit:'Starburst', equipKey:'is_drone_starburst_equipped', fueledKey:'is_drone_starburst_equipped_and_fueled', gradeKey:'starburst_fuel_grade'},
+  { id:'elixir',    suit:'Elixir',    equipKey:'is_drone_elixir_equipped',    fueledKey:'is_drone_elixir_equipped_and_fueled',    gradeKey:'elixir_fuel_grade' },
+  { id:'frogger',   suit:'Frogger',   equipKey:'is_drone_frogger_equipped',   fueledKey:'is_drone_frogger_equipped_and_fueled',   gradeKey:'frogger_fuel_grade', unlockOb:8 },
+  { id:'veinseeker',suit:'Veinseeker',equipKey:'is_drone_veinseeker_equipped',fueledKey:'is_drone_veinseeker_equipped_and_fueled',gradeKey:'veinseeker_fuel_grade', unlockOb:19 },
+  { id:'void',      suit:'Void',      equipKey:'is_drone_void_equipped',      fueledKey:'is_drone_void_equipped_and_fueled',      gradeKey:'void_fuel_grade',    unlockOb:23 },
 ];
 
-/* ---------- Ores / floors de farming (structure pour Best Farming Floor).
-   Les données communautaires (Google Sheet "Best Farming Floor") seront
-   importées ici au format JSON : floorData[ore] = [{floor, rate}]. ---------- */
 export const FARMING = {
-  // floors par monde selon le wiki "Floors" (zones)
-  worlds: {
-    1: [1,42], 2: [43,72], 3: [73,102], 4: [103,132],
-  },
-  // bestFloorData[oreName] = { floor:number, source:string }
-  // Rempli dynamiquement par farmingAnalyzer quand une source est chargée.
+  worlds: { 1:[1,42], 2:[43,72], 3:[73,102], 4:[103,132] },
   bestFloorData: {},
   registerSource(name, data) {
     Object.assign(this.bestFloorData, data);
@@ -131,47 +123,172 @@ export const FARMING = {
   },
 };
 
-/* ---------- Clés exportstats connues, groupées par catégorie.
-   Sert à : détecter les stats inconnues (nouvelles versions),
-   catégoriser l'affichage, et documenter ce que chaque clé signifie. ---------- */
+/* Catalogue aligné sur un EXPORTSTATS v2.2.6 réel */
 export const STATS_CATALOG = {
   damage: {
     pickaxe_damage:'Dégâts pioche', bomb_damage:'Dégâts bombes',
-    pickaxe_crit_chance:'Pioche crit %', pickaxe_super_crit_chance:'Super crit %',
-    pickaxe_omega_crit_chance:'Omega crit %', pickaxe_radius_percent:'Rayon pioche %',
-    pickaxe_attack_speed_per_second:'Attaques/s',
+    pickaxe_crit_chance:'Pioche crit %', pickaxe_crit_damage:'Pioche crit dmg',
+    pickaxe_super_crit_chance:'Super crit %', pickaxe_super_crit_damage:'Super crit dmg',
+    pickaxe_ultra_crit_chance:'Ultra crit %', pickaxe_ultra_crit_damage:'Ultra crit dmg',
+    pickaxe_omega_crit_chance:'Omega crit %', pickaxe_omega_crit_damage:'Omega crit dmg',
+    pickaxe_radius_percent:'Rayon pioche %', pickaxe_attack_speed_per_second:'Attaques/s',
   },
   prestige: {
-    prestige_point_multi:'Multiplicateur PP', experience_multi:'Multiplicateur XP',
-    xp_level_cap:'Cap de niveau', floor_clear_requirement_multi:'Exigence de fin d\'étage (multi)',
+    prestige_point_multi:'Multi PP', experience_multi:'Multi XP',
+    xp_level_cap:'Cap de niveau', floor_clear_requirement_multi:'Exigence étage',
+    artifact_cap_increase:'Cap artefacts +', artifact_tier4_cap_increase:'Cap T4 +',
   },
   bombs: {
-    bomb_capacity:'Capacité bombes', bomb_recharge_speed:'Recharge bombes',
-    bomb_free_chance:'Bombes gratuites %',
+    bomb_capacity:'Capacité bombes', bomb_cap_multiplier:'Multi cap bombes',
+    bomb_recharge_speed:'Recharge bombes', bomb_free_chance:'Bombes gratuites %',
+    bomb_crit_chance:'Bomb crit %', bomb_crit_damage:'Bomb crit dmg',
+    bomb_super_crit_chance:'Bomb super crit %', bomb_super_crit_damage:'Bomb super crit dmg',
+    bomb_ultra_crit_chance:'Bomb ultra crit %', bomb_ultra_crit_damage:'Bomb ultra crit dmg',
+    bomb_omega_crit_chance:'Bomb omega crit %', bomb_omega_crit_damage:'Bomb omega crit dmg',
+    bomb_of_plenty_multi:'Bomb of Plenty multi', bomb_of_plenty_make_gold_chance:'BoP gold %',
+    bomb_transmuter_multi:'Transmuter multi', bomb_trans_apply_bop_chance:'Trans→BoP %',
+    bomb_cherry3x_chance:'Cherry 3x %', bomb_additional_multiplier:'Bomb multi add.',
+    bomb_battery_cap_increases:'Battery cap increases', bomb_workshop_cap_increase:'Workshop bomb cap +',
   },
   drones: {
-    drone_count:'Nombre de drones',
+    drone_count:'Nombre de drones', drone_suit_cap:'Cap suits',
+    drone_damage_percent:'Drone dmg %', drone_attack_speed_percent:'Drone atk speed %',
+    drone_movespeed_percent:'Drone move %', drone_radius_percent:'Drone radius %',
+    drone_rapid_fire_chance:'Rapid fire %', drone_triple_damage_chance:'Triple dmg %',
+    coal_drone_exp_multi:'Drone exp multi', coal_fuel_duration_multi:'Fuel duration multi',
+    coal_fuel_save_chance:'Fuel save %', coal_capacity_multi:'Coal cap multi',
+    coal_generation_seconds:'Coal gen (s)',
+    bear_fuel_grade:'Bear grade', chain_fuel_grade:'Chain grade', midas_fuel_grade:'Midas grade',
+    frogger_fuel_grade:'Frogger grade', veinseeker_fuel_grade:'Veinseeker grade',
+    starburst_fuel_grade:'Starburst grade', elixir_fuel_grade:'Elixir grade',
+    void_fuel_grade:'Void grade', angler_fuel_grade:'Angler grade',
+    prism_fuel_grade:'Prism grade', minotaur_fuel_grade:'Minotaur grade',
+    elixir_crit_chance:'Elixir crit %', elixir_crit_multi:'Elixir crit multi',
+    is_drone_basic_equipped:'Basic équipé',
+    is_drone_bear_equipped:'Bear équipé', is_drone_bear_equipped_and_fueled:'Bear fuelé',
+    is_drone_chain_equipped:'Chain équipé', is_drone_chain_equipped_and_fueled:'Chain fuelé',
+    is_drone_midas_equipped:'Midas équipé', is_drone_midas_equipped_and_fueled:'Midas fuelé',
+    is_drone_frogger_equipped:'Frogger équipé', is_drone_frogger_equipped_and_fueled:'Frogger fuelé',
+    is_drone_veinseeker_equipped:'Veinseeker équipé', is_drone_veinseeker_equipped_and_fueled:'Veinseeker fuelé',
+    is_drone_starburst_equipped:'Starburst équipé', is_drone_starburst_equipped_and_fueled:'Starburst fuelé',
+    is_drone_elixir_equipped:'Elixir équipé', is_drone_elixir_equipped_and_fueled:'Elixir fuelé',
+    is_drone_void_equipped:'Void équipé', is_drone_void_equipped_and_fueled:'Void fuelé',
+    is_drone_angler_equipped:'Angler équipé', is_drone_angler_equipped_and_fueled:'Angler fuelé',
+    is_drone_prism_equipped:'Prism équipé', is_drone_prism_equipped_and_fueled:'Prism fuelé',
+    is_drone_minotaur_equipped:'Minotaur équipé', is_drone_minotaur_equipped_and_fueled:'Minotaur fuelé',
   },
   economy: {
     ore_sell_price_multi:'Prix vente minerai', bar_output_multi:'Production lingots',
     vein_income_multi:'Revenu veines', ore_income_multi:'Revenu minerai',
+    ores_per_screen:'Ores / écran', vein_spawn_rate_multi:'Spawn veines',
+    bar_craft_cost_multi:'Coût craft lingots', bar_upgrade_cost_reduction:'Réduc. upgrade bars',
+    free_craft_chance:'Free craft %', double_craft_chance:'Double craft %',
+    triple_craft_chance:'Triple craft %', craft_5x_chance:'Craft 5x %',
+    craft_10x_chance:'Craft 10x %', craft_20x_chance:'Craft 20x %', craft_100x_chance:'Craft 100x %',
+  },
+  floors: {
+    golden_floor_chance:'Golden floor %', golden_floor_multi:'Golden floor multi',
+    rainbow_floor_chance:'Rainbow floor %', rainbow_floor_multi:'Rainbow floor multi',
+    galactic_floor_chance:'Galactic floor %', galactic_floor_multi:'Galactic floor multi',
+    prismatic_floor_chance:'Prismatic floor %', prismatic_floor_multi:'Prismatic floor multi',
+    all_floor_multipliers:'All floor multi', multi_rock_chance:'Multi rock %',
+    golden_ore_chance:'Golden ore %', golden_ore_multi:'Golden ore multi',
+    golden_vein_chance:'Golden vein %', golden_vein_multi:'Golden vein multi',
+    rainbow_vein_chance:'Rainbow vein %', rainbow_vein_multi:'Rainbow vein multi',
+    gleaming_vein_chance:'Gleaming vein %', gleaming_vein_multi:'Gleaming vein multi',
+  },
+  portals: {
+    void_portal_chance:'Void portal %', void_portal_multi:'Void portal multi',
+    void_portal_base_multi:'Void portal base multi',
+    golden_void_portal_chance:'Golden void %', golden_void_portal_multi:'Golden void multi',
+    rainbow_void_portal_chance:'Rainbow void %', rainbow_void_portal_multi:'Rainbow void multi',
+    galactic_void_portal_chance:'Galactic void %', galactic_void_portal_multi:'Galactic void multi',
+    all_void_portal_multi:'All void portal multi',
+  },
+  stargazing: {
+    star_spawn_rate:'Star spawn', star_auto_catch_chance:'Auto-catch %',
+    star_double_spawn_chance:'Double star %', star_triple_spawn_chance:'Triple star %',
+    star_supergiant_chance:'Supergiant %', star_supergiant_multi:'Supergiant multi',
+    star_supernova_chance:'Supernova %', star_supernova_multi:'Supernova multi',
+    star_radiant_chance:'Radiant %', star_radiant_multi:'Radiant multi',
+    super_star_spawn_multi:'Super star spawn', super_star_10x_chance:'Super star 10x %',
+    super_star_triple_chance:'Super star triple %',
+    super_star_supergiant_chance:'SS supergiant %', super_star_supergiant_multi:'SS supergiant multi',
+    super_star_supernova_chance:'SS supernova %', super_star_supernova_multi:'SS supernova multi',
+    super_star_radiant_chance:'SS radiant %', super_star_radiant_multi:'SS radiant multi',
+    all_star_multi:'All star multi', novagiant_combo_multi:'Novagiant combo',
+  },
+  fishing: {
+    fishing_rod_power:'Rod power', fishing_income_multi:'Fish income',
+    fishing_tick_speed:'Tick speed', fishing_tick_reduction_seconds:'Tick −s',
+    fishing_double_tick_chance:'Double tick %', fishing_triple_tick_chance:'Triple tick %',
+    fishing_5x_tick_chance:'5x tick %', fishing_drone_capacity:'Fish drones',
+    fishing_drone_power:'Fish drone power', fishing_drone_multiplier:'Fish drone multi',
+    fishing_shiny_chance:'Shiny %', fishing_shiny_multi:'Shiny multi',
+    fishing_super_shiny_chance:'Super shiny %', fishing_super_shiny_multi:'Super shiny multi',
+    fishing_notice_requirement:'Notice req', fishing_tiny_notice_chance:'Tiny notice %',
+    fishing_tier2_dock_multi:'Tier2 dock multi', fishing_token_multi:'Token multi',
+  },
+  freebie: {
+    freebie_gems_bonus:'Freebie gems +', freebie_cooldown_seconds:'Freebie CD (s)',
+    freebie_bank_cap:'Freebie bank', freebie_refresh_chance:'Instant refresh %',
+    freebie_5x_chance:'Freebie 5x %',
+    stonks_chance:'Stonks %', stonks_multi:'Stonks multi',
+    super_stonks_chance:'Super Stonks %', super_stonks_multi:'Super Stonks multi',
+    ultra_stonks_chance:'Ultra Stonks %', ultra_stonks_multi:'Ultra Stonks multi',
+  },
+  loot: {
+    lootbug_spawn_rate:'Lootbug spawn', lootbug_bank_cap:'Lootbug bank',
+    lootbug_gem_cost_reduction:'Lootbug gem −', lootbug_golden_chance:'Golden lootbug %',
+    lootbug_loot_multi:'Lootbug loot multi', lootbug_triple_chance:'Lootbug triple %',
+    lootfrog_capacity:'Lootfrog cap', lootfrogs_caught:'Lootfrogs caught',
+    golden_lootfrogs_caught:'Golden frogs caught', lootfrog_golden_chance:'Golden frog %',
+    lootfrog_golden_multi:'Golden frog multi', lootfrog_triple_spawn_chance:'Frog triple %',
+    lootfrog_10x_spawn_chance:'Frog 10x %', lootfrog_big_chance:'Big frog %',
+    lootfrog_big_multi:'Big frog multi', lootfrog_massive_chance:'Massive frog %',
+    lootfrog_massive_multi:'Massive frog multi', lootfrog_loot_multi:'Frog loot multi',
+    lootfrog_lanterns_used:'Lanterns used',
+  },
+  contracts: {
+    contract_points_rewarded:'Contract points', contract_cap_increase:'Contract cap +',
+    contract_cost_reduction:'Contract cost −', contract_upgrade_cost_reduction:'Upgrade cost multi',
+    contract_double_points_chance:'2x points %', contract_triple_points_chance:'3x points %',
+    contract_5x_points_chance:'5x points %', contract_10x_points_chance:'10x points %',
   },
   obelisk: {
-    obelisk_armor_reduction:'Réduction armure Obelisk', obelisk_cooldown_multi:'Cooldown Obelisk',
+    obelisk_armor_reduction:'Réduction armure', obelisk_cooldown_multi:'Cooldown OB',
+    obelisk_timer_add:'Timer OB +s',
+  },
+  misc: {
+    game_speed_multi:'Game speed', item_duration_multi:'Durée items',
+    chest_double_chance:'Chest double %', chest_items_bonus:'Chest items +',
+    chest_meter_multi:'Chest meter multi', gem_upgrade_cap_increase:'Gem upgrade cap +',
+    pet_levelup_chance_multi:'Pet level-up multi', infernal_card_multi:'Infernal card multi',
+    steak_eaten:'Steaks', candy_eaten:'Candies', pizzas_eaten:'Pizzas',
+  },
+  statues: {
+    statue_0_set1:'Statue 0 W1', statue_1_set1:'Statue 1 W1', statue_2_set1:'Statue 2 W1',
+    statue_3_set1:'Statue 3 W1', statue_4_set1:'Statue 4 W1', statue_5_set1:'Statue 5 W1',
+    statue_6_set1:'Statue 6 W1', statue_7_set1:'Statue 7 W1', statue_8_set1:'Statue 8 W1',
+    statue_0_set2:'Statue 0 W3', statue_1_set2:'Statue 1 W3', statue_2_set2:'Statue 2 W3',
+    statue_3_set2:'Statue 3 W3', statue_4_set2:'Statue 4 W3', statue_5_set2:'Statue 5 W3',
+    statue_6_set2:'Statue 6 W3', statue_7_set2:'Statue 7 W3', statue_8_set2:'Statue 8 W3',
+    statue_0_set3:'Statue 0 W4', statue_1_set3:'Statue 1 W4', statue_2_set3:'Statue 2 W4',
+    statue_3_set3:'Statue 3 W4', statue_4_set3:'Statue 4 W4', statue_5_set3:'Statue 5 W4',
+    statue_6_set3:'Statue 6 W4', statue_7_set3:'Statue 7 W4', statue_8_set3:'Statue 8 W4',
   },
 };
 
-/* Toutes les clés connues, à plat (pour la détection d'inconnues) */
 export const ALL_KNOWN_KEYS = new Set(
   Object.values(STATS_CATALOG).flatMap(o => Object.keys(o))
 );
 
-/* ---------- Sources documentées (traçabilité des règles) ---------- */
 export const SOURCES = {
   wiki_prestige: 'https://shminer.miraheze.org/wiki/Prestige',
   wiki_obelisk:  'https://shminer.miraheze.org/wiki/Obelisk',
   wiki_construct:'https://shminer.miraheze.org/wiki/Construct',
   wiki_skilltree:'https://shminer.miraheze.org/wiki/Skill-Tree',
+  wiki_progression: 'https://shminer.miraheze.org/wiki/Guides/Progression_Guide',
+  wiki_gems: 'https://shminer.miraheze.org/wiki/Guides/Gem_Spending_Guide',
   wiki_external: 'https://shminer.miraheze.org/wiki/External_Resources',
-  community_best_floor: '(à importer) Google Sheet Best Farming Floor',
 };

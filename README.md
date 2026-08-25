@@ -15,28 +15,32 @@
 
 ## Lancer
 ```bash
-python3 -m http.server 8766
+python -m http.server 8766
 # → http://localhost:8766
 ```
 Aucune dépendance, aucun build — HTML/CSS/JS modules purs.
 
+Vérif rapide (avec le sample d'export) :
+```bash
+node check.mjs
+```
+
 ## Architecture
 ```
 src/
-├── app.js                  # orchestration UI (zéro logique de jeu)
+├── app.js                  # orchestration UI
 └── game/
-    ├── knowledgeBase.js        # formules, caps, déblocages (wiki v2.2.6)
-    ├── statsParser.js          # parsing dynamique + détection d'inconnues
-    ├── missingInfo.js          # questions contextuelles progressives
-    ├── recommendationEngine.js # règles → recos structurées + confiance
-    ├── cardsData.js            # cards individuelles par monde
-    ├── statuesData.js          # 27 statues + sprites
-    ├── petsData.js             # 16 pets + skins + quêtes
-    ├── collections.js          # état local persistant
-    └── history.js              # historique & diff d'exports
-src/data/                      # données extraites du wiki (régénérables)
-assets/                        # icônes wiki (ores, cards, statues, pets, menu, backings)
+    ├── knowledgeBase.js        # formules, caps, catalogue exportstats
+    ├── statsParser.js          # parsing + statues/mondes dérivés
+    ├── missingInfo.js          # gaps absents de l'export
+    ├── recommendationEngine.js # règles → recos (lit export + collections)
+    ├── cardsData.js / petsData.js / statuesData.js
+    ├── collections.js          # état local (Prestige, skills…)
+    └── history.js
+samples/exportstats-v2.2.6.json # export réel de référence
 ```
+
+Prestige = artefacts (comme dans le jeu). Construct = statues auto-remplies depuis `statue_N_set1/2/3`.
 
 ## Crédits
 - Données et icônes : [Idle Obelisk Miner Wiki](https://shminer.miraheze.org) (CC BY-NC-SA 4.0)

@@ -33,18 +33,25 @@ function doImport(text){
   if(!parsed.ok){el.textContent='⚠ '+parsed.error;el.className='msg err';return;}
   state.parsed=parsed;
   state.profile={...deriveProfile(parsed),answers:state.profile.answers||{}};
+  state.col=C.applyExportProgress(state.col,state.profile);
+  C.saveCollections(state.col);
   state.history=saveImport(parsed);
-  el.innerHTML=`✅ ${parsed.version} — ${parsed.statCount} stats`+(parsed.unknownKeys.length?` · <span class="warn">${parsed.unknownKeys.length} inconnues conservées</span>`:'');
+  el.innerHTML=`✅ ${parsed.version} — ${parsed.statCount} stats`+(parsed.unknownKeys.length?` · <span class="warn">${parsed.unknownKeys.length} inconnues</span>`:'')+` · OB ${state.profile.obeliskLevel??'?'} · W${state.profile.maxWorld??'?'}`;
   el.className='msg ok';
   renderAll();
+  show('dashboard');
 }
 
-function renderAll(){renderTop();renderDash();renderRoadmap();renderAllStats();renderFishing();}
+function renderAll(){
+  renderTop();renderDash();renderRoadmap();renderAllStats();renderFishing();
+  renderCards();renderPets();renderArtifacts();renderSkills();renderConstruct();renderStars();renderHistory();
+}
 
 function renderTop(){
   if(!state.parsed)return;
   const known=state.parsed.versionKnown?'':' · ⚠ version inconnue de la base';
-  $('#topVersion').textContent=`v${state.parsed.version}${known} · OB ${state.profile.obeliskLevel??'?'}`;
+  const red=state.profile.armorReduction!=null?` · Armure −${(state.profile.armorReduction*100).toFixed(0)}%`:'';
+  $('#topVersion').textContent=`${state.parsed.version}${known} · OB ${state.profile.obeliskLevel??'?'} · Monde ${state.profile.maxWorld??'?'}${red}`;
 }
 
 /* ---------- dashboard ---------- */
@@ -52,10 +59,15 @@ function renderDash(){
   const g=$('#dashProfile');
   if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';return;}
   const p=state.profile;
+  const nextA=p.nextObeliskArmor;
   g.innerHTML=[
     ['Version',p.version],['Obelisk Level',p.obeliskLevel??'?'],['Cap XP',p.xpLevelCap??'?'],
+    ['Monde max',p.maxWorld??'?'],
     ['Temps de jeu',p.playtimeHours!=null?p.playtimeHours+' h':'inconnu'],
-    ['Pickaxe Damage',fmtNum(p.pickaxeDamage)],['Multi PP','×'+fmtNum(p.ppMulti??1)],
+    ['Pickaxe Damage',fmtNum(p.pickaxeDamage)],
+    ['Armure OB+1 (eff.)',nextA!=null?fmtNum(nextA):'—'],
+    ['Passe OB+1',p.canDamageNext===true?'Oui':p.canDamageNext===false?'Non':'?'],
+    ['Multi PP','×'+fmtNum(p.ppMulti??1)],
     ['Cards possédées',C.cardCounts(state.col).owned],
     ['Pets débloqués',Object.values(state.col.pets||{}).filter(v=>v>0).length],
   ].map(c=>`<div class="cell"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');
@@ -77,6 +89,9 @@ function renderRoadmap(){
   }
   for(const r of recs.filter(r=>r.priority===0))
     h+=`<p class="blocked">${CONFIDENCE.insufficient.icon} ${r.title} — ${r.reason}</p>`;
+  const gaps=detectMissingInformation(state.parsed,state.profile);
+  if(gaps.length)
+    h+=`<p class="warn" style="margin-top:10px">À compléter : ${gaps.map(g=>g.label).join(' · ')}</p>`;
   box.innerHTML=h||'<p class="muted">Rien à signaler.</p>';
 }
 
@@ -103,9 +118,12 @@ function renderFishing(){
    joueur a débloqué ce monde (monuments cochés dans Construct ou OB requis). */
 function maxWorldUnlocked(){
   const mons=state.col.monuments||{};
-  if(mons[4])return 4; if(mons[3])return 3; if(mons[2])return 2;
+  if(mons[4]||state.profile.w4Open)return 4;
+  if(mons[3])return 3;
+  if(mons[2])return 2;
+  if(state.profile.maxWorld)return state.profile.maxWorld;
   const ob=state.profile.obeliskLevel;
-  if(ob!=null){ if(ob>=64)return Math.max(3,(mons[3]?4:3)); if(ob>=42)return 2+((mons[2])?1:0); }
+  if(ob!=null){ if(ob>=64)return 3; if(ob>=42)return 2; }
   return 1;
 }
 function renderCards(){
@@ -233,13 +251,13 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-art]');if(!b)return;
   const a=ARTIFACTS.find(x=>x.id===b.dataset.art);
   C.setArtifactLevel(state.col,b.dataset.art,Math.min(a.maxBase,Math.max(0,C.getArtifactLevel(state.col,b.dataset.art)+ +b.dataset.d)));
-  C.saveCollections(state.col);renderArtifacts();
+  C.saveCollections(state.col);renderArtifacts();renderRoadmap();
 });
 document.addEventListener('input',e=>{
   const i=e.target.closest('[data-artin]');if(!i)return;
   const a=ARTIFACTS.find(x=>x.id===i.dataset.artin);
   C.setArtifactLevel(state.col,i.dataset.artin,Math.min(a.maxBase,Math.max(0,+i.value||0)));
-  C.saveCollections(state.col);
+  C.saveCollections(state.col);renderRoadmap();
 });
 
 /* ================= SKILLS ================= */
@@ -251,7 +269,7 @@ function renderSkills(){
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-skill]');if(!b)return;
-  C.toggleSkill(state.col,b.dataset.skill);C.saveCollections(state.col);renderSkills();
+  C.toggleSkill(state.col,b.dataset.skill);C.saveCollections(state.col);renderSkills();renderRoadmap();
 });
 
 /* ================= STATUES / MONUMENTS =================
@@ -275,7 +293,7 @@ function renderConstruct(){
       // bonus affiché ligne par ligne (séparateur " · " → retour à la ligne)
       const rawBonus=st>=3?(s.platinumBonus||s.gildedBonus||s.bonus):st===2?(s.gildedBonus||s.bonus):s.bonus;
       const bonusHtml=rawBonus.split(' · ').map(b=>`<span class="bl">${b}</span>`).join('');
-      h+=`<div class="card statue ${stDef.cls}" data-statue="${s.num}" title="${s.name} (${s.author})\n${bonus}\nClic : évoluer · Clic droit : reculer">
+      h+=`<div class="card statue ${stDef.cls}" data-statue="${s.num}" title="${s.name} (${s.author})\n${rawBonus}\nClic : évoluer · Clic droit : reculer">
         <img src="${icon}" alt="${s.name}" loading="lazy">
         <span class="nm">${s.name}</span>
         <span class="author">${s.author}</span>
@@ -306,7 +324,7 @@ document.addEventListener('click',e=>{
     C.saveCollections(state.col);renderConstruct();renderRoadmap();
   }
   const m=e.target.closest('[data-mon]');
-  if(m){state.col.monuments||={};state.col.monuments[m.dataset.mon]=!state.col.monuments[m.dataset.mon];C.saveCollections(state.col);renderConstruct();}
+  if(m){state.col.monuments||={};state.col.monuments[m.dataset.mon]=!state.col.monuments[m.dataset.mon];C.saveCollections(state.col);renderConstruct();renderCards();renderRoadmap();}
 });
 document.addEventListener('contextmenu',e=>{
   const s=e.target.closest('[data-statue]');
@@ -339,19 +357,6 @@ function renderHistory(){
     if(d.added.length)html+=`<h3 class="ok">Nouvelles stats (${d.added.length})</h3><p class="ok" style="font-size:8px">${d.added.map(a=>a.key).join(', ')}</p>`;
     out.innerHTML=html;
   }
-}
-
-/* ---------- gaps (profil) : intégré au dashboard quand import actif ---------- */
-function renderGapsInline(){
-  if(!state.parsed)return;
-  const gaps=detectMissingInformation(state.parsed,state.profile);
-  if(!gaps.length)return;
-  // simple rappel sur le dashboard
-  const box=$('#roadList');
-  const p=document.createElement('p');
-  p.className='warn';p.style.marginTop='10px';
-  p.textContent='ℹ️ Infos manquantes : '+gaps.map(g=>g.label).join(' · ')+' — note-les dans les menus correspondants (Artefacts, Pets, Construct…).';
-  box.appendChild(p);
 }
 
 /* ---------- init ---------- */
