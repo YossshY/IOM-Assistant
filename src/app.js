@@ -69,7 +69,8 @@ function escAttr(s){
   return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 }
 function capCell(lv, current, hard, tip){
-  const extra = (hard != null && hard > current) ? `<span class="hard">Max ${hard}</span>` : '';
+  const showHard = hard != null && Number.isFinite(+hard);
+  const extra = showHard ? `<span class="hard">Max ${hard}</span>` : '';
   return `<div class="art-stats has-tip" title="${escAttr(tip||'')}">`+
     `<span class="lv">${lv}/${current}</span>${extra}</div>`;
 }
@@ -337,7 +338,7 @@ function artIco(icon, fallback='🔧'){
   return icon||fallback;
 }
 function lvRow(icon, title, sub, lv, max, dataAttr, id, extra={}){
-  const hard=extra.hardMax??max;
+  const hard=extra.hardMax;
   const maxed=lv>=max && max>0;
   return `<div class="art-row">
     <div class="art-ico">${artIco(icon)}</div>
@@ -727,7 +728,7 @@ function renderWorkshop(){
     html+=`<div class="art-row">
       <div class="art-ico">${artIco(u.icon,'🔧')}</div>
       <div class="art-desc">${u.name}${lock}${bonus!=='—'&&!u.unlock?` — ${bonus}`:u.unlock&&lv?` — Unlocked`:''}</div>
-      ${capCell(lv, max, u.unlock?max:hard, u.unlock?'Unlock':snap.workshop.tooltip)}
+      ${capCell(lv, max, u.unlock?null:hard, u.unlock?'Unlock':snap.workshop.tooltip)}
       ${lvActionsHtml('ws', u.id, maxed)}
     </div>`;
   }
@@ -848,7 +849,7 @@ function renderDrones(){
       return `<div class="art-row">
         <div class="art-ico">${artIco(u.icon,'🛸')}</div>
         <div class="art-desc">${u.name}${tot&&!u.unlock?` — ${tot.startsWith('-')?tot:'+'+tot}`:u.unlock&&lv?' — Unlocked':''}</div>
-        ${capCell(lv, max, max)}
+        ${capCell(lv, max)}
         ${lvActionsHtml('dcore', u.id, maxed)}
       </div>`;
     }).join('');
@@ -861,7 +862,7 @@ function renderDrones(){
       return `<div class="art-row">
         <div class="art-ico">${artIco(s.icon,'🤖')}</div>
         <div class="art-desc"><b>${s.name}</b> — ${s.ability}<br><span class="muted">${s.upgrade} → ${tot}</span></div>
-        ${capCell(lv, cap, cap)}
+        ${capCell(lv, cap)}
         ${lvActionsHtml('dsuit', s.id, maxed)}
       </div>`;
     }).join('')+'</div>';
@@ -874,7 +875,7 @@ function renderDrones(){
       return `<div class="art-row">
         <div class="art-ico">${artIco(f.icon,'⛽')}</div>
         <div class="art-desc"><b>${f.name}</b> — ${f.buff}</div>
-        ${capCell(lv, f.maxGrade, f.maxGrade)}
+        ${capCell(lv, f.maxGrade)}
         ${lvActionsHtml('dfuel', f.id, maxed)}
       </div>`;
     }).join('')+'</div>';
@@ -931,7 +932,7 @@ function renderShopHtml(){
       html+=`<div class="art-row">
         <div class="art-ico">🏅</div>
         <div class="art-desc">${u.name} — ${u.per}</div>
-        ${capCell(lv, u.max, u.max, tip)}
+        ${capCell(lv, u.max, null, tip)}
         ${lvActionsHtml('cshop', u.id, maxed)}
       </div>`;
     }
@@ -1255,7 +1256,7 @@ function renderStars(){
       return `<div class="art-row">
         <div class="art-ico">${artIco('assets/stargazing/Telescope.png','🔭')}</div>
         <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
-        ${capCell(lv, u.max, u.max)}
+        ${capCell(lv, u.max)}
         ${lvActionsHtml('supg', u.id, maxed)}
       </div>`;
     }).join('')+'</div>';
@@ -1267,7 +1268,7 @@ function renderStars(){
       return `<div class="art-row">
         <div class="art-ico">${artIco('assets/stargazing/Super_Star.png','✨')}</div>
         <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
-        ${capCell(lv, u.max, u.max)}
+        ${capCell(lv, u.max)}
         ${lvActionsHtml('ssupg', u.id, maxed)}
       </div>`;
     }).join('')+'</div>';
