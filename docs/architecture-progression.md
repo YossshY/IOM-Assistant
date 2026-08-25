@@ -1,6 +1,6 @@
 # Architecture du moteur de progression
 
-Document de conception vivant (étapes A–I implémentées ; J–K = suite).
+Document de conception vivant (étapes A–J1 implémentées ; J2/K = suite).
 Ce fichier fige les ajustements validés. L’UI et `app.js` restent **non branchés** tant que K n’est pas ouverte.
 
 Il complète la proposition déjà validée (graphe compilé depuis les catalogues, `PlayerView`, AST de conditions, fragments wiki, axes plutôt qu’une priorité unique). Seules les sections ci-dessous **remplacent** les parties correspondantes de cette proposition.
@@ -425,8 +425,9 @@ Suite produit (après A–F) :
 8. **G — audit global** — §14 (inventaire, inconnus, spec H–K). Pas de nouveau fragment.
 9. **H — recâblage Laviathan** — §15. Même modèle que F ; stubs C retirés.
 10. **I — ExportStats → PlayerView** — §16. Adaptateur, pas d’UI.
-11. **J — planification / optimisation** — sur un PlayerView réel ; pas de producteurs inventés.
-12. **K — UI** — brancher le moteur ; reco actuelle reste hint jusqu’à bascule.
+11. **J1 — planification sémantique** — §17. Graph + PlayerView I → plan ; pas d’optimisation.
+12. **J2 — optimisation** (optionnel, après J1 stable) — dédup globale, simulation de dépense, choix `any`.
+13. **K — UI** — brancher le moteur ; reco actuelle = hint jusqu’à bascule.
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
 
@@ -676,16 +677,14 @@ Tests I : sample `exportstats-v2.2.6.json` (OB64, W3, fishing stats présentes, 
 
 ### 14.5 Spec J — planification / optimisation
 
-Après I (PlayerView réel). **Pas** de producteurs inventés.
+**J1** (§17) : plan sémantique sur PlayerView I. **Pas** de producteurs inventés.
 
-Dans le moteur actuel, à traiter seulement si un test le demande :
+J2 (plus tard, seulement si un test le demande) :
 
 - dédup `Reach`/`Acquire` **globale** (aujourd’hui locale au niveau)
 - simulation de dépense le long du plan (écart §8, volontaire)
 - choix d’une branche `any` (aujourd’hui toutes)
-- classement des `Do` `actionable` : **pas** un second moteur de reco ; K pourra afficher les feuilles `Do` telles quelles
-
-Hors J : notices/Enhance comme actions, progressors OB.
+- classement des `Do` `actionable` : **pas** un second moteur de reco
 
 ### 14.6 Spec K — UI
 
@@ -745,4 +744,33 @@ Décisions de la spec §14.4 :
 Notices, Enhance, rod/drone/tick, pets, drones, artefacts : ignorés.
 
 Tests : `fromExport.test.mjs` sur `samples/exportstats-v2.2.6.json`.
+
+---
+
+## 17. Étape J1 (implémentée) — Planification sémantique
+
+`plan(graph, player, goal)` / `planNode` **inchangés**. Aucun producteur / progressor ajouté. Fragments A–H **non modifiés**. `app.js` **non branché**.
+
+Entrée : graphe compilé + `PlayerView` (typiquement `playerViewFromExport`). Sortie : `{ evaluation, children: PlanNode[] }` avec `Do | Reach | Acquire | Unlock | UnknownStep`, plus `status` / `confidence` / `actionable`.
+
+### Audit (avant tests IOM)
+
+Déjà couvert par l’étape A (`progress.test.mjs`, graphe `fx.*`) : objectif unlocked → pas d’enfants ; `Do` actionable ; `Acquire` sans producer ; dépendances directes/indirectes ; `UnknownStep` obligatoire ; `Reach` sans progressor ; cycle borné.
+
+Manquait : le **même contrat** sur un PlayerView réel (étape I) et des objectifs **cross-fragments**.
+
+### Tests J1
+
+`src/game/progress/plan.j1.test.mjs` — sample `exportstats-v2.2.6.json` + collections via `playerViewFromExport`. Overlay `resources` uniquement pour les cas « SP payé » (l’export n’a pas de stocks).
+
+Interdit explicite : `Do` d’un poisson (`fish.golden_trout`, etc.). Accès dock ≠ producteur documenté.
+
+### Écarts document ↔ implémentation (volontaires)
+
+- Pas de réécriture de `plan.js` : la sémantique J1 était déjà celle de A.
+- Dédup `Reach`/`Acquire` **locale** au niveau (pas globale) — J2.
+- `have` = stock actuel, pas un solde après les `Do` frères (§8) — J2.
+- `any` développe toutes les branches — J2.
+- Un jalon (`fishing.feature`, dock) **inline** son `unlock` (pas de wrapper `Unlock(milestone)` une fois le seuil vrai).
+- Index `producersOf` / `progressorsOf` toujours vides sur le graphe IOM.
 
