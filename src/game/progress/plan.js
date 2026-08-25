@@ -1,11 +1,47 @@
 /* ============================================================
    progress/plan.js — Do / Reach / Acquire / Unlock / UnknownStep
+   J2 : état virtuel (coûts des Do) + dédup Reach/Acquire globale.
+   ANY non committé (J3). PlayerView appelant immuable.
    ============================================================ */
 
 import { STATUS, CONFIDENCE, STEP, KIND } from './ids.js';
-import { COND, always } from './conditions.js';
+import { COND, always, walk } from './conditions.js';
 import { getNode } from './compile.js';
 import { evaluateCondition, evaluateNode, resourceHave, statHave } from './evaluate.js';
+
+function clonePlayer(player) {
+  return {
+    nodes: { ...(player?.nodes || {}) },
+    stats: { ...(player?.stats || {}) },
+    resources: { ...(player?.resources || {}) },
+  };
+}
+
+function viewOf(ctx, player) {
+  return ctx?.virtual || player;
+}
+
+/** Applique le coût documenté d’un Do sur l’état virtuel. Pas d’effets inventés. */
+function applyDo(virtual, n) {
+  virtual.nodes[n.id] = Math.max(virtual.nodes[n.id] ?? 0, 1);
+  if (!n.cost) return;
+  walk(n.cost, c => {
+    if (c.type === COND.resource) {
+      virtual.resources[c.id] = resourceHave(virtual, c.id) - (c.min ?? 0);
+    }
+  });
+}
+
+function makeDo(id, ev) {
+  return planNodeBase(STEP.Do, {
+    status: STATUS.available,
+    confidence: ev.confidence,
+    actionable: true,
+    children: [],
+    why: 'action-now',
+    fields: { nodeId: id },
+  });
+}
 
 function planNodeBase(step, extra) {
   return {
@@ -129,7 +165,8 @@ function satisfyNode(graph, player, id, ctx) {
     return [unknownStep({ type: COND.node, id }, 'node-not-in-graph')];
   }
 
-  const ev = evaluateNode(graph, player, id);
+  const virtual = viewOf(ctx, player);
+  const ev = evaluateNode(graph, virtual, id);
   if (ev.status === STATUS.unlocked) return [];
 
   ctx.stack.add(id);
@@ -139,22 +176,24 @@ function satisfyNode(graph, player, id, ctx) {
     }
 
     if (n.kind === KIND.action && ev.actionable) {
-      return [planNodeBase(STEP.Do, {
-        status: STATUS.available,
-        confidence: ev.confidence,
-        actionable: true,
-        children: [],
-        why: 'action-now',
-        fields: { nodeId: id },
-      })];
+      applyDo(virtual, n);
+      return [makeDo(id, ev)];
     }
 
     const unlockKids = satisfy(graph, player, n.unlock || always(), ctx);
+    const ev2 = evaluateNode(graph, virtual, id);
+    if (ev2.status === STATUS.unlocked) return unlockKids;
+
+    if (n.kind === KIND.action && ev2.actionable) {
+      applyDo(virtual, n);
+      return mergeSameLevel([...unlockKids, makeDo(id, ev2)]);
+    }
+
     const costKids = n.cost ? satisfy(graph, player, n.cost, ctx) : [];
     const children = mergeSameLevel([...unlockKids, ...costKids]);
     return [planNodeBase(STEP.Unlock, {
-      status: ev.status,
-      confidence: ev.confidence,
+      status: ev2.status,
+      confidence: ev2.confidence,
       actionable: false,
       children,
       why: n.kind === KIND.action ? 'need-node-then-do' : 'need-node',
@@ -166,9 +205,10 @@ function satisfyNode(graph, player, id, ctx) {
 }
 
 function satisfyStat(graph, player, cond, ctx) {
-  const ev = evaluateCondition(graph, player, cond);
+  const virtual = viewOf(ctx, player);
+  const ev = evaluateCondition(graph, virtual, cond);
   if (ev.truth === 'true') return [];
-  const have = statHave(player, cond.id);
+  const have = statHave(virtual, cond.id);
   const haveVal = have == null ? 0 : have;
   const progressors = graph.progressorsOf[cond.id] || [];
   const children = [];
@@ -190,9 +230,10 @@ function satisfyStat(graph, player, cond, ctx) {
 }
 
 function satisfyResource(graph, player, cond, ctx) {
-  const ev = evaluateCondition(graph, player, cond);
+  const virtual = viewOf(ctx, player);
+  const ev = evaluateCondition(graph, virtual, cond);
   if (ev.truth === 'true') return [];
-  const have = resourceHave(player, cond.id);
+  const have = resourceHave(virtual, cond.id);
   const producers = graph.producersOf[cond.id] || [];
   const children = [];
   if (!producers.length) {
@@ -214,18 +255,24 @@ function satisfyResource(graph, player, cond, ctx) {
 
 export function satisfy(graph, player, cond, ctx) {
   if (!cond) return [];
+  if (!ctx.virtual) ctx.virtual = clonePlayer(player);
   if (cond.type === COND.all) {
     const kids = [];
     for (const child of cond.items || []) kids.push(...satisfy(graph, player, child, ctx));
     return mergeSameLevel(kids);
   }
   if (cond.type === COND.any) {
-    const ev = evaluateCondition(graph, player, cond);
+    const virtual = viewOf(ctx, player);
+    const ev = evaluateCondition(graph, virtual, cond);
     if (ev.truth === 'true') return [];
+    /* J2 : toutes les branches, sans committer la conso (J3 choisira). */
+    const saved = clonePlayer(virtual);
     const kids = [];
     for (const child of cond.items || []) {
+      ctx.virtual = clonePlayer(saved);
       kids.push(...satisfy(graph, player, child, ctx));
     }
+    ctx.virtual = saved;
     return mergeSameLevel(kids);
   }
   if (cond.type === COND.unknown) {
@@ -237,8 +284,8 @@ export function satisfy(graph, player, cond, ctx) {
   return [unknownStep(cond, 'invalid-condition')];
 }
 
-function newCtx() {
-  return { stack: new Set() };
+function newCtx(player) {
+  return { stack: new Set(), virtual: clonePlayer(player) };
 }
 
 function conditionOfGoal(goal) {
@@ -268,12 +315,67 @@ function evaluationForGoal(graph, player, goal, condition) {
  * @param {object} player { nodes, stats, resources }
  * @param {object|string} goal Condition | { id, label, condition } | nodeId
  */
+function hoistReachAcquire(steps) {
+  const reach = Object.create(null);
+  const acquire = Object.create(null);
+
+  function collect(list) {
+    for (const s of list || []) {
+      if (s.step === STEP.Reach) {
+        const prev = reach[s.stat];
+        if (!prev || s.min > prev.min) reach[s.stat] = s;
+      } else if (s.step === STEP.Acquire) {
+        const prev = acquire[s.resource];
+        if (!prev || s.min > prev.min) acquire[s.resource] = s;
+      }
+      collect(s.children);
+    }
+  }
+
+  function strip(list) {
+    const out = [];
+    for (const s of list || []) {
+      if (s.step === STEP.Reach || s.step === STEP.Acquire) continue;
+      out.push({ ...s, children: strip(s.children) });
+    }
+    return out;
+  }
+
+  collect(steps);
+  return mergeSameLevel([...Object.values(reach), ...Object.values(acquire), ...strip(steps)]);
+}
+
+function dedupUnlock(steps) {
+  const seen = new Map();
+  function walkList(list) {
+    const out = [];
+    for (const s of list || []) {
+      const kids = walkList(s.children);
+      if (s.step === STEP.Unlock) {
+        if (seen.has(s.nodeId)) {
+          const first = seen.get(s.nodeId);
+          first.children = mergeSameLevel([...(first.children || []), ...kids]);
+          continue;
+        }
+        const copy = { ...s, children: kids };
+        seen.set(s.nodeId, copy);
+        out.push(copy);
+        continue;
+      }
+      out.push({ ...s, children: kids });
+    }
+    return out;
+  }
+  return walkList(steps);
+}
+
 export function plan(graph, player, goal) {
   const condition = conditionOfGoal(goal);
-  const ctx = newCtx();
+  const ctx = newCtx(player);
   const raw = satisfy(graph, player, condition, ctx);
   const merged = mergeSameLevel(raw);
-  const children = merged.map(s => withChildrenCovered(s, mergeCovered({ stats: {}, resources: {} }, coveredFromSteps(merged))));
+  const covered = merged.map(s => withChildrenCovered(s, mergeCovered({ stats: {}, resources: {} }, coveredFromSteps(merged))));
+  const children = hoistReachAcquire(dedupUnlock(covered));
   const evaluation = evaluationForGoal(graph, player, goal, condition);
   return {
     goal: typeof goal === 'string' ? goal : (goal?.id ?? null),

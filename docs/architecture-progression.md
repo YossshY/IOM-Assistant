@@ -1,6 +1,6 @@
 # Architecture du moteur de progression
 
-Document de conception vivant (étapes A–J1 implémentées ; J2/K = suite).
+Document de conception vivant (étapes A–J2 implémentées ; J3/K = suite).
 Ce fichier fige les ajustements validés. L’UI et `app.js` restent **non branchés** tant que K n’est pas ouverte.
 
 Il complète la proposition déjà validée (graphe compilé depuis les catalogues, `PlayerView`, AST de conditions, fragments wiki, axes plutôt qu’une priorité unique). Seules les sections ci-dessous **remplacent** les parties correspondantes de cette proposition.
@@ -426,8 +426,9 @@ Suite produit (après A–F) :
 9. **H — recâblage Laviathan** — §15. Même modèle que F ; stubs C retirés.
 10. **I — ExportStats → PlayerView** — §16. Adaptateur, pas d’UI.
 11. **J1 — planification sémantique** — §17. Graph + PlayerView I → plan ; pas d’optimisation.
-12. **J2 — optimisation** (optionnel, après J1 stable) — dédup globale, simulation de dépense, choix `any`.
-13. **K — UI** — brancher le moteur ; reco actuelle = hint jusqu’à bascule.
+12. **J2 — état virtuel + dédup** — §18. Coûts des `Do` ; Reach/Acquire uniques. `any` inchangé.
+13. **J3 — choix de branche `any`** (plus tard).
+14. **K — UI** — brancher le moteur ; reco actuelle = hint jusqu’à bascule.
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
 
@@ -681,9 +682,7 @@ Tests I : sample `exportstats-v2.2.6.json` (OB64, W3, fishing stats présentes, 
 
 J2 (plus tard, seulement si un test le demande) :
 
-- dédup `Reach`/`Acquire` **globale** (aujourd’hui locale au niveau)
-- simulation de dépense le long du plan (écart §8, volontaire)
-- choix d’une branche `any` (aujourd’hui toutes)
+- choix d’une branche `any` → **J3**
 - classement des `Do` `actionable` : **pas** un second moteur de reco
 
 ### 14.6 Spec K — UI
@@ -767,10 +766,34 @@ Interdit explicite : `Do` d’un poisson (`fish.golden_trout`, etc.). Accès doc
 
 ### Écarts document ↔ implémentation (volontaires)
 
-- Pas de réécriture de `plan.js` : la sémantique J1 était déjà celle de A.
-- Dédup `Reach`/`Acquire` **locale** au niveau (pas globale) — J2.
-- `have` = stock actuel, pas un solde après les `Do` frères (§8) — J2.
-- `any` développe toutes les branches — J2.
 - Un jalon (`fishing.feature`, dock) **inline** son `unlock` (pas de wrapper `Unlock(milestone)` une fois le seuil vrai).
 - Index `producersOf` / `progressorsOf` toujours vides sur le graphe IOM.
+- Dédup globale et `have` virtuel : **J2** (§18). `any` toutes branches : **J3**.
+
+---
+
+## 18. Étape J2 (implémentée) — État virtuel + déduplication
+
+Uniquement `plan.js`. Fragments A–H, catalogues, `app.js` : **non modifiés**.
+
+### État virtuel
+
+- Conservé dans `ctx.virtual`, clone superficiel `{ nodes, stats, resources }` créé au début de `plan()`.
+- Le `PlayerView` appelant n’est jamais muté. `evaluation` du goal reste calculée sur ce PlayerView réel.
+- Un `Do` applique seulement : possession du nœud + soustraction des feuilles `resource` du **coût documenté**. Pas de `produces` / `progresses` inventés. `Reach` ne monte pas l’OB virtuel.
+- `all` : consommation séquentielle (ordre des items).
+- `any` : snapshot / restore par branche, **aucun commit** — toutes les branches restent développées (J3).
+
+### Dédup
+
+Identité : `Reach(stat)` (max `min`) ; `Acquire(resource)` (max `min`) ; `Unlock(nodeId)` (fusion des enfants). Les `Do` de `nodeId` différents ne fusionnent jamais.
+
+`Reach` / `Acquire` sont hissés à la racine du plan (un besoin, avec leurs `UnknownStep` enfants).
+
+### Écarts
+
+- Après deux `Do` payés, la 3e action non payable reste un `Unlock` + `Acquire` hissé (pas seulement `Acquire` nu). Toujours **pas** de 3e `Do`.
+- `have` sur `Acquire` / `Reach` est le stock **virtuel** au moment du besoin (après les `Do` déjà placés).
+
+Tests : `plan.j2.test.mjs`.
 
