@@ -16,7 +16,7 @@ export {
   describeEvaluation, formatPlanTree, statusPhrase,
 } from './phrases.js';
 export {
-  getProgressGraph, DASHBOARD_GOALS, DEFAULT_PROGRESS_GOAL, progressSnapshot,
+  getProgressGraph, DASHBOARD_GOALS, DEFAULT_PROGRESS_GOAL, progressSnapshot, progressOverview,
 } from './dashboard.js';
 export {
   buildProgressGraph,

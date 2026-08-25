@@ -242,7 +242,8 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .plan-step{margin:0 0 8px;font-size:8px;line-height:1.5;color:var(--ink)}
 .plan-step b{color:var(--amber);margin-right:6px}
 .plan-step.actionable b{color:var(--green)}
-.plan-step code{color:var(--muted);font-size:7px}
+.ov-row{cursor:pointer}
+.ov-row.on{outline:2px solid var(--amber);background:#2a1a2088}
 .page.hidden{display:none}
 .statline{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:2px solid #4a3a40;font-size:8px}
 .statline span{color:var(--muted);word-break:break-all}
@@ -310,7 +311,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <section id="page-dashboard" class="page hidden">
   <div class="panel"><h2>Profil joueur</h2><div class="grid" id="dashProfile"></div></div>
   <div class="panel"><h2>Progression (graphe)</h2>
-    <p class="muted">Évaluation et plan du moteur. La reco actuelle reste un hint — pas de bascule.</p>
+    <p class="muted">Évaluation et plan du moteur.</p>
     <div class="plan-toolbar">
       <label for="progressGoal">Objectif</label>
       <select id="progressGoal"></select>
@@ -318,8 +319,16 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
     <div id="progressOut"></div>
   </div>
   <div class="panel"><h2>Estimateurs (wiki + export)</h2><div id="dashMath"></div></div>
-  <div class="panel"><h2>Hints — reco actuelle</h2><div id="roadList"></div>
-    <p class="muted">🟢 Confirmé · 🟡 Probable · 🔴 Données insuffisantes · pas branché au graphe</p></div>
+  <div class="panel"><h2>Reco</h2>
+    <div class="tab-row" style="margin:0 0 12px">
+      <button type="button" class="pixbtn on" data-recomode="graph">Graphe</button>
+      <button type="button" class="pixbtn ghost" data-recomode="hints">Hints</button>
+    </div>
+    <p class="muted" id="recoGraphLegend">Objectifs du graphe, ordre source — pas un ranking farm. Clique une ligne pour ouvrir le plan.</p>
+    <div id="graphOverview"></div>
+    <div id="roadList" hidden></div>
+    <p class="muted" id="recoHintLegend" hidden>🟢 Confirmé · 🟡 Probable · 🔴 Données insuffisantes · hors graphe</p>
+  </div>
   <div class="panel"><h2>Calculateurs communautaires</h2>
     <p class="muted" style="margin:0 0 10px">On ne réinvente pas leurs sims — liens vers les outils existants (wiki Discord + ObeliskFarm).</p>
     <div class="tool-links" id="dashTools"></div>

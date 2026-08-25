@@ -24,7 +24,7 @@ import {
 import { ARCH_UPGRADES, ARCH_IDOLS, ARCH_IDOL_MAX } from './game/archaeologyData.js';
 import { RESEARCH_VEINS, MONUMENTS } from './game/constructData.js';
 import * as C from './game/collections.js';
-import { DASHBOARD_GOALS, DEFAULT_PROGRESS_GOAL, progressSnapshot } from './game/progress/dashboard.js';
+import { DASHBOARD_GOALS, DEFAULT_PROGRESS_GOAL, progressSnapshot, progressOverview } from './game/progress/dashboard.js';
 import { ACTIONABLE_NOW } from './game/progress/phrases.js';
 
 /** Durée du run prestige (raw.time) — pas le lifetime du compte. */
@@ -71,6 +71,8 @@ function formatArtBonus(a, lv){
 const $ = s => document.querySelector(s);
 let state = { parsed:null, profile:{}, history:[], col:C.loadCollections() };
 let selectedProgressGoal = DEFAULT_PROGRESS_GOAL;
+let recoMode = 'graph';
+try { if (localStorage.getItem('iom-reco-mode') === 'hints') recoMode = 'hints'; } catch {}
 
 function esc(s){
   return String(s??'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -219,7 +221,11 @@ function renderProgress(){
   const box=$('#progressOut');
   if(!box)return;
   fillProgressGoalSelect();
-  if(!state.parsed){box.innerHTML='<p class="muted">Importe un exportstats pour évaluer le graphe.</p>';return;}
+  if(!state.parsed){
+    box.innerHTML='<p class="muted">Importe un exportstats pour évaluer le graphe.</p>';
+    if(recoMode==='graph') renderGraphOverview();
+    return;
+  }
   const snap=progressSnapshot({
     parsed:state.parsed,
     profile:state.profile,
@@ -233,16 +239,36 @@ function renderProgress(){
     <p>${esc(ev.phrase)}</p>
     ${ev.nowPhrase?`<p class="now">${esc(ev.nowPhrase)}</p>`:''}
   </div>${planTreeHtml(snap.steps)}`;
+  if(recoMode==='graph') renderGraphOverview();
 }
 
 $('#progressGoal')?.addEventListener('change',e=>{
   selectedProgressGoal=e.target.value;
   renderProgress();
+  if(recoMode==='graph') renderGraphOverview();
 });
 
-/* ---------- roadmap ---------- */
-function renderRoadmap(){
+function renderGraphOverview(){
+  const box=$('#graphOverview');
+  if(!box)return;
+  if(!state.parsed){box.innerHTML='<p class="muted">Importe un exportstats.</p>';return;}
+  const rows=progressOverview({ parsed:state.parsed, profile:state.profile, collections:state.col });
+  box.innerHTML=rows.map((r,i)=>{
+    const ev=r.evaluation;
+    const doCap=r.actionable[0]?esc(r.actionable[0].caption):'';
+    const now=ev.nowPhrase?`<p class="now">${esc(ev.nowPhrase)}${doCap?` · ${doCap}`:''}</p>`:'';
+    const on=r.goal.id===selectedProgressGoal?' on':'';
+    return `<div class="rec ov-row${on}" data-ovgoal="${esc(r.goal.id)}">
+      <div class="rank">${i+1}</div>
+      <div><strong>${esc(r.goal.label)}</strong>
+      <span class="conf st-${esc(ev.status)}">${esc(ev.status)} · ${esc(ev.confidenceLabel)}</span>
+      <p>${esc(ev.phrase)}</p>${now}</div></div>`;
+  }).join('');
+}
+
+function renderHintList(){
   const box=$('#roadList');
+  if(!box)return;
   if(!state.parsed){box.innerHTML='<p class="muted">Après l\'import.</p>';return;}
   const recs=generateRecommendations(state.parsed.stats,state.profile,state.col);
   let h='',i=1;
@@ -261,6 +287,39 @@ function renderRoadmap(){
     h+=`<p class="warn" style="margin-top:10px">À compléter : ${gaps.map(g=>g.label).join(' · ')}</p>`;
   box.innerHTML=h||'<p class="muted">Rien à signaler.</p>';
 }
+
+/* ---------- roadmap ---------- */
+function renderRoadmap(){
+  document.querySelectorAll('[data-recomode]').forEach(b=>{
+    const on=b.dataset.recomode===recoMode;
+    b.classList.toggle('on', on);
+    b.classList.toggle('ghost', !on);
+  });
+  const ov=$('#graphOverview'), road=$('#roadList');
+  const hintLeg=$('#recoHintLegend'), graphLeg=$('#recoGraphLegend');
+  if(ov) ov.hidden=recoMode!=='graph';
+  if(road) road.hidden=recoMode!=='hints';
+  if(graphLeg) graphLeg.hidden=recoMode!=='graph';
+  if(hintLeg) hintLeg.hidden=recoMode!=='hints';
+  if(recoMode==='graph') renderGraphOverview();
+  else renderHintList();
+}
+
+document.addEventListener('click',e=>{
+  const mode=e.target.closest('[data-recomode]');
+  if(mode){
+    recoMode=mode.dataset.recomode==='hints'?'hints':'graph';
+    try{ localStorage.setItem('iom-reco-mode', recoMode); }catch{}
+    renderRoadmap();
+    return;
+  }
+  const row=e.target.closest('[data-ovgoal]');
+  if(row){
+    selectedProgressGoal=row.dataset.ovgoal;
+    renderProgress();
+    renderGraphOverview();
+  }
+});
 
 /* ---------- toutes les stats ---------- */
 function renderAllStats(){
@@ -1208,5 +1267,5 @@ function renderHistory(){
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
   }
 })();
-renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderProgress();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderProgress();renderRoadmap();
 show('export');

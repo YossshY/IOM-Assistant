@@ -33,7 +33,7 @@ export function labelCondition(graph, cond) {
     const name = cond.id === STAT_OB ? 'OB' : cond.id;
     return `${name} >= ${cond.min}`;
   }
-  if (cond.type === COND.resource) return `${cond.id} (≥ ${cond.min})`;
+  if (cond.type === COND.resource) return `${cond.id} (>= ${cond.min})`;
   if (cond.type === COND.node) {
     const n = graph ? getNode(graph, cond.id) : null;
     return n?.name || cond.id;
@@ -75,7 +75,7 @@ export function stepCaption(graph, step) {
     const name = step.stat === STAT_OB ? 'OB' : step.stat;
     return `${name} >= ${step.min}`;
   }
-  if (step.step === STEP.Acquire) return `${step.resource} (≥ ${step.min})`;
+  if (step.step === STEP.Acquire) return `${step.resource} (>= ${step.min})`;
   if (step.step === STEP.UnknownStep) return UNKNOWN_STEP_PHRASE;
   return step.step || '';
 }

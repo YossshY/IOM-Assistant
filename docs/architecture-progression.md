@@ -1,7 +1,7 @@
 # Architecture du moteur de progression
 
-Document de conception vivant (étapes A–K implémentées).
-Ce fichier fige les ajustements validés. `recommendationEngine` reste un hint (pas de bascule). Le dashboard affiche `evaluate`/`plan` (K).
+Document de conception vivant (étapes A–L implémentées).
+Ce fichier fige les ajustements validés. Bascule **Graphe / Hints** (L). `recommendationEngine` inchangé derrière Hints.
 
 Il complète la proposition déjà validée (graphe compilé depuis les catalogues, `PlayerView`, AST de conditions, fragments wiki, axes plutôt qu’une priorité unique). Seules les sections ci-dessous **remplacent** les parties correspondantes de cette proposition.
 
@@ -395,7 +395,7 @@ Pas de nouvel AST. Pas de second graphe. Trois ajouts **additifs** :
 | `plan(goal)` | arbre d’étapes `Do \| Reach \| Acquire \| Unlock \| UnknownStep` | oui (cœur du contrat) |
 | compilation | index `producersOf` / `progressorsOf` / reverse `unlock` | oui, même vides |
 | catalogues UI | inchangés | — |
-| reco actuelle | reste des *hints* jusqu’à bascule | — |
+| reco actuelle | *hints* derrière la bascule L | — |
 
 Inférence minimale sans toucher les catalogues :
 
@@ -429,6 +429,7 @@ Suite produit (après A–F) :
 12. **J2 — état virtuel + dédup** — §18. Coûts des `Do` ; Reach/Acquire uniques.
 13. **J3 — choix de branche `any`** — §19. Une branche known ; unknown → alternatives.
 14. **K — UI** — §20. `evaluate`/`plan` sur le dashboard ; reco actuelle = hint.
+15. **L — Bascule graphe** — §21. Vue d’ensemble des objectifs ; hints un clic.
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
 
@@ -686,7 +687,9 @@ Tests I : sample `exportstats-v2.2.6.json` (OB64, W3, fishing stats présentes, 
 
 ### 14.6 Spec K — UI
 
-**K** (§20) : brancher `evaluate`/`plan` sur le dashboard. Phrases = tableau §1.1. `recommendationEngine` reste hint jusqu’à bascule explicite.
+**K** (§20) : brancher `evaluate`/`plan` sur le dashboard. Phrases = tableau §1.1.
+
+**L** (§21) : bascule explicite Graphe / Hints. Vue d’ensemble = ordre des objectifs dashboard, **pas** un ranking de `Do`.
 
 ### 14.7 Spec H — recâblage Laviathan (validé par cet audit)
 
@@ -829,8 +832,19 @@ Phrases UI = tableau §1.1 (`src/game/progress/phrases.js`). Objectifs = nœuds 
 
 - PlayerView via `playerViewFromExport` (export + collections).
 - Panneau **Progression (graphe)** : statut + phrase + arbre `Do` / `Reach` / `Acquire` / `Unlock` / `UnknownStep`.
-- `recommendationEngine` **inchangé**, affiché comme **Hints — reco actuelle**. Pas de bascule : la reco n’est pas alimentée par le graphe.
-- Pas de `Do` inventé (index producteurs toujours vide).
+- `recommendationEngine` **inchangé**, affiché comme **Hints** derrière la bascule L.
 
 Tests : `dashboard.k.test.mjs`. `check.mjs` inchangé (reco).
+
+---
+
+## 21. Étape L (implémentée) — Bascule graphe / hints
+
+La reco actuelle n’est **pas** réécrite. Toggle dashboard **Graphe** (défaut) | **Hints**.
+
+Mode Graphe : `progressOverview` — un row par objectif `DASHBOARD_GOALS`, **ordre source**. Phrases §1.1. Si `actionable`, la phrase « maintenant » + le premier `Do` du plan de **cet** objectif. Pas de tri farm / min-coût. Clique → ouvre le plan K.
+
+Mode Hints : `generateRecommendations` inchangé.
+
+`check.mjs` inchangé. Tests : `dashboard.l.test.mjs`.
 
