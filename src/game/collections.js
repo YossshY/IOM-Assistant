@@ -16,6 +16,13 @@ export function cycleCard(col, id){
   col.cards[id] = ((col.cards[id]||0) + 1) % 5;
   return col.cards[id];
 }
+/** ±1 sur l'état carte, borné 0..4 (clic gauche / droit). */
+export function adjustCard(col, id, delta){
+  col.cards ||= {};
+  const cur = col.cards[id] || 0;
+  col.cards[id] = Math.max(0, Math.min(4, cur + (delta|0)));
+  return col.cards[id];
+}
 export function setAllCards(col, v){
   col.cards ||= {};
   for(const k of Object.keys(col.cards)) col.cards[k]=v;

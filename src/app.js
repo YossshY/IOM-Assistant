@@ -215,10 +215,16 @@ function renderAllStats(){
 
 /* ================= FISHING ================= */
 let fishTab='stats';
+/** Emoji ou chemin assets/ → HTML pour .art-ico */
+function artIco(icon, fallback='🔧'){
+  if(icon&&String(icon).startsWith('assets/'))
+    return `<img src="${icon}" alt="" loading="lazy" style="width:28px;height:28px;image-rendering:pixelated" onerror="this.replaceWith(document.createTextNode('${fallback}'))">`;
+  return icon||fallback;
+}
 function lvRow(icon, title, sub, lv, max, dataAttr, id){
   const maxed=lv>=max && max>0;
   return `<div class="art-row">
-    <div class="art-ico">${icon}</div>
+    <div class="art-ico">${artIco(icon)}</div>
     <div class="art-desc"><b>${title}</b>${sub?` — ${sub}`:''}</div>
     <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
     <div class="art-actions">
@@ -278,7 +284,7 @@ function renderFishing(){
   if(hint) hint.textContent='Legendary fish — tribute ranks 0–2';
   box.innerHTML=LEGENDARY_FISH.map(f=>{
     const lv=Math.min(2, C.getFishLv(state.col,'legendary',f.id));
-    return lvRow('🐟',f.name,`${f.dock} · ${f.card}`,lv,2,'fleg',f.id);
+    return lvRow(f.icon||'🐟',f.name,`${f.dock} · ${f.card}`,lv,2,'fleg',f.id);
   }).join('');
 }
 document.addEventListener('click',e=>{
@@ -338,7 +344,8 @@ function renderArchaeology(){
     if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · niveau 0–${ARCH_IDOL_MAX}`;
     box.innerHTML=ARCH_IDOLS.map(idol=>{
       const lv=Math.min(ARCH_IDOL_MAX, C.getArchLv(state.col,'idols',idol.id));
-      return lvRow('🗿',idol.name,idol.note||'',lv,ARCH_IDOL_MAX,'aidol',idol.id);
+      const icon=`assets/cards/${idol.name}_Idol.png`;
+      return lvRow(icon,idol.name,idol.note||'',lv,ARCH_IDOL_MAX,'aidol',idol.id);
     }).join('');
     return;
   }
@@ -429,21 +436,25 @@ function cardIconSrc(c){
   return c.icon||'🃏';
 }
 function cardTile(id,img,name,st,effect,worldTag,mod,unlocked=true){
-  // fond = dos de carte officiel selon l'état (0 → standard grisé)
   const backings=['Card_Backing_Standard','Card_Backing_Standard','Card_Backing_Gilded','Card_Backing_Polychrome','Card_Backing_Infernal'];
   const bg=`assets/backings/${backings[st]}.png`;
   const eff=effect?effect[Math.min(Math.max(st-1,0),effect.length-1)]:'';
   const icon=(img&&String(img).startsWith('assets/'))
-    ? `<img class="em" src="${img}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'em',textContent:'🃏'}))">`
+    ? `<img class="em" src="${img}" alt="" loading="lazy" onerror="this.style.display='none'">`
     : `<span class="em">${img||'🃏'}</span>`;
   return `<div class="card ${unlocked?'':'locked'}" data-card="${id}"
     style="background-image:url('${bg}')"
-    title="${name}${mod?' — modificateur : '+mod:''}${worldTag?' ['+worldTag+']':''}\n${CARD_STATES[st].name}${eff&&st>0?' : '+eff:''}\nClic : évoluer">
-    ${icon}<span class="nm">${name}</span></div>`;
+    title="${name}${mod?' — '+mod:''}${worldTag?' ['+worldTag+']':''}\n${CARD_STATES[st].name}${eff&&st>0?' : '+eff:''}\nClic gauche : +1 · Clic droit : −1">
+    <div class="card-art">${icon}</div>
+    <div class="card-foot">
+      <span class="nm">${name}</span>
+      ${st>0&&eff?`<span class="eff">${eff}</span>`:''}
+      ${worldTag?`<span class="wtag">${worldTag}</span>`:''}
+    </div></div>`;
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-card]');
-  if(t){C.cycleCard(state.col,t.dataset.card);C.saveCollections(state.col);renderCards();renderDash();}
+  if(t){C.adjustCard(state.col,t.dataset.card,1);C.saveCollections(state.col);renderCards();renderDash();}
   const b=e.target.closest('[data-bulk]');
   if(b){C.setAllVisible(state.col,+b.dataset.bulk,visibleCards(maxWorldUnlocked()).map(c=>c.id));C.saveCollections(state.col);renderCards();renderDash();}
   const bs=e.target.closest('[data-bulkset]');
@@ -452,6 +463,10 @@ document.addEventListener('click',e=>{
     const ids=visibleCards(maxWorldUnlocked()).filter(c=>c.cat===set).map(c=>c.id);
     C.setAllVisible(state.col,+bs.dataset.v,ids);C.saveCollections(state.col);renderCards();renderDash();
   }
+});
+document.addEventListener('contextmenu',e=>{
+  const t=e.target.closest('[data-card]');
+  if(t){e.preventDefault();C.adjustCard(state.col,t.dataset.card,-1);C.saveCollections(state.col);renderCards();renderDash();}
 });
 
 /* ================= PETS =================
@@ -545,7 +560,7 @@ function renderArtifacts(){
       const {desc,total}=formatArtBonus(a,lv);
       const maxed=lv>=max;
       html+=`<div class="art-row">
-        <div class="art-ico">${a.icon||'🏺'}</div>
+        <div class="art-ico">${artIco(a.icon,'🏺')}</div>
         <div class="art-desc">${desc}</div>
         <div class="art-stats"><span class="lv">${lv}/${max}</span><span class="tot">${total}</span></div>
         <div class="art-actions">
@@ -606,7 +621,7 @@ function renderWorkshop(){
     const maxed=lv>=max;
     const lock=u.world4?' <span class="muted">(W4)</span>':'';
     html+=`<div class="art-row">
-      <div class="art-ico">${u.icon||'🔧'}</div>
+      <div class="art-ico">${artIco(u.icon,'🔧')}</div>
       <div class="art-desc">${u.name}${lock}${bonus!=='—'&&!u.unlock?` — ${bonus}`:u.unlock&&lv?` — Unlocked`:''}</div>
       <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
       <div class="art-actions">
@@ -731,7 +746,7 @@ function renderDrones(){
       const tot=u.unlock?(lv?'Unlocked':'—'):`${u.perLevel*lv}${u.unit}`;
       const maxed=lv>=max;
       return `<div class="art-row">
-        <div class="art-ico">🛸</div>
+        <div class="art-ico">${artIco(u.icon,'🛸')}</div>
         <div class="art-desc">${u.name}${tot&&!u.unlock?` — ${tot.startsWith('-')?tot:'+'+tot}`:u.unlock&&lv?' — Unlocked':''}</div>
         <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
         <div class="art-actions">
@@ -748,7 +763,7 @@ function renderDrones(){
       const bonus=s.perLevel*lv;
       const tot=s.unit==='s'?`${bonus}s`:`${bonus>=0?'+':''}${bonus}${s.unit}`;
       return `<div class="art-row">
-        <div class="art-ico">🤖</div>
+        <div class="art-ico">${artIco(s.icon,'🤖')}</div>
         <div class="art-desc"><b>${s.name} Suit</b> — ${s.ability}<br><span class="muted">${s.upgrade} → ${tot}</span></div>
         <div class="art-stats"><span class="lv">${lv}/${cap}</span></div>
         <div class="art-actions">
@@ -764,7 +779,7 @@ function renderDrones(){
       const lv=Math.min(f.maxGrade, C.getDroneFuel(state.col,f.id));
       const maxed=lv>=f.maxGrade;
       return `<div class="art-row">
-        <div class="art-ico">⛽</div>
+        <div class="art-ico">${artIco(f.icon,'⛽')}</div>
         <div class="art-desc"><b>${f.name}</b> — ${f.buff}</div>
         <div class="art-stats"><span class="lv">${lv}/${f.maxGrade}</span></div>
         <div class="art-actions">
@@ -923,33 +938,29 @@ import { STATUES, STATUE_STATES, visibleStatues, gatingInfo } from './game/statu
 function renderConstruct(){
   const maxW=maxWorldUnlocked();
   let h='';
-  for(const w of [1,3,4]){ // pas de statues en W2 (wiki)
+  for(const w of [1,3,4]){
     if(w>maxW){ h+=`<h3>Monde ${w} <span class="muted">— verrouillé (Monument requis)</span></h3>`; continue; }
     const list=visibleStatues(maxW).filter(s=>s.world===w);
-    h+=`<h3>Statues Monde ${w} <span class="muted">(${list.length})</span></h3><div class="statue-grid">`;
+    h+=`<h3>Statues Monde ${w} <span class="muted">(${list.length})</span></h3>
+      <div class="statue-board"><div class="statue-grid">`;
     for(const s of list){
       const st=C.getStatueState(state.col,s.num);
       const stDef=STATUE_STATES[st];
-      // icône selon l'état : normal → gilded → platinized (sprite dédié W1/W3)
       const icon=st>=3?s.iconPlatinum:st===2?s.iconGilded:s.iconNormal;
-      // bonus affiché ligne par ligne (séparateur " · " → retour à la ligne)
       const rawBonus=st>=3?(s.platinumBonus||s.gildedBonus||s.bonus):st===2?(s.gildedBonus||s.bonus):s.bonus;
       const bonusHtml=rawBonus.split(' · ').map(b=>`<span class="bl">${b}</span>`).join('');
-      h+=`<div class="card statue ${stDef.cls}" data-statue="${s.num}" title="${s.name} (${s.author})\n${rawBonus}\nClic : évoluer · Clic droit : reculer">
-        <img src="${icon}" alt="${s.name}" loading="lazy">
-        <span class="nm">${s.name}</span>
-        <span class="author">${s.author}</span>
-        ${w===4?'<span class="wtag">W4</span>':''}
-        <span class="st ${stDef.cls}">${stDef.name}</span>
-        <small>${bonusHtml}</small></div>`;
+      h+=`<div class="statue-slot ${stDef.cls}" data-statue="${s.num}" title="${s.name} (${s.author})\n${rawBonus}\nClic : +1 · Clic droit : −1">
+        <div class="statue-frame"><img src="${icon}" alt="${s.name}" loading="lazy"></div>
+        <div class="statue-plate">${s.name}</div>
+        <div class="statue-bonus"><span class="st-label">${stDef.name}${s.author?` · ${s.author}`:''}</span>${bonusHtml}</div>
+      </div>`;
     }
-    h+='</div>';
-    // gating wiki : toutes construites avant gilding, toutes gildées avant platinizing
+    h+='</div></div>';
     const arr=list.map(s=>C.getStatueState(state.col,s.num));
     const g=gatingInfo({['W'+w]:arr})['W'+w];
     const built=arr.filter(v=>v>=1).length, gld=arr.filter(v=>v>=2).length;
-    h+=`<p class="muted" style="margin:6px 0 14px">${built}/${list.length} construites · ${gld}/${list.length} gildées · `+
-       (g.canPlatinize?'✓ platinisation possible':g.canGild?'⚠ toutes les statues doivent être construites avant de gilder':'⚠ ordre aléatoire : continue à construire')+'</p>';
+    h+=`<p class="statue-meta">${built}/${list.length} construites · ${gld}/${list.length} gildées · `+
+       (g.canPlatinize?'✓ platinisation possible':g.canGild?'⚠ toutes construites avant de gilder':'⚠ continue à construire')+'</p>';
   }
   $('#statueList').innerHTML=h;
 
