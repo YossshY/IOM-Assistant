@@ -4,7 +4,8 @@
    « Battre OB N » = contexte. Le coach dit COMMENT combler l'écart.
    ============================================================ */
 import { OBELISK, ARTIFACTS, SKILLS, DRONES, SOURCES, EXTERNAL_TOOLS, artifactEffectiveMax } from './knowledgeBase.js';
-import { getArtifactLevel, hasSkill, getStatueState, getCaps, getCardState, getFishLv } from './collections.js';
+import { getArtifactLevel, hasSkill, getStatueState, getCardState, getFishLv } from './collections.js';
+import { liveCaps } from './capsEngine.js';
 import { LEGENDARY_FISH_CARDS } from './cardsData.js';
 import { LEGENDARY_FISH, NOTICE_UPGRADES_T1 } from './fishingData.js';
 import { estimateFreebieGemEv, estimateLootbug2xWorth, estimatePickaxeGap } from './playerMath.js';
@@ -385,7 +386,7 @@ function fishingCollectionsTouched(col) {
 }
 
 function pushArtifactLevers(recs, col, stats, armorRed) {
-  const caps = getCaps(col);
+  const caps = liveCaps(col, stats);
   const aStatue = getArtifactLevel(col, 'statue_dmg');
   const aArmor = getArtifactLevel(col, 'armorred');
   const capStatue = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'statue_dmg'), stats, caps);

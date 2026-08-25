@@ -48,10 +48,10 @@ export const ARCH_UPGRADES = [
   { id:'a0_exp_cap', name:'Exp Gain / Stat Point Caps', per:'2.00x / +5', max:1 },
 ];
 
-/** Idols Ascension 0+ (wiki file list) — niveau 0..max (souvent 1–5+ ; UI 0–10). */
+/** Idols — max wiki Cap colonne (défaut 10 si inconnu). */
 export const ARCH_IDOLS = [
-  { id:'minos', name:'Minos', note:'Early priority' },
-  { id:'dionysus', name:'Dionysus', note:'Early priority · drone caps' },
+  { id:'minos', name:'Minos', note:'Gem Upgrade Cap +1/niv', max:5 },
+  { id:'dionysus', name:'Dionysus', note:'Early priority · drone/coal caps' },
   { id:'hades', name:'Hades' },
   { id:'hestia', name:'Hestia' },
   { id:'aphrodite', name:'Aphrodite' },
@@ -62,14 +62,14 @@ export const ARCH_IDOLS = [
   { id:'castor', name:'Castor' },
   { id:'mnemosyne', name:'Mnemosyne' },
   { id:'zeus', name:'Zeus' },
-  { id:'hera', name:'Hera' },
+  { id:'hera', name:'Hera', note:'Contract Upgrade Cap +1/niv', max:3 },
   { id:'poseidon', name:'Poseidon' },
   { id:'demeter', name:'Demeter' },
   { id:'athena', name:'Athena' },
   { id:'apollo', name:'Apollo' },
   { id:'ares', name:'Ares' },
   { id:'hephaestus', name:'Hephaestus' },
-  { id:'hermes', name:'Hermes' },
+  { id:'hermes', name:'Hermes', note:'Contract Upgrade Cap +1/niv', max:1000 },
   { id:'eros', name:'Eros' },
   { id:'prometheus', name:'Prometheus' },
   { id:'atlas', name:'Atlas' },
@@ -87,6 +87,7 @@ export const ARCH_IDOLS = [
   { id:'cassandra', name:'Cassandra' },
   { id:'andromeda', name:'Andromeda' },
   { id:'xanthe', name:'Xanthe' },
-].map(x => ({ ...x, max:10 }));
+].map(x => ({ ...x, max: x.max ?? 10 }));
 
 export const ARCH_IDOL_MAX = 10;
+export function idolMax(idol){ return idol.max ?? ARCH_IDOL_MAX; }

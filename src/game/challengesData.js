@@ -610,7 +610,8 @@ export const CHALLENGES = {
     "n": 7,
     "stats": 82,
     "text": "Catch 15 Golden Frogs",
-    "goal": 15
+    "goal": 15,
+    "exportKey": "golden_lootfrogs_caught"
   },
   {
     "id": "div_8",

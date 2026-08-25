@@ -9,6 +9,11 @@ import { OBELISK, ARTIFACTS, artifactEffectiveMax } from './src/game/knowledgeBa
 import { workshopEffectiveMax, WORKSHOP_UPGRADES } from './src/game/workshopData.js';
 import { estimateFreebieGemEv, estimatePickaxeGap } from './src/game/playerMath.js';
 import { ORE_CARDS, BAR_CARDS, MISC_CARDS, VEIN_CARDS, ALL_CARDS } from './src/game/cardsData.js';
+import { computeCapSnapshot, liveCaps, petEffectiveMax } from './src/game/capsEngine.js';
+import { STORE_GEM_UPGRADES, STORE_GEM_UNLOCKS, STORE_PERKS } from './src/game/storeData.js';
+import { PETS_FULL } from './src/game/petsData.js';
+import { SITE_STORAGE_KEYS } from './src/game/siteBackup.js';
+import { CHALLENGES } from './src/game/challengesData.js';
 
 const raw = readFileSync('./samples/exportstats-v2.2.6.json', 'utf8');
 const parsed = parseExportStats(raw);
@@ -74,6 +79,53 @@ assert(MISC_CARDS.length === 45, `45 misc cards, got ${MISC_CARDS.length}`);
 assert(VEIN_CARDS.some(c => c.id === 'veins_volcano'), 'Volcano vein card');
 assert(ALL_CARDS.some(c => c.id === 'misc_relic'), 'Relic misc card');
 assert(ALL_CARDS.some(c => c.id === 'fish_glacial_shellstealer' && c.icon), 'Glacial icon');
+
+/* Store catalogue + export : niveaux absents, seul le cap total est là */
+assert(STORE_PERKS.length === 4, '4 perks');
+assert(STORE_GEM_UNLOCKS.length === 4, '4 gem unlocks');
+assert(STORE_GEM_UPGRADES.find(u => u.id === 'pickaxe').baseMax === 10, 'pickaxe gem upgrade base 10');
+assert(parsed.stats.gem_upgrade_cap_increase === 12, 'sample gem upgrade cap +12');
+assert(!('store_pickaxe_level' in parsed.stats), 'store levels not in export');
+assert(CHALLENGES.divine.find(c => c.id === 'div_7').exportKey === 'golden_lootfrogs_caught', 'div_7 uses export frogs');
+assert(parsed.stats.golden_lootfrogs_caught === 7, 'sample golden frogs 7');
+assert(SITE_STORAGE_KEYS.includes('iom_collections'), 'site backup keys');
+
+/* Caps live : export seul */
+const fromExport = computeCapSnapshot({}, parsed.stats);
+assert(fromExport.artifact.current === 7, `artifact cap export 7 got ${fromExport.artifact.current}`);
+assert(fromExport.artifactT4.current === 20, `T4 cap export 20 got ${fromExport.artifactT4.current}`);
+assert(fromExport.workshop.current === 17, `workshop cap export 17 got ${fromExport.workshop.current}`);
+assert(fromExport.gemUpgrade.current === 12, `gem cap export 12 got ${fromExport.gemUpgrade.current}`);
+assert(fromExport.contract.current === 11, `contract cap export 11 got ${fromExport.contract.current}`);
+
+/* Pet Happy-Bot +5 sans export → T4 current 5 (plus de valeur en dur) */
+const petCol = { pets: { Happybot: 5 } };
+const petSnap = computeCapSnapshot(petCol, {});
+assert(petSnap.artifactT4.current === 5, `Happy-Bot 5 → T4 +5 got ${petSnap.artifactT4.current}`);
+const crab = PETS_FULL.find(p => p.id === 'Crab');
+assert(petEffectiveMax(crab, { stars: { pisces: 2 }, statueStates: { 3: 3, 15: 3 }, challengeShop: { e_pet_cap: 1 }, petUnlocks: { skin_Dino: true } }, {}) === 25 + 8,
+  'pet max = base 25 + pisces2 + slaying1 + feline3 + shop1 + dino1');
+
+/* Sources itemisées artefacts = skill + carte poly + slaying plat → 7 */
+const artCol = {
+  skills: { upgrades_end: 1 },
+  cards: { pets_happybot: 3 },
+  statueStates: { 3: 3 },
+};
+const artSnap = computeCapSnapshot(artCol, {});
+assert(artSnap.artifact.itemized === 7, `itemized artifact 7 got ${artSnap.artifact.itemized}`);
+assert(artSnap.artifact.current === 7, 'current uses itemized when no export');
+
+/* Gem upgrades : hygiene plat + craft plat + minos 5 = 12 */
+const gemCol = { statueStates: { 6: 3, 10: 3 }, arch: { idols: { minos: 5 } } };
+const gemSnap = computeCapSnapshot(gemCol, {});
+assert(gemSnap.gemUpgrade.itemized === 12, `itemized gem 12 got ${gemSnap.gemUpgrade.itemized}`);
+const live = liveCaps(gemCol, {});
+assert(STORE_GEM_UPGRADES[0].baseMax + live.gemUpgrade === 22, 'pickaxe gem max 10+12');
+
+/* max(itemized, export) : pet 5 n'écrase pas un export T4 à 20 */
+assert(computeCapSnapshot(petCol, parsed.stats).artifactT4.current === 20, 'export 20 wins over pet 5');
+assert(computeCapSnapshot({ pets: { Happybot: 21 } }, parsed.stats).artifactT4.current === 21, 'post-export pet 21 raises T4');
 
 console.log('OK');
 console.log('OB', profile.obeliskLevel, 'W', profile.maxWorld, 'unknown', parsed.unknownKeys.length);

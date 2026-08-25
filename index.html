@@ -146,7 +146,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .pet-info p{margin:2px 0 0;color:var(--muted);font-size:7px;line-height:1.35}
 .lvbtns{display:flex;gap:4px;align-items:center}
 .lvbtns button{width:30px;height:30px;font-size:11px;padding:0}
-.lvval{min-width:48px;text-align:center;background:#120d16;border:2px solid var(--line);border-radius:4px;padding:5px 3px;color:var(--cyan);font-size:8px}
+.lvval.has-tip{cursor:help}
 /* ---- artefacts / prestige (layout jeu) ---- */
 .prestige-hint{color:var(--muted);font-size:8px;margin:0 0 12px;line-height:1.6}
 .prestige-list{display:flex;flex-direction:column;gap:14px}
@@ -233,6 +233,16 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .statline{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:2px solid #4a3a40;font-size:8px}
 .statline span{color:var(--muted);word-break:break-all}
 .statline b{color:var(--ink)}
+.art-stats.has-tip{cursor:help}
+.art-stats .hard{display:block;color:var(--muted);font-size:6.5px;margin-top:2px}
+.cap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.cap-card{padding:10px;border:3px solid var(--line);border-radius:6px;background:#120d16;cursor:help}
+.cap-card b{display:block;font-size:11px;color:var(--gold);margin-bottom:4px}
+.cap-card span{display:block;font-size:8px;color:var(--ink)}
+.cap-card small{display:block;margin-top:6px;font-size:7px;color:var(--muted);line-height:1.45;white-space:pre-wrap}
+.store-check{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-top:2px solid #00000055}
+.store-check label{flex:1;cursor:pointer;line-height:1.5}
+.store-check input{width:18px;height:18px;margin-top:2px;accent-color:#5a48b8}
 @media(max-width:640px){.menu-btn{width:78px}.app{padding:12px 8px 80px}}
 
 /* ---- WIP popup ---- */
@@ -269,7 +279,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
       <div class="menu-btn" data-go="drones"><span class="ic"><img src="assets/menu/Drones_Button.png" alt=""></span><span class="lb">Drones</span></div>
       <div class="menu-btn" data-go="skills"><span class="ic"><img src="assets/menu/Skill-Tree_Button.png" alt=""></span><span class="lb">Skill-Tree</span></div>
       <div class="menu-btn" data-go="challenges"><span class="ic"><img src="assets/menu/Challenges_Button_Extreme.png" alt=""></span><span class="lb">Challenges</span></div>
-      <div class="menu-btn" data-go="shop"><span class="ic"><img src="assets/menu/Store_Button.png" alt=""></span><span class="lb">Shop</span></div>
+      <div class="menu-btn" data-go="store"><span class="ic"><img src="assets/menu/Store_Button.png" alt=""></span><span class="lb">Store</span></div>
       <div class="menu-btn" data-go="cards"><span class="ic"><img src="assets/menu/Cards_Button.png" alt=""></span><span class="lb">Cards</span></div>
       <div class="menu-btn" data-go="pets"><span class="ic"><img src="assets/menu/Pets_Button.png" alt=""></span><span class="lb">Pets</span></div>
       <div class="menu-btn" data-go="construct"><span class="ic"><img src="assets/menu/Construct_Button_Gilded.png" alt=""></span><span class="lb">Construct</span></div>
@@ -295,6 +305,10 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- DASHBOARD -->
 <section id="page-dashboard" class="page hidden">
   <div class="panel"><h2>Profil joueur</h2><div class="grid" id="dashProfile"></div></div>
+  <div class="panel"><h2>Caps d'upgrades</h2>
+    <p class="muted" style="margin:0 0 10px">En cours = max(export, sources notées). Max = toutes les sources wiki. Survole une carte pour le détail.</p>
+    <div id="dashCaps"></div>
+  </div>
   <div class="panel"><h2>Estimateurs (wiki + export)</h2><div id="dashMath"></div></div>
   <div class="panel"><h2>Mon prochain objectif</h2><div id="roadList"></div>
     <p class="muted">🟢 Confirmé · 🟡 Probable · 🔴 Données insuffisantes</p></div>
@@ -313,6 +327,15 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
       <label class="pixbtn ghost">FICHIER<input type="file" id="btnFile" accept=".json" hidden></label>
     </div>
     <p id="importMsg" class="msg"></p></div>
+  <div class="panel"><h2>Données du site</h2>
+    <p class="muted">Sauvegarde tout ce que tu as noté ici (pets, store, shop, cartes, historique…) — ce n'est pas l'exportstats du jeu.</p>
+    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+      <button class="pixbtn gold" id="btnSiteExport">EXPORTER LE SITE</button>
+      <label class="pixbtn ghost">IMPORTER LE SITE<input type="file" id="btnSiteImport" accept=".json" hidden></label>
+      <button class="pixbtn inf" id="btnSiteReset">RESET LE SITE</button>
+    </div>
+    <p id="siteDataMsg" class="msg"></p>
+  </div>
   <div class="panel"><h2>Toutes les statistiques importées</h2><div id="allStats"></div></div>
 </section>
 
@@ -354,7 +377,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- WORKSHOP (= anvil, niveaux manuels — absents de l'export) -->
 <section id="page-workshop" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Les niveaux Workshop ne sont pas dans exportstats — note-les ici (max calibré sur tes screens + bomb_workshop_cap_increase).</p>
+    <p class="prestige-hint">Les niveaux Workshop ne sont pas dans exportstats — note-les ici. Le max courant suit tes caps (export + pets/statues/skills…). Infobulle sur 25/35 (Max 52).</p>
     <div class="prestige-toolbar">
       <button class="pixbtn gold" id="btnWsMaxAll">TOUT MAXER</button>
       <button class="pixbtn ghost" id="btnWsClear">TOUT À 0</button>
@@ -391,7 +414,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
   </div>
 </section>
 
-<!-- CHALLENGES -->
+<!-- CHALLENGES (+ Shop coins) -->
 <section id="page-challenges" class="page hidden">
   <div class="panel">
     <div class="chal-overlay" id="chalOverlay"></div>
@@ -399,6 +422,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
       <button class="pixbtn on" data-chaltab="regular">Regular</button>
       <button class="pixbtn ghost" data-chaltab="extreme">Extreme</button>
       <button class="pixbtn ghost" data-chaltab="divine">Divine</button>
+      <button class="pixbtn ghost" data-chaltab="shop">Shop</button>
     </div>
     <div class="prestige-toolbar">
       <button class="pixbtn gold" id="btnChalAllDone">TOUT FAIT (onglet)</button>
@@ -409,16 +433,20 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
   </div>
 </section>
 
-<!-- SHOP -->
-<section id="page-shop" class="page hidden">
+<!-- STORE (gemmes / IAP, comme le jeu) -->
+<section id="page-store" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Shop Regular / Extreme / Divine — coins de challenges (pas dans l'export).</p>
-    <div class="prestige-toolbar">
-      <button class="pixbtn gold" id="btnShopMaxAll">TOUT MAXER</button>
-      <button class="pixbtn ghost" id="btnShopClear">TOUT À 0</button>
-      <span class="muted" id="shopHint"></span>
+    <p class="prestige-hint">Store du jeu : Special (Value Packs), Perk, Gem Unlocks, Gem Upgrades.
+      <a href="https://shminer.miraheze.org/wiki/Store#Gem_Upgrades" target="_blank" rel="noopener">wiki Store</a>
+      — les niveaux ne sont pas dans exportstats (seul <code>gem_upgrade_cap_increase</code> l'est).</p>
+    <div class="tab-row" id="storeTabs">
+      <button class="pixbtn on" data-storetab="special">Special</button>
+      <button class="pixbtn ghost" data-storetab="perk">Perk</button>
+      <button class="pixbtn ghost" data-storetab="unlocks">Gem Unlocks</button>
+      <button class="pixbtn ghost" data-storetab="upgrades">Gem Upgrades</button>
     </div>
-    <div class="prestige-list" id="shopGrid"></div>
+    <div class="prestige-toolbar"><span class="muted" id="storeHint"></span></div>
+    <div class="prestige-list" id="storeGrid"></div>
   </div>
 </section>
 
@@ -510,8 +538,9 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- KNOWLEDGE -->
 <section id="page-knowledge" class="page hidden">
   <div class="panel"><h2>Base de connaissances</h2>
-    <p class="muted">Données wiki v2.2.6 dans <code>src/game/*.js</code> — formules/caps (<code>knowledgeBase</code>), cartes (<code>cardsData</code> : 86 ores + 77 bars + misc/bombs/veins…), pets, statues, fishing, workshop. Ton état local : <code>collections.js</code>.
-    Sources : <a href="https://shminer.miraheze.org/wiki/Obelisk_Miner_Wiki" target="_blank" rel="noopener">Idle Obelisk Miner Wiki</a>.</p></div>
+    <p class="muted">Données wiki v2.2.6 dans <code>src/game/*.js</code> — formules/caps (<code>capsEngine</code> + <code>knowledgeBase</code>), cartes, pets, statues, fishing, workshop, store. Ton état local : <code>collections.js</code> (exportable depuis ExportStats).
+    Sources : <a href="https://shminer.miraheze.org/wiki/Obelisk_Miner_Wiki" target="_blank" rel="noopener">Idle Obelisk Miner Wiki</a>.</p>
+    <p class="muted">Caps : le max <em>en cours</em> = max(total export, sources notées ici). Le Max absolu suppose toutes les sources wiki. Infobulle sur chaque niveau.</p></div>
 </section>
 
 </div>

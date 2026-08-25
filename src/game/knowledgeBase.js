@@ -79,9 +79,7 @@ export const ARTIFACTS = [
   { id:'veinspawn',   tier:4, name:'Vein Spawn Rate',          icon:'💠', perLevel:4,    unit:'%',     maxBase:17, unlockOb:19 },
 ];
 
-/** Max effectif selon caps export persistés ou stats brutes.
- * Wiki Stats : Artifact Upgrade Cap Increase = tous les artefacts ;
- * Artifact Tier 4 Cap Increase = bonus T4 en plus. */
+/** Max effectif : maxBase + bonus cap (export et/ou sources itemisées via liveCaps). */
 export function artifactEffectiveMax(a, stats = {}, caps = null) {
   const gen = +(caps?.artifact ?? stats.artifact_cap_increase ?? 0) || 0;
   const t4 = +(caps?.artifactT4 ?? stats.artifact_tier4_cap_increase ?? 0) || 0;
@@ -321,6 +319,8 @@ export const SOURCES = {
   wiki_progression: 'https://shminer.miraheze.org/wiki/Guides/Progression_Guide',
   wiki_gems: 'https://shminer.miraheze.org/wiki/Guides/Gem_Spending_Guide',
   wiki_external: 'https://shminer.miraheze.org/wiki/External_Resources',
+  wiki_store: 'https://shminer.miraheze.org/wiki/Store',
+  wiki_stats: 'https://shminer.miraheze.org/wiki/Stats',
 };
 
 /** Calculateurs Discord / wiki External_Resources — pour les recos « comment mesurer ». */

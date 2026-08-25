@@ -12,7 +12,7 @@ import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS, s
 const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Blue_Cow.png',goldore:'Golden_Ore_Icon.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:'Misc_Celios_Hat.png',vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png',relic:'Misc_Relic.png',bone:'Misc_Bone.png',store:'Misc_Store.png',cookie:'Misc_Cookie_Clicker.png'};
 import { estimateFreebieGemEv, estimateLootbug2xWorth, estimatePickaxeGap } from './game/playerMath.js';
 import { ARTIFACTS, SKILLS, artifactEffectiveMax, EXTERNAL_TOOLS, STATS_CATALOG } from './game/knowledgeBase.js';
-import { WORKSHOP_UPGRADES, workshopEffectiveMax, formatWorkshopBonus, WORKSHOP_WIKI_REF_CAP } from './game/workshopData.js';
+import { WORKSHOP_UPGRADES, workshopEffectiveMax, formatWorkshopBonus } from './game/workshopData.js';
 import { skillMaxLevels, SKILL_TREE_ROWS } from './game/skillsData.js';
 import { DRONE_CORE_UPGRADES, DRONE_SUITS, DRONE_FUEL, coreLevelFromExport, suitCapFromExport } from './game/dronesData.js';
 import { CHALLENGES, CHALLENGE_SHOP } from './game/challengesData.js';
@@ -21,9 +21,15 @@ import {
   ENHANCE_T1, ENHANCE_T2, LEGENDARY_FISH, FISHING_EXPORT_KEYS,
   FISH_UPGRADES_T1, FISH_UPGRADES_T2,
 } from './game/fishingData.js';
-import { ARCH_UPGRADES, ARCH_IDOLS, ARCH_IDOL_MAX } from './game/archaeologyData.js';
+import { ARCH_UPGRADES, ARCH_IDOLS, idolMax } from './game/archaeologyData.js';
 import { RESEARCH_VEINS, MONUMENTS } from './game/constructData.js';
 import * as C from './game/collections.js';
+import { computeCapSnapshot, liveCaps, petEffectiveMax, petHardMax } from './game/capsEngine.js';
+import {
+  STORE_PERKS, STORE_PERK_BUNDLES, STORE_GEM_UNLOCKS, STORE_GEM_UPGRADES,
+  STORE_SPECIAL, STORE_VALUE_PACKS, STORE_EXPORT_NOTE,
+} from './game/storeData.js';
+import { exportSiteData, importSiteData, resetSiteData } from './game/siteBackup.js';
 
 /** Durée du run prestige (raw.time) — pas le lifetime du compte. */
 function fmtRunDuration(sec){
@@ -38,12 +44,38 @@ function fmtSource(src){
   return String(src);
 }
 
-/** Max affiché : T4 = maxBase + caps persistés (ex. 32+20=52). */
+/** Max affiché : T4 = maxBase + caps live (export + sources site). */
+function statsNow(){ return state.parsed?.stats || {}; }
+function capsNow(){ return liveCaps(state.col, statsNow()); }
+function snapNow(){ return computeCapSnapshot(state.col, statsNow()); }
 function artifactMax(a){
-  return artifactEffectiveMax(a, state.parsed?.stats||{}, C.getCaps(state.col));
+  return artifactEffectiveMax(a, statsNow(), capsNow());
+}
+function artifactHardMax(a){
+  const s = snapNow();
+  const caps = { artifact:s.artifact.potential, artifactT4:s.artifactT4.potential };
+  return artifactEffectiveMax(a, statsNow(), caps);
 }
 function workshopMax(u){
-  return workshopEffectiveMax(u, C.getCaps(state.col));
+  return workshopEffectiveMax(u, capsNow());
+}
+function workshopHardMax(u){
+  return workshopEffectiveMax(u, { workshop: snapNow().workshop.potential });
+}
+function escAttr(s){
+  return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+function capLabel(lv, current, hard){
+  if (hard != null && hard > current) return `${lv}/${current} (Max ${hard})`;
+  return `${lv}/${current}`;
+}
+function capCell(lv, current, hard, tip){
+  const extra = (hard != null && hard > current) ? `<span class="hard">Max ${hard}</span>` : '';
+  return `<div class="art-stats has-tip" title="${escAttr(tip||'')}">`+
+    `<span class="lv">${lv}/${current}</span>${extra}</div>`;
+}
+function touchCaps(){
+  renderArtifacts();renderWorkshop();renderPets();renderStore();renderDashCaps();
 }
 /** Somme des états statues (plat=3) — pour bonus « per statue owned ». */
 function statuePower(){
@@ -85,6 +117,36 @@ $('#btnImport').addEventListener('click',()=>doImport($('#statsText').value));
 $('#btnFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;
   const r=new FileReader();r.onload=()=>{$('#statsText').value=r.result;doImport(r.result)};r.readAsText(f);});
 
+function siteMsg(text, ok){
+  const el=$('#siteDataMsg'); if(!el) return;
+  el.textContent=text; el.className=ok?'msg ok':'msg err';
+}
+$('#btnSiteExport')?.addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(exportSiteData(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`iom-assistant-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  siteMsg('Backup téléchargé.', true);
+});
+$('#btnSiteImport')?.addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      importSiteData(JSON.parse(r.result));
+      location.reload();
+    }catch(err){ siteMsg('⚠ '+(err.message||err), false); }
+  };
+  r.readAsText(f);
+});
+$('#btnSiteReset')?.addEventListener('click',()=>{
+  if(!confirm('Effacer toutes les données locales du site (collections, historique, store) ? L’exportstats du jeu n’est pas concerné tant que tu ne réimportes pas.')) return;
+  resetSiteData();
+  location.reload();
+});
+
 function doImport(text){
   const parsed=parseExportStats(text), el=$('#importMsg');
   if(!parsed.ok){el.textContent='⚠ '+parsed.error;el.className='msg err';return;}
@@ -105,7 +167,7 @@ function doImport(text){
 function renderAll(){
   renderTop();renderDash();renderRoadmap();renderAllStats();renderFishing();renderArchaeology();
   renderCards();renderPets();renderArtifacts();renderWorkshop();
-  renderSkills();renderDrones();renderChallenges();renderShop();
+  renderSkills();renderDrones();renderChallenges();renderStore();
   renderConstruct();renderStars();renderHistory();
 }
 
@@ -129,7 +191,7 @@ function renderTop(){
 /* ---------- dashboard ---------- */
 function renderDash(){
   const g=$('#dashProfile');
-  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();return;}
+  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();renderDashCaps();return;}
   const p=state.profile;
   const nextA=p.nextObeliskArmor;
   g.innerHTML=[
@@ -145,6 +207,25 @@ function renderDash(){
   ].map(c=>`<div class="cell"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');
   renderDashTools();
   renderDashMath();
+  renderDashCaps();
+}
+function renderDashCaps(){
+  const box=$('#dashCaps'); if(!box) return;
+  const s=snapNow();
+  const rows=[
+    ['Artefacts', s.artifact],
+    ['Artefacts T4', s.artifactT4],
+    ['Workshop', s.workshop],
+    ['Gem Upgrades', s.gemUpgrade],
+    ['Contrats', s.contract],
+    ['Pet levels', s.petLevel],
+  ];
+  box.innerHTML=`<div class="cap-grid">${rows.map(([name,p])=>`
+    <div class="cap-card" title="${escAttr(p.tooltip)}">
+      <b>+${p.current} / +${p.potential}</b>
+      <span>${name}</span>
+      <small>${p.exportKey?`${p.exportKey} export +${p.exportVal}`:'pas dans l\'export'}</small>
+    </div>`).join('')}</div>`;
 }
 /** Estimateurs wiki/export — guider sans réécrire tout ObeliskFarm. */
 function renderDashMath(){
@@ -227,12 +308,13 @@ function artIco(icon, fallback='🔧'){
     return `<img src="${icon}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${fallback}'))">`;
   return icon||fallback;
 }
-function lvRow(icon, title, sub, lv, max, dataAttr, id){
+function lvRow(icon, title, sub, lv, max, dataAttr, id, extra={}){
+  const hard=extra.hardMax??max;
   const maxed=lv>=max && max>0;
   return `<div class="art-row">
     <div class="art-ico">${artIco(icon)}</div>
     <div class="art-desc"><b>${title}</b>${sub?` — ${sub}`:''}</div>
-    <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
+    ${capCell(lv, max, hard, extra.tip)}
     <div class="art-actions">
       <button class="pixbtn ghost" data-${dataAttr}="${id}" data-d="-1">−</button>
       ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-${dataAttr}="${id}" data-d="1">+</button>`}
@@ -315,7 +397,7 @@ document.addEventListener('click',e=>{
   const e2=e.target.closest('[data-fe2]');
   if(e2){ const u=ENHANCE_T2.find(x=>x.id===e2.dataset.fe2); C.setFishLv(state.col,'enhance',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'enhance',u.id)+ +e2.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
   const lg=e.target.closest('[data-fleg]');
-  if(lg){ C.setFishLv(state.col,'legendary',lg.dataset.fleg,Math.min(2,Math.max(0,C.getFishLv(state.col,'legendary',lg.dataset.fleg)+ +lg.dataset.d))); C.saveCollections(state.col); renderFishing(); }
+  if(lg){ C.setFishLv(state.col,'legendary',lg.dataset.fleg,Math.min(2,Math.max(0,C.getFishLv(state.col,'legendary',lg.dataset.fleg)+ +lg.dataset.d))); C.saveCollections(state.col); renderFishing(); touchCaps(); }
 });
 $('#btnFishMaxTab')?.addEventListener('click',()=>{
   if(fishTab==='notices'){ for(const u of NOTICE_UPGRADES_T1) C.setFishLv(state.col,'notice',u.id,u.max); for(const u of NOTICE_UPGRADES_T2) C.setFishLv(state.col,'notice',u.id,u.max); }
@@ -323,14 +405,14 @@ $('#btnFishMaxTab')?.addEventListener('click',()=>{
   else if(fishTab==='upgrades'){ for(const u of FISH_UPGRADES_T1) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const u of FISH_UPGRADES_T2) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,true); }
   else if(fishTab==='enhance'){ for(const u of ENHANCE_T1) C.setFishLv(state.col,'enhance',u.id,u.max); for(const u of ENHANCE_T2) C.setFishLv(state.col,'enhance',u.id,u.max); }
   else if(fishTab==='legendary') for(const f of LEGENDARY_FISH) C.setFishLv(state.col,'legendary',f.id,2);
-  C.saveCollections(state.col);renderFishing();
+  C.saveCollections(state.col);renderFishing();touchCaps();
 });
 $('#btnFishClearTab')?.addEventListener('click',()=>{
   if(fishTab==='notices'){ for(const u of [...NOTICE_UPGRADES_T1,...NOTICE_UPGRADES_T2]) C.setFishLv(state.col,'notice',u.id,0); }
   else if(fishTab==='upgrades'){ for(const u of [...FISH_UPGRADES_T1,...FISH_UPGRADES_T2]) C.setFishLv(state.col,'upgrades',u.id,0); for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,false); }
   else if(fishTab==='enhance'){ for(const u of [...ENHANCE_T1,...ENHANCE_T2]) C.setFishLv(state.col,'enhance',u.id,0); }
   else if(fishTab==='legendary') for(const f of LEGENDARY_FISH) C.setFishLv(state.col,'legendary',f.id,0);
-  C.saveCollections(state.col);renderFishing();
+  C.saveCollections(state.col);renderFishing();touchCaps();
 });
 
 /* ================= ARCHAEOLOGY ================= */
@@ -347,11 +429,15 @@ function renderArchaeology(){
     box.innerHTML=ARCH_UPGRADES.map(u=>lvRow('🦴',u.name,u.per,C.getArchLv(state.col,'upgrades',u.id),u.max,'aupg',u.id)).join('');
     return;
   }
-  if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · niveau 0–${ARCH_IDOL_MAX}`;
+  if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · max wiki par idole`;
   box.innerHTML=ARCH_IDOLS.map(idol=>{
-    const lv=Math.min(ARCH_IDOL_MAX, C.getArchLv(state.col,'idols',idol.id));
+    const mx=idolMax(idol);
+    const lv=Math.min(mx, C.getArchLv(state.col,'idols',idol.id));
     const icon=`assets/cards/${idol.name}_Idol.png`;
-    return lvRow(icon,idol.name,idol.note||'',lv,ARCH_IDOL_MAX,'aidol',idol.id);
+    const snap=snapNow();
+    const tip=idol.id==='minos'?snap.gemUpgrade.tooltip
+      :(idol.id==='hera'||idol.id==='hermes')?snap.contract.tooltip:'';
+    return lvRow(icon,idol.name,idol.note||'',lv,mx,'aidol',idol.id,{ tip });
   }).join('');
 }
 document.addEventListener('click',e=>{
@@ -360,18 +446,22 @@ document.addEventListener('click',e=>{
   const up=e.target.closest('[data-aupg]');
   if(up){ const u=ARCH_UPGRADES.find(x=>x.id===up.dataset.aupg); C.setArchLv(state.col,'upgrades',u.id,Math.min(u.max,Math.max(0,C.getArchLv(state.col,'upgrades',u.id)+ +up.dataset.d))); C.saveCollections(state.col); renderArchaeology(); return; }
   const id=e.target.closest('[data-aidol]');
-  if(id){ C.setArchLv(state.col,'idols',id.dataset.aidol,Math.min(ARCH_IDOL_MAX,Math.max(0,C.getArchLv(state.col,'idols',id.dataset.aidol)+ +id.dataset.d))); C.saveCollections(state.col); renderArchaeology(); }
+  if(id){
+    const idol=ARCH_IDOLS.find(x=>x.id===id.dataset.aidol);
+    const mx=idolMax(idol);
+    C.setArchLv(state.col,'idols',id.dataset.aidol,Math.min(mx,Math.max(0,C.getArchLv(state.col,'idols',id.dataset.aidol)+ +id.dataset.d)));
+    C.saveCollections(state.col); renderArchaeology(); touchCaps();
+  }
 });
 $('#btnArchMaxTab')?.addEventListener('click',()=>{
   if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,u.max);
-  else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,ARCH_IDOL_MAX);
-  C.saveCollections(state.col);renderArchaeology();
+  else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,idolMax(i));
+  C.saveCollections(state.col);renderArchaeology();touchCaps();
 });
 $('#btnArchClearTab')?.addEventListener('click',()=>{
   if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,0);
   else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,0);
-  C.saveCollections(state.col);renderArchaeology();
-});
+  C.saveCollections(state.col);renderArchaeology();touchCaps();
 
 /* ================= CARDS =================
    Toutes les cartes individuelles, groupées par catégorie.
@@ -443,7 +533,7 @@ function cardTile(id,img,name,st,effect,worldTag,mod,unlocked=true){
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-card]');
-  if(t){C.adjustCard(state.col,t.dataset.card,1);C.saveCollections(state.col);renderCards();renderDash();}
+  if(t){C.adjustCard(state.col,t.dataset.card,1);C.saveCollections(state.col);renderCards();renderDash();touchCaps();}
   const b=e.target.closest('[data-bulk]');
   if(b){C.setAllVisible(state.col,+b.dataset.bulk,visibleCards(maxWorldUnlocked()).map(c=>c.id));C.saveCollections(state.col);renderCards();renderDash();}
   const bs=e.target.closest('[data-bulkset]');
@@ -455,7 +545,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('contextmenu',e=>{
   const t=e.target.closest('[data-card]');
-  if(t){e.preventDefault();C.adjustCard(state.col,t.dataset.card,-1);C.saveCollections(state.col);renderCards();renderDash();}
+  if(t){e.preventDefault();C.adjustCard(state.col,t.dataset.card,-1);C.saveCollections(state.col);renderCards();renderDash();touchCaps();}
 });
 
 /* ================= PETS =================
@@ -471,15 +561,18 @@ function renderPets(){
   const owned=(state.col.petUnlocks)||{};
   box.innerHTML=PETS_FULL.map(p=>{
     const lv=C.getPetLevel(state.col,p.id);
+    const max=petEffectiveMax(p, state.col, statsNow());
+    const hard=petHardMax(p, state.col, statsNow());
     const locked = p.unlockTotal>0 && total<p.unlockTotal && lv===0;
     const skinOn=owned['skin_'+p.id];
     const qRank=C.getPetQuestRank(state.col,p.id);
     const questOn=qRank>0 || owned['quest_'+p.id];
+    const petTip=snapNow().petLevel.tooltip;
     return `<div class="petrow ${locked?'locked':''}">
       <img class="pet-em" src="${p.iconDefault}" alt="" loading="lazy"
         onerror="this.style.display='none'">
       <div class="pet-info">
-        <b>${p.name}</b> <span class="muted">· unlock ${p.unlockTotal} · ${p.price} 💎 · max ${p.maxLevel}</span>
+        <b>${p.name}</b> <span class="muted">· unlock ${p.unlockTotal} · ${p.price} 💎 · max ${max}${hard>max?` (Max ${hard})`:''}</span>
         <p>${p.levelBy} — ${p.bonus}</p>
         <div class="pet-unlocks">
           <button class="petchip ${skinOn?'on':''}" data-petunlock="skin_${p.id}" title="${p.skin?`${p.skin.name} : ${p.skin.bonus}`:''}">
@@ -495,7 +588,7 @@ function renderPets(){
       </div>
       <div class="lvbtns">
         <button class="pixbtn ghost" data-pet="${p.id}" data-d="-1">−</button>
-        <span class="lvval">${lv}/${p.maxLevel}</span>
+        <span class="lvval has-tip" title="${escAttr(petTip)}">${capLabel(lv,max,hard)}</span>
         <button class="pixbtn" data-pet="${p.id}" data-d="1">+</button>
       </div></div>`;
   }).join('')+`<p class="muted" style="margin-top:10px">Total niveaux : ${total} · Quest ranks 0–10 (screens Crab/Dwarf/Duck 10/10). Skins = bonus même non équipé.</p>`;
@@ -503,14 +596,15 @@ function renderPets(){
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-pet]');if(!b)return;
   const pet=PETS_FULL.find(p=>p.id===b.dataset.pet);
-  C.setPetLevel(state.col,b.dataset.pet,Math.min(pet.maxLevel,Math.max(0,C.getPetLevel(state.col,b.dataset.pet)+ +b.dataset.d)));
-  C.saveCollections(state.col);renderPets();renderDash();
+  const max=petEffectiveMax(pet, state.col, statsNow());
+  C.setPetLevel(state.col,b.dataset.pet,Math.min(max,Math.max(0,C.getPetLevel(state.col,b.dataset.pet)+ +b.dataset.d)));
+  C.saveCollections(state.col);renderPets();renderDash();touchCaps();
 });
 document.addEventListener('click',e=>{
   const c=e.target.closest('[data-petunlock]');if(!c)return;
   state.col.petUnlocks=state.col.petUnlocks||{};
   state.col.petUnlocks[c.dataset.petunlock]=!state.col.petUnlocks[c.dataset.petunlock];
-  C.saveCollections(state.col);renderPets();
+  C.saveCollections(state.col);renderPets();touchCaps();
 });
 document.addEventListener('click',e=>{
   const q=e.target.closest('[data-qrank]');if(!q)return;
@@ -521,13 +615,15 @@ document.addEventListener('click',e=>{
 /* ================= PRESTIGE / ARTEFACTS (layout jeu) ================= */
 function renderArtifacts(){
   const box=$('#artGrid');
-  const caps=C.getCaps(state.col);
+  const snap=snapNow();
   const hint=$('#artCapHint');
   if(hint){
     const t1=artifactMax(ARTIFACTS.find(a=>a.id==='pick_t1'));
+    const t1h=artifactHardMax(ARTIFACTS.find(a=>a.id==='pick_t1'));
     const t4a=artifactMax(ARTIFACTS.find(a=>a.id==='statue_dmg'));
     const t4b=artifactMax(ARTIFACTS.find(a=>a.id==='omega_crit'));
-    hint.textContent=`Caps export : artefacts +${caps.artifact} · T4 +${caps.artifactT4} → max T1 ${t1} · T4 ${t4a}/${t4b}`;
+    hint.textContent=`Caps : artefacts +${snap.artifact.current} (max +${snap.artifact.potential}) · T4 +${snap.artifactT4.current} (max +${snap.artifactT4.potential}) → T1 ${t1}${t1h>t1?`/${t1h}`:''} · T4 ${t4a}/${t4b}`;
+    hint.title=snap.artifact.tooltip+'\n\n'+snap.artifactT4.tooltip;
   }
 
   let html='';
@@ -550,13 +646,16 @@ function renderArtifacts(){
       </div>`;
     for(const a of list){
       const max=artifactMax(a);
+      const hard=artifactHardMax(a);
       const lv=Math.min(max, C.getArtifactLevel(state.col,a.id));
       const {desc,total}=formatArtBonus(a,lv);
       const maxed=lv>=max;
+      const tip=a.tier===4 ? snap.artifact.tooltip+'\n\n'+snap.artifactT4.tooltip : snap.artifact.tooltip;
       html+=`<div class="art-row">
         <div class="art-ico">${artIco(a.icon,'🏺')}</div>
         <div class="art-desc">${desc}</div>
-        <div class="art-stats"><span class="lv">${lv}/${max}</span><span class="tot">${total}</span></div>
+        ${capCell(lv, max, hard, tip)}
+        <span class="tot" style="color:#9fefb0;font-size:7px">${total}</span>
         <div class="art-actions">
           <button class="pixbtn ghost" data-art="${a.id}" data-d="-1" title="-1">−</button>
           ${maxed
@@ -603,13 +702,17 @@ $('#btnArtClear')?.addEventListener('click',()=>{
 /* ================= WORKSHOP ================= */
 function renderWorkshop(){
   const box=$('#wsGrid'); if(!box) return;
-  const caps=C.getCaps(state.col);
+  const snap=snapNow();
   const hint=$('#wsCapHint');
-  if(hint) hint.textContent=`bomb_workshop_cap_increase : +${caps.workshop}`+(caps.workshop?` (max ≈ wiki − ${WORKSHOP_WIKI_REF_CAP-caps.workshop})`:' — importe un export');
+  if(hint){
+    hint.textContent=`Workshop cap +${snap.workshop.current} (max +${snap.workshop.potential}) · export ${snap.workshop.exportVal}`;
+    hint.title=snap.workshop.tooltip;
+  }
 
   let html='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Workshop Upgrades</div></div>';
   for(const u of WORKSHOP_UPGRADES){
     const max=workshopMax(u);
+    const hard=workshopHardMax(u);
     const lv=Math.min(max, C.getWorkshopLevel(state.col,u.id));
     const bonus=formatWorkshopBonus(u,lv);
     const maxed=lv>=max;
@@ -617,7 +720,7 @@ function renderWorkshop(){
     html+=`<div class="art-row">
       <div class="art-ico">${artIco(u.icon,'🔧')}</div>
       <div class="art-desc">${u.name}${lock}${bonus!=='—'&&!u.unlock?` — ${bonus}`:u.unlock&&lv?` — Unlocked`:''}</div>
-      <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
+      ${capCell(lv, max, u.unlock?max:hard, u.unlock?'Unlock':snap.workshop.tooltip)}
       <div class="art-actions">
         <button class="pixbtn ghost" data-ws="${u.id}" data-d="-1">−</button>
         ${maxed
@@ -704,7 +807,7 @@ function renderSkills(){
 function setSkillLv(id,lv){
   const s=SKILLS.find(x=>x.id===id); if(!s)return;
   C.setSkillLevel(state.col,id,Math.min(skillMaxLevels(s),Math.max(0,lv|0)));
-  C.saveCollections(state.col);renderSkills();renderRoadmap();
+  C.saveCollections(state.col);renderSkills();renderRoadmap();touchCaps();
 }
 document.addEventListener('click',e=>{
   const sel=e.target.closest('[data-skillsel]');
@@ -714,11 +817,11 @@ document.addEventListener('click',e=>{
 });
 $('#btnSkillMaxS')?.addEventListener('click',()=>{
   for(const s of SKILLS.filter(x=>x.sTier)) C.setSkillLevel(state.col,s.id,skillMaxLevels(s));
-  C.saveCollections(state.col);renderSkills();renderRoadmap();
+  C.saveCollections(state.col);renderSkills();renderRoadmap();touchCaps();
 });
 $('#btnSkillClear')?.addEventListener('click',()=>{
   for(const s of SKILLS) C.setSkillLevel(state.col,s.id,0);
-  C.saveCollections(state.col);renderSkills();renderRoadmap();
+  C.saveCollections(state.col);renderSkills();renderRoadmap();touchCaps();
 });
 
 /* ================= DRONES ================= */
@@ -814,8 +917,45 @@ document.addEventListener('click',e=>{
   }
 });
 
-/* ================= CHALLENGES ================= */
+/* ================= CHALLENGES (+ Shop coins) ================= */
 let chalTab='regular';
+function overlayChallenge(){
+  const ov=C.getChallengeOverlay(state.col);
+  const ch=CHALLENGES.divine.find(c=>c.id===(ov?.id||'div_7')) || CHALLENGES.divine.find(c=>c.n===7);
+  if(!ch) return null;
+  const goal=ov?.goal ?? ch.goal ?? null;
+  let progress=ov?.progress;
+  if(progress==null && ch.exportKey){
+    const n=Number(statsNow()[ch.exportKey]);
+    if(Number.isFinite(n)) progress=n;
+  }
+  if(progress==null) progress=0;
+  return { ch, progress, goal };
+}
+function renderShopHtml(){
+  let html='';
+  const petTip=snapNow().petLevel.tooltip;
+  for(const tier of ['regular','extreme','divine']){
+    const label=tier[0].toUpperCase()+tier.slice(1);
+    html+=`<div class="tier-block t${tier==='regular'?1:tier==='extreme'?2:4}"><div class="tier-head"><div class="th-l">${label} Shop</div></div>`;
+    for(const u of CHALLENGE_SHOP[tier]){
+      const lv=Math.min(u.max, C.getChallengeShop(state.col,u.id));
+      const maxed=lv>=u.max;
+      const tip=u.id==='e_pet_cap'?petTip:'';
+      html+=`<div class="art-row">
+        <div class="art-ico">🏅</div>
+        <div class="art-desc">${u.name} — ${u.per}</div>
+        ${capCell(lv, u.max, u.max, tip)}
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-cshop="${u.id}" data-d="-1">−</button>
+          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-cshop="${u.id}" data-d="1">+</button>`}
+        </div>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  return html;
+}
 function renderChallenges(){
   const box=$('#chalGrid'); if(!box) return;
   document.querySelectorAll('[data-chaltab]').forEach(b=>{
@@ -823,21 +963,35 @@ function renderChallenges(){
     b.classList.toggle('ghost', b.dataset.chaltab!==chalTab);
   });
   const overlay=$('#chalOverlay');
-  const ov=C.getChallengeOverlay(state.col) || { id:'div_7', progress:7, goal:15 };
-  const ovCh=CHALLENGES.divine.find(c=>c.id===ov.id) || CHALLENGES.divine.find(c=>c.n===7);
-  if(overlay&&ovCh){
+  const btnAll=$('#btnChalAllDone');
+  const btnClr=$('#btnChalClear');
+  if(chalTab==='shop'){
+    if(overlay) overlay.innerHTML='';
+    if(btnAll) btnAll.textContent='TOUT MAXER';
+    if(btnClr) btnClr.textContent='TOUT À 0';
+    const hint=$('#chalHint');
+    if(hint) hint.textContent='Shop coins Regular / Extreme / Divine — pas dans l\'export';
+    box.innerHTML=renderShopHtml();
+    return;
+  }
+  if(btnAll) btnAll.textContent='TOUT FAIT (onglet)';
+  if(btnClr) btnClr.textContent='RESET ONGLET';
+  const ov=overlayChallenge();
+  if(overlay&&ov&&chalTab==='divine'){
+    const src=ov.ch.exportKey && statsNow()[ov.ch.exportKey]!=null
+      ? ` · export ${ov.ch.exportKey}` : '';
     overlay.innerHTML=`<div class="chal-card">
-      <b>Overlay — Divine Challenge ${ovCh.n}</b>
-      ${ovCh.text}<br>
+      <b>Overlay — Divine Challenge ${ov.ch.n}</b>
+      ${ov.ch.text}<br>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
         <span>Progress</span>
         <button class="pixbtn ghost" data-ovp="-1">−</button>
-        <span class="lvval" style="min-width:64px">${ov.progress||0}/${ov.goal||ovCh.goal||'?'} </span>
+        <span class="lvval" style="min-width:64px">${ov.progress}/${ov.goal??'?'}</span>
         <button class="pixbtn" data-ovp="1">+</button>
-        <span class="muted">Reward: 10 Divine Coins</span>
+        <span class="muted">Reward: 10 Divine Coins${src}</span>
       </div>
     </div>`;
-  }
+  } else if(overlay) overlay.innerHTML='';
   const hint=$('#chalHint');
   const list=CHALLENGES[chalTab]||[];
   const done=list.filter(c=>C.isChallengeDone(state.col,c.id)).length;
@@ -864,69 +1018,141 @@ document.addEventListener('click',e=>{
   }
   const op=e.target.closest('[data-ovp]');
   if(op){
-    const ov=C.getChallengeOverlay(state.col)||{ id:'div_7', progress:7, goal:15 };
-    ov.progress=Math.max(0, Math.min(ov.goal||15, (ov.progress||0)+ +op.dataset.ovp));
-    C.setChallengeOverlay(state.col, ov);
+    const cur=overlayChallenge();
+    const goal=cur?.goal ?? 15;
+    const ch=cur?.ch || CHALLENGES.divine.find(x=>x.id==='div_7');
+    const progress=Math.max(0, Math.min(goal, (cur?.progress||0)+ +op.dataset.ovp));
+    C.setChallengeOverlay(state.col, { id:ch.id, progress, goal });
     C.saveCollections(state.col);renderChallenges(); return;
   }
   const os=e.target.closest('[data-ovset]');
   if(os){
     const ch=CHALLENGES.divine.find(x=>x.id===os.dataset.ovset);
-    C.setChallengeOverlay(state.col,{ id:ch.id, progress:0, goal:ch.goal||15 });
+    C.setChallengeOverlay(state.col,{ id:ch.id, progress:0, goal:ch.goal??null });
     C.saveCollections(state.col);renderChallenges();
   }
 });
 $('#btnChalAllDone')?.addEventListener('click',()=>{
+  if(chalTab==='shop'){
+    for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,u.max);
+    C.saveCollections(state.col);renderChallenges();touchCaps(); return;
+  }
   for(const c of (CHALLENGES[chalTab]||[])) C.setChallengeDone(state.col,c.id,true);
   C.saveCollections(state.col);renderChallenges();
 });
 $('#btnChalClear')?.addEventListener('click',()=>{
+  if(chalTab==='shop'){
+    for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,0);
+    C.saveCollections(state.col);renderChallenges();touchCaps(); return;
+  }
   for(const c of (CHALLENGES[chalTab]||[])) C.setChallengeDone(state.col,c.id,false);
   C.saveCollections(state.col);renderChallenges();
 });
-
-/* ================= SHOP ================= */
-function renderShop(){
-  const box=$('#shopGrid'); if(!box) return;
-  const hint=$('#shopHint');
-  if(hint) hint.textContent='Niveaux manuels (Regular / Extreme / Divine coins)';
-  let html='';
-  for(const tier of ['regular','extreme','divine']){
-    const label=tier[0].toUpperCase()+tier.slice(1);
-    html+=`<div class="tier-block t${tier==='regular'?1:tier==='extreme'?2:4}"><div class="tier-head"><div class="th-l">${label} Shop</div></div>`;
-    for(const u of CHALLENGE_SHOP[tier]){
-      const lv=Math.min(u.max, C.getChallengeShop(state.col,u.id));
-      const maxed=lv>=u.max;
-      html+=`<div class="art-row">
-        <div class="art-ico">🏅</div>
-        <div class="art-desc">${u.name} — ${u.per}</div>
-        <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
-        <div class="art-actions">
-          <button class="pixbtn ghost" data-cshop="${u.id}" data-d="-1">−</button>
-          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-cshop="${u.id}" data-d="1">+</button>`}
-        </div>
-      </div>`;
-    }
-    html+='</div>';
-  }
-  box.innerHTML=html;
-}
 document.addEventListener('click',e=>{
   const s=e.target.closest('[data-cshop]');
   if(s){
     const all=[...CHALLENGE_SHOP.regular,...CHALLENGE_SHOP.extreme,...CHALLENGE_SHOP.divine];
     const u=all.find(x=>x.id===s.dataset.cshop);
     C.setChallengeShop(state.col,u.id,Math.min(u.max,Math.max(0,C.getChallengeShop(state.col,u.id)+ +s.dataset.d)));
-    C.saveCollections(state.col);renderShop();
+    C.saveCollections(state.col);renderChallenges();touchCaps();
   }
 });
-$('#btnShopMaxAll')?.addEventListener('click',()=>{
-  for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,u.max);
-  C.saveCollections(state.col);renderShop();
+
+/* ================= STORE ================= */
+let storeTab='special';
+function renderStore(){
+  const box=$('#storeGrid'); if(!box) return;
+  document.querySelectorAll('[data-storetab]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.storetab===storeTab);
+    b.classList.toggle('ghost', b.dataset.storetab!==storeTab);
+  });
+  const hint=$('#storeHint');
+  const snap=snapNow();
+  const gemExp=statsNow().gem_upgrade_cap_increase;
+  if(hint){
+    hint.textContent=STORE_EXPORT_NOTE+(gemExp!=null?` · gem_upgrade_cap_increase +${gemExp}`:'');
+    hint.title=snap.gemUpgrade.tooltip;
+  }
+  if(storeTab==='special'){
+    let html='<div class="tier-block t4"><div class="tier-head"><div class="th-l">Founders</div></div>';
+    for(const s of STORE_SPECIAL){
+      const on=C.getStoreFlag(state.col,'special',s.id);
+      html+=`<div class="store-check"><input type="checkbox" data-sflag="special:${s.id}" ${on?'checked':''}>
+        <label><b>${s.name}</b><br><span class="muted">${s.effect}</span></label></div>`;
+    }
+    html+='</div><div class="tier-block t2"><div class="tier-head"><div class="th-l">Value Packs</div></div>';
+    for(const p of STORE_VALUE_PACKS){
+      const on=C.getStoreFlag(state.col,'packs',p.id);
+      html+=`<div class="store-check"><input type="checkbox" data-sflag="packs:${p.id}" ${on?'checked':''}>
+        <label><b>${p.name}</b> <span class="muted">· ${p.unlock}</span></label></div>`;
+    }
+    html+='</div>';
+    box.innerHTML=html; return;
+  }
+  if(storeTab==='perk'){
+    let html='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Perks</div></div>';
+    for(const p of STORE_PERKS){
+      const on=C.getStoreFlag(state.col,'perks',p.id);
+      html+=`<div class="store-check"><input type="checkbox" data-sflag="perks:${p.id}" ${on?'checked':''}>
+        <label><b>${p.name}</b> — ${p.effect}</label></div>`;
+    }
+    html+='</div><div class="tier-block t3"><div class="tier-head"><div class="th-l">Perk Bundles</div></div>';
+    for(const b of STORE_PERK_BUNDLES){
+      const on=C.getStoreFlag(state.col,'bundles',b.id);
+      html+=`<div class="store-check"><input type="checkbox" data-sflag="bundles:${b.id}" ${on?'checked':''}>
+        <label><b>${b.name}</b> — ${b.bonus}</label></div>`;
+    }
+    html+='</div>';
+    box.innerHTML=html; return;
+  }
+  if(storeTab==='unlocks'){
+    let html='<div class="tier-block t2"><div class="tier-head"><div class="th-l">Gem Unlocks</div></div>';
+    for(const u of STORE_GEM_UNLOCKS){
+      const on=C.getStoreFlag(state.col,'unlocks',u.id);
+      html+=`<div class="store-check"><input type="checkbox" data-sflag="unlocks:${u.id}" ${on?'checked':''}>
+        <label><b>${u.name}</b> — ${u.cost} 💎 · ${u.effect}</label></div>`;
+    }
+    html+='</div>';
+    box.innerHTML=html; return;
+  }
+  const gemCur=snap.gemUpgrade.current;
+  const gemPot=snap.gemUpgrade.potential;
+  let html='<div class="tier-block t4"><div class="tier-head"><div class="th-l">Gem Upgrades</div></div>';
+  for(const u of STORE_GEM_UPGRADES){
+    const current=u.baseMax+gemCur;
+    const hard=u.baseMax+gemPot;
+    const lv=Math.min(current, C.getStoreUpgrade(state.col,u.id));
+    const maxed=lv>=current;
+    html+=`<div class="art-row">
+      <div class="art-ico">💎</div>
+      <div class="art-desc"><b>${u.name}</b> — ${u.effect} · ${u.cost} 💎</div>
+      ${capCell(lv, current, hard, snap.gemUpgrade.tooltip)}
+      <div class="art-actions">
+        <button class="pixbtn ghost" data-sgup="${u.id}" data-d="-1">−</button>
+        ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-sgup="${u.id}" data-d="1">+</button>`}
+      </div>
+    </div>`;
+  }
+  html+='</div>';
+  box.innerHTML=html;
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-storetab]');
+  if(t){ storeTab=t.dataset.storetab; renderStore(); return; }
+  const g=e.target.closest('[data-sgup]');
+  if(g){
+    const u=STORE_GEM_UPGRADES.find(x=>x.id===g.dataset.sgup);
+    const max=u.baseMax+capsNow().gemUpgrade;
+    C.setStoreUpgrade(state.col,u.id,Math.min(max,Math.max(0,C.getStoreUpgrade(state.col,u.id)+ +g.dataset.d)));
+    C.saveCollections(state.col);renderStore();
+  }
 });
-$('#btnShopClear')?.addEventListener('click',()=>{
-  for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,0);
-  C.saveCollections(state.col);renderShop();
+document.addEventListener('change',e=>{
+  const f=e.target.closest('[data-sflag]');
+  if(!f) return;
+  const [bucket,id]=f.dataset.sflag.split(':');
+  C.setStoreFlag(state.col, bucket, id, f.checked);
+  C.saveCollections(state.col);renderStore();
 });
 
 /* ================= STATUES / RESEARCH / MONUMENTS ================= */
@@ -1004,7 +1230,7 @@ document.addEventListener('click',e=>{
   const s=e.target.closest('[data-statue]');
   if(s){
     C.cycleStatue(state.col,+s.dataset.statue);
-    C.saveCollections(state.col);renderConstruct();renderRoadmap();
+    C.saveCollections(state.col);renderConstruct();renderRoadmap();touchCaps();
   }
   const m=e.target.closest('[data-mon]');
   if(m){state.col.monuments||={};state.col.monuments[m.dataset.mon]=!state.col.monuments[m.dataset.mon];C.saveCollections(state.col);renderConstruct();renderCards();renderRoadmap();}
@@ -1015,7 +1241,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('contextmenu',e=>{
   const s=e.target.closest('[data-statue]');
-  if(s){e.preventDefault();C.setStatueState(state.col,+s.dataset.statue,Math.max(0,C.getStatueState(state.col,+s.dataset.statue)-1));C.saveCollections(state.col);renderConstruct();}
+  if(s){e.preventDefault();C.setStatueState(state.col,+s.dataset.statue,Math.max(0,C.getStatueState(state.col,+s.dataset.statue)-1));C.saveCollections(state.col);renderConstruct();touchCaps();}
 });
 
 /* ================= STARS / STARGAZING ================= */
@@ -1042,10 +1268,12 @@ function renderStars(){
       const lv=Math.min(max, C.getStarLevel(state.col,s.id));
       const maxed=lv>=max && lv>0;
       const icon=`assets/cards/${s.name}.png`;
+      const snap=snapNow();
+      const tip=s.id==='leo'?snap.workshop.tooltip:s.id==='pisces'?snap.petLevel.tooltip:'';
       return `<div class="art-row">
         <div class="art-ico"><img src="${icon}" alt="" loading="lazy" style="width:28px;height:28px;image-rendering:pixelated" onerror="this.parentNode.textContent='⭐'"></div>
         <div class="art-desc"><b>${s.name}</b> — ${s.perk}</div>
-        <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
+        ${capCell(lv, max, max, tip)}
         <div class="art-actions">
           <button class="pixbtn ghost" data-starlv="${s.id}" data-d="-1">−</button>
           ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-starlv="${s.id}" data-d="1">+</button>
@@ -1105,13 +1333,13 @@ document.addEventListener('click',e=>{
     const s=STARS_FULL.find(x=>x.id===sl.dataset.starlv);
     const max=starEffectiveMax(s, starExtraCap(s.id));
     C.setStarLevel(state.col,s.id,Math.min(max,Math.max(0,C.getStarLevel(state.col,s.id)+ +sl.dataset.d)));
-    C.saveCollections(state.col);renderStars(); return;
+    C.saveCollections(state.col);renderStars();touchCaps(); return;
   }
   const sm=e.target.closest('[data-starmax]');
   if(sm){
     const s=STARS_FULL.find(x=>x.id===sm.dataset.starmax);
     C.setStarLevel(state.col,s.id,starEffectiveMax(s, starExtraCap(s.id)));
-    C.saveCollections(state.col);renderStars(); return;
+    C.saveCollections(state.col);renderStars();touchCaps(); return;
   }
   const u=e.target.closest('[data-supg]');
   if(u){
@@ -1133,14 +1361,14 @@ $('#btnStarMaxTab')?.addEventListener('click',()=>{
   else if(starTab==='upgrades') for(const u of STAR_UPGRADES) C.setStarUpgrade(state.col,u.id,u.max);
   else if(starTab==='super') for(const u of SUPER_STAR_UPGRADES) C.setSuperStarUpgrade(state.col,u.id,u.max);
   else for(const b of BLACK_HOLE_BLESSINGS){ state.col.blackHole||={}; state.col.blackHole[b.id]=true; }
-  C.saveCollections(state.col);renderStars();
+  C.saveCollections(state.col);renderStars();touchCaps();
 });
 $('#btnStarClearTab')?.addEventListener('click',()=>{
   if(starTab==='stars') for(const s of STARS_FULL) C.setStarLevel(state.col,s.id,0);
   else if(starTab==='upgrades') for(const u of STAR_UPGRADES) C.setStarUpgrade(state.col,u.id,0);
   else if(starTab==='super') for(const u of SUPER_STAR_UPGRADES) C.setSuperStarUpgrade(state.col,u.id,0);
   else state.col.blackHole={};
-  C.saveCollections(state.col);renderStars();
+  C.saveCollections(state.col);renderStars();touchCaps();
 });
 
 /* ================= HISTORIQUE ================= */
@@ -1183,5 +1411,5 @@ $('#histSelect')?.addEventListener('change',e=>{
   }
   if(h[0]?.stats) C.applyExportFishing(state.col, h[0].stats);
 })();
-renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderStore();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderDashCaps();
 show('export');

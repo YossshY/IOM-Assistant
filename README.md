@@ -7,6 +7,10 @@
 - Dashboard profil (Obelisk level dérivé, cap XP, dégâts, multi PP, **temps du run prestige** — pas le lifetime du compte)
 - **Feuille de route priorisée** avec niveaux de confiance 🟢 Confirmé / 🟡 Probable / 🔴 Données insuffisantes — jamais de conseil inventé
 - **Cards** : catalogue wiki v2.2.6 — **86 ores** (dont 9 sans bar), **77 bars**, **45 misc**, bombs, drones, pets, **21 veins** (Volcano incluse), stars, fish / legendary fish
+- **Store** : Special / Perk / Gem Unlocks / Gem Upgrades (wiki) — niveaux manuels (absents de l'export, sauf `gem_upgrade_cap_increase`)
+- **Challenges** : Regular / Extreme / Divine + **Shop** (coins)
+- **Caps dynamiques** : max en cours = max(total export, sources notées) ; Max wiki en infobulle
+- **Reset / import / export** des données locales (page ExportStats)
 - **Statues** : 27 statues en 3×3 par monde (W1 / W3 / W4, pas de W2) avec sprites Normal/Gilded/Platinized
 - **Pets** : 16 pets avec skins, quêtes, icônes
 - Artefacts, Skill-Tree, Construct, Stargazing, Fishing
@@ -39,6 +43,9 @@ src/
     ├── cardsData.js            # cartes individuelles (wiki)
     ├── collections.js          # état local (Prestige, skills, fishing…)
     ├── history.js              # historique d'exports + diff
+    ├── capsEngine.js           # caps live (export + saisie)
+    ├── storeData.js            # Store wiki
+    ├── siteBackup.js           # reset / import / export du site
     └── *Data.js                # workshop, drones, fishing, arch, stars, skills…
 samples/exportstats-v2.2.6.json # export réel de référence
 ```

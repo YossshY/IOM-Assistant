@@ -158,20 +158,38 @@ export function applyExportFishing(col, stats = {}){
   return col;
 }
 
-/** Caps export persistés (T4 artefacts, workshop) — survivent au reload. */
+/** Caps export persistés — totaux in-game (les sources itemisées sont à part). */
 export function applyExportCaps(col, stats = {}){
   col.caps = {
     artifact: +(stats.artifact_cap_increase || 0),
     artifactT4: +(stats.artifact_tier4_cap_increase || 0),
     workshop: +(stats.bomb_workshop_cap_increase || 0),
+    gemUpgrade: +(stats.gem_upgrade_cap_increase || 0),
+    contract: +(stats.contract_cap_increase || 0),
+    droneSuit: +(stats.drone_suit_cap || 0) || (col.caps?.droneSuit || 0),
   };
   return col;
 }
 
 export function getCaps(col){
-  return col.caps || { artifact:0, artifactT4:0, workshop:0 };
+  return col.caps || { artifact:0, artifactT4:0, workshop:0, gemUpgrade:0, contract:0, droneSuit:0 };
 }
 
 /** workshop levels */
 export function setWorkshopLevel(col,id,lv){ col.workshop||={}; col.workshop[id]=Math.max(0,lv|0); }
 export function getWorkshopLevel(col,id){ return (col.workshop||{})[id]||0; }
+
+/** Store (gems IAP) — pas dans exportstats */
+export function getStoreFlag(col, bucket, id){ return !!((col.store||{})[bucket]||{})[id]; }
+export function setStoreFlag(col, bucket, id, on){
+  col.store||={}; col.store[bucket]||={};
+  col.store[bucket][id]=!!on;
+}
+export function toggleStoreFlag(col, bucket, id){
+  setStoreFlag(col, bucket, id, !getStoreFlag(col, bucket, id));
+}
+export function getStoreUpgrade(col, id){ return ((col.store||{}).gemUpgrades||{})[id]|0; }
+export function setStoreUpgrade(col, id, lv){
+  col.store||={}; col.store.gemUpgrades||={};
+  col.store.gemUpgrades[id]=Math.max(0,lv|0);
+}
