@@ -1,6 +1,6 @@
 # Architecture du moteur de progression
 
-Document de conception vivant (étapes A–J2 implémentées ; J3/K = suite).
+Document de conception vivant (étapes A–J3 implémentées ; K = suite).
 Ce fichier fige les ajustements validés. L’UI et `app.js` restent **non branchés** tant que K n’est pas ouverte.
 
 Il complète la proposition déjà validée (graphe compilé depuis les catalogues, `PlayerView`, AST de conditions, fragments wiki, axes plutôt qu’une priorité unique). Seules les sections ci-dessous **remplacent** les parties correspondantes de cette proposition.
@@ -233,7 +233,7 @@ si node(id, min) :
      si kind = action                      → Unlock(id) puis Do(id) (Do seulement quand cost connu)
      si kind = milestone                   → Reach via le stat lié, pas Do(id)
 si all(...)                                → concaténer les enfants
-si any(...)                                → branches connues utilisables ;
+si any(...)                                → une branche known utilisable (§19) ;
                                            branches unknown → UnknownStep alternatives
 ```
 
@@ -426,8 +426,8 @@ Suite produit (après A–F) :
 9. **H — recâblage Laviathan** — §15. Même modèle que F ; stubs C retirés.
 10. **I — ExportStats → PlayerView** — §16. Adaptateur, pas d’UI.
 11. **J1 — planification sémantique** — §17. Graph + PlayerView I → plan ; pas d’optimisation.
-12. **J2 — état virtuel + dédup** — §18. Coûts des `Do` ; Reach/Acquire uniques. `any` inchangé.
-13. **J3 — choix de branche `any`** (plus tard).
+12. **J2 — état virtuel + dédup** — §18. Coûts des `Do` ; Reach/Acquire uniques.
+13. **J3 — choix de branche `any`** — §19. Une branche known ; unknown → alternatives.
 14. **K — UI** — brancher le moteur ; reco actuelle = hint jusqu’à bascule.
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
@@ -680,10 +680,9 @@ Tests I : sample `exportstats-v2.2.6.json` (OB64, W3, fishing stats présentes, 
 
 **J1** (§17) : plan sémantique sur PlayerView I. **Pas** de producteurs inventés.
 
-J2 (plus tard, seulement si un test le demande) :
+**J2** (§18) : état virtuel + dédup. **J3** (§19) : une branche `any`.
 
-- choix d’une branche `any` → **J3**
-- classement des `Do` `actionable` : **pas** un second moteur de reco
+- classement des `Do` `actionable` (hors choix de branche) : **pas** un second moteur de reco
 
 ### 14.6 Spec K — UI
 
@@ -768,7 +767,7 @@ Interdit explicite : `Do` d’un poisson (`fish.golden_trout`, etc.). Accès doc
 
 - Un jalon (`fishing.feature`, dock) **inline** son `unlock` (pas de wrapper `Unlock(milestone)` une fois le seuil vrai).
 - Index `producersOf` / `progressorsOf` toujours vides sur le graphe IOM.
-- Dédup globale et `have` virtuel : **J2** (§18). `any` toutes branches : **J3**.
+- Dédup globale et `have` virtuel : **J2** (§18). Choix `any` : **J3** (§19).
 
 ---
 
@@ -782,7 +781,7 @@ Uniquement `plan.js`. Fragments A–H, catalogues, `app.js` : **non modifiés**.
 - Le `PlayerView` appelant n’est jamais muté. `evaluation` du goal reste calculée sur ce PlayerView réel.
 - Un `Do` applique seulement : possession du nœud + soustraction des feuilles `resource` du **coût documenté**. Pas de `produces` / `progresses` inventés. `Reach` ne monte pas l’OB virtuel.
 - `all` : consommation séquentielle (ordre des items).
-- `any` : snapshot / restore par branche, **aucun commit** — toutes les branches restent développées (J3).
+- `any` : snapshot / restore par branche pour scorer ; **commit de la branche choisie** en J3 (§19).
 
 ### Dédup
 
@@ -796,4 +795,29 @@ Identité : `Reach(stat)` (max `min`) ; `Acquire(resource)` (max `min`) ; `Unloc
 - `have` sur `Acquire` / `Reach` est le stock **virtuel** au moment du besoin (après les `Do` déjà placés).
 
 Tests : `plan.j2.test.mjs`.
+
+---
+
+## 19. Étape J3 (implémentée) — Choix de branche `any`
+
+Uniquement `plan.js`. Fragments A–H, catalogues, `app.js` : **non modifiés**.
+
+Si `any(...)` est déjà vrai → aucun enfant (inchangé).
+
+Sinon, chaque branche est planifiée depuis un **snapshot** de `ctx.virtual` :
+
+- **Known utilisable** : la branche s’évalue à `false` (insatisfaite connue). On en **retient une**.
+- **Unknown** : `unknown(...)` ou évaluation `unknown` → `UnknownStep` alternative. On **n’expand pas** une branche unknown (pas de `Do` inventé).
+
+Parmi les branches known, choix déterministe (pas d’optimisation farm / min coût / min temps) :
+
+1. préférer une branche qui contient un `Do` `actionable` ;
+2. sinon le moins d’`UnknownStep` ;
+3. sinon le plus petit index source.
+
+On **commit** seulement la branche choisie sur `ctx.virtual` (re-`satisfy` depuis le snapshot, **sans remplacer l’identité** de l’objet virtuel). Les alternatives unknown non retenues sont concaténées après.
+
+Les branches known non choisies n’apparaissent pas.
+
+Tests : `plan.j3.test.mjs`. `plan.j2.test.mjs` test 8 aligne le cas `any` à égalité (1re branche).
 

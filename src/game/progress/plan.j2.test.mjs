@@ -1,6 +1,6 @@
 /**
  * J2 — état virtuel (coûts des Do) + dédup Reach/Acquire globale.
- * ANY inchangé (toutes les branches, pas de commit). Pas d’UI.
+ * ANY : une branche (J3). Pas d’UI.
  * node src/game/progress/plan.j2.test.mjs
  */
 import { readFileSync } from 'node:fs';
@@ -151,7 +151,7 @@ test('7. deux Do différents au même coût restent deux Do', () => {
   assert(collect(out, s => s.step === STEP.Do && s.nodeId === skillNodeId('lucky_strikes')).length === 1, dump);
 });
 
-test('8. ANY développe toujours les deux branches', () => {
+test('8. ANY : une branche known (1re à égalité)', () => {
   const g = compileGraph([
     { id: 'fx.any_a', name: 'A', kind: KIND.action, cost: { resource: 'token', amount: 1 } },
     { id: 'fx.any_b', name: 'B', kind: KIND.action, cost: { resource: 'token', amount: 1 } },
@@ -161,7 +161,7 @@ test('8. ANY développe toujours les deux branches', () => {
   const out = planNode(g, p, 'fx.any_g');
   const dump = formatPlan(out);
   assert(collect(out, s => s.nodeId === 'fx.any_a').length >= 1, dump);
-  assert(collect(out, s => s.nodeId === 'fx.any_b').length >= 1, dump);
+  assert(!collect(out, s => s.nodeId === 'fx.any_b').length, dump);
 });
 
 test('9. cycle toujours borné', () => {

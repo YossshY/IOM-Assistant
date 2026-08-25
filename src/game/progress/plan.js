@@ -1,7 +1,8 @@
 /* ============================================================
    progress/plan.js — Do / Reach / Acquire / Unlock / UnknownStep
    J2 : état virtuel (coûts des Do) + dédup Reach/Acquire globale.
-   ANY non committé (J3). PlayerView appelant immuable.
+   J3 : une branche any connue ; unknown → UnknownStep alternatives.
+   PlayerView appelant immuable.
    ============================================================ */
 
 import { STATUS, CONFIDENCE, STEP, KIND } from './ids.js';
@@ -15,6 +16,13 @@ function clonePlayer(player) {
     stats: { ...(player?.stats || {}) },
     resources: { ...(player?.resources || {}) },
   };
+}
+
+function copyPlayerInto(dst, src) {
+  dst.nodes = { ...(src.nodes || {}) };
+  dst.stats = { ...(src.stats || {}) };
+  dst.resources = { ...(src.resources || {}) };
+  return dst;
 }
 
 function viewOf(ctx, player) {
@@ -64,6 +72,42 @@ function unknownStep(regarding, reason, extra = {}) {
     why: reason,
     fields: { regarding, reason },
   });
+}
+
+function flattenSteps(steps, out = []) {
+  for (const s of steps || []) {
+    out.push(s);
+    flattenSteps(s.children, out);
+  }
+  return out;
+}
+
+function hasActionableDo(steps) {
+  return flattenSteps(steps).some(s => s.step === STEP.Do && s.actionable);
+}
+
+function unknownStepCount(steps) {
+  return flattenSteps(steps).filter(s => s.step === STEP.UnknownStep).length;
+}
+
+/**
+ * J3 : une branche known. Préfère un Do actionable, sinon le moins
+ * d’UnknownStep, sinon le plus petit index source. Pas de min-coût / farm.
+ */
+function pickAnyBranch(known) {
+  if (!known.length) return null;
+  const withDo = known.filter(k => hasActionableDo(k.steps));
+  const pool = withDo.length ? withDo : known;
+  let best = pool[0];
+  let bestU = unknownStepCount(best.steps);
+  for (let i = 1; i < pool.length; i++) {
+    const u = unknownStepCount(pool[i].steps);
+    if (u < bestU) {
+      best = pool[i];
+      bestU = u;
+    }
+  }
+  return best;
 }
 
 function mergeCovered(covered, adds) {
@@ -165,8 +209,7 @@ function satisfyNode(graph, player, id, ctx) {
     return [unknownStep({ type: COND.node, id }, 'node-not-in-graph')];
   }
 
-  const virtual = viewOf(ctx, player);
-  const ev = evaluateNode(graph, virtual, id);
+  const ev = evaluateNode(graph, viewOf(ctx, player), id);
   if (ev.status === STATUS.unlocked) return [];
 
   ctx.stack.add(id);
@@ -176,11 +219,12 @@ function satisfyNode(graph, player, id, ctx) {
     }
 
     if (n.kind === KIND.action && ev.actionable) {
-      applyDo(virtual, n);
+      applyDo(viewOf(ctx, player), n);
       return [makeDo(id, ev)];
     }
 
     const unlockKids = satisfy(graph, player, n.unlock || always(), ctx);
+    const virtual = viewOf(ctx, player);
     const ev2 = evaluateNode(graph, virtual, id);
     if (ev2.status === STATUS.unlocked) return unlockKids;
 
@@ -265,15 +309,26 @@ export function satisfy(graph, player, cond, ctx) {
     const virtual = viewOf(ctx, player);
     const ev = evaluateCondition(graph, virtual, cond);
     if (ev.truth === 'true') return [];
-    /* J2 : toutes les branches, sans committer la conso (J3 choisira). */
     const saved = clonePlayer(virtual);
-    const kids = [];
+    const known = [];
+    const unknownAlts = [];
     for (const child of cond.items || []) {
-      ctx.virtual = clonePlayer(saved);
-      kids.push(...satisfy(graph, player, child, ctx));
+      copyPlayerInto(ctx.virtual, saved);
+      const childEv = evaluateCondition(graph, ctx.virtual, child);
+      if (child.type === COND.unknown) {
+        unknownAlts.push(...satisfy(graph, player, child, ctx));
+        continue;
+      }
+      if (childEv.truth === 'unknown') {
+        unknownAlts.push(unknownStep(child, 'any-unknown-branch'));
+        continue;
+      }
+      known.push({ child, steps: satisfy(graph, player, child, ctx) });
     }
-    ctx.virtual = saved;
-    return mergeSameLevel(kids);
+    copyPlayerInto(ctx.virtual, saved);
+    const picked = pickAnyBranch(known);
+    const chosen = picked ? satisfy(graph, player, picked.child, ctx) : [];
+    return mergeSameLevel([...chosen, ...unknownAlts]);
   }
   if (cond.type === COND.unknown) {
     return [unknownStep(cond, cond.reason || 'unknown-condition')];
