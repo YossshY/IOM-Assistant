@@ -11,11 +11,6 @@ export const STORE_PERKS = [
   { id:'bomb', name:'3x Bomb Damage', effect:'Bomb damage ×3' },
 ];
 
-export const STORE_PERK_BUNDLES = [
-  { id:'ore_pp', name:'Ore + PP Bundle', perks:['ore','pp'], bonus:'525 Gems' },
-  { id:'bar_bomb', name:'Bar + Bomb Bundle', perks:['bar','bomb'], bonus:'375 Gems' },
-];
-
 export const STORE_GEM_UNLOCKS = [
   { id:'drone', name:'Permanent Drone', cost:200, effect:'Drone offline supplémentaire' },
   { id:'megabomb', name:'MEGABOMB', cost:500, effect:'25× dégâts, court cooldown' },

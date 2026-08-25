@@ -29,7 +29,7 @@ import {
   starCapInfo, noticeT1Max, noticeT1Hard, noticeT1Pack,
 } from './game/capsEngine.js';
 import {
-  STORE_PERKS, STORE_PERK_BUNDLES, STORE_GEM_UNLOCKS, STORE_GEM_UPGRADES,
+  STORE_PERKS, STORE_GEM_UNLOCKS, STORE_GEM_UPGRADES,
   STORE_SPECIAL, STORE_VALUE_PACKS, STORE_EXPORT_NOTE,
 } from './game/storeData.js';
 import { exportSiteData, importSiteData, resetSiteData } from './game/siteBackup.js';
@@ -1113,12 +1113,6 @@ function renderStore(){
       const on=C.getStoreFlag(state.col,'perks',p.id);
       html+=`<div class="store-check"><input type="checkbox" data-sflag="perks:${p.id}" ${on?'checked':''}>
         <label><b>${p.name}</b> — ${p.effect}</label></div>`;
-    }
-    html+='</div><div class="tier-block t3"><div class="tier-head"><div class="th-l">Perk Bundles</div></div>';
-    for(const b of STORE_PERK_BUNDLES){
-      const on=C.getStoreFlag(state.col,'bundles',b.id);
-      html+=`<div class="store-check"><input type="checkbox" data-sflag="bundles:${b.id}" ${on?'checked':''}>
-        <label><b>${b.name}</b> — ${b.bonus}</label></div>`;
     }
     html+='</div>';
     box.innerHTML=html; return;
