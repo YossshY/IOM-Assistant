@@ -151,6 +151,30 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .prestige-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .tab-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .skill-detail{margin-top:14px;padding:12px;background:#120d16;border:3px solid var(--line);border-radius:6px;min-height:48px;font-size:8px;line-height:1.6;color:#fff}
+.skill-detail a{color:var(--cyan)}
+.skill-tree-wrap{overflow-x:auto;margin-top:4px}
+.skill-tree{display:flex;flex-direction:column;gap:10px;min-width:720px;padding:8px 4px 16px}
+.sk-row{display:grid;gap:10px;align-items:stretch}
+.sk-row.one{grid-template-columns:1fr minmax(200px,1.2fr) 1fr}
+.sk-row.two{grid-template-columns:1fr 1fr;max-width:720px;margin:0 auto;width:100%}
+.sk-row.three{grid-template-columns:1fr 1fr 1fr}
+.sk-row.four{grid-template-columns:repeat(4,1fr)}
+.sk-spacer,.sk-empty{min-height:1px}
+.sk-node{background:#1a1520;border:3px solid #5a4a58;border-radius:6px;padding:10px;cursor:pointer;
+  display:flex;flex-direction:column;gap:6px;min-height:110px;box-shadow:0 3px 0 #00000055}
+.sk-node:hover{border-color:#8a7a88}
+.sk-node.sel{border-color:var(--amber);outline:2px solid #ffd97a55}
+.sk-node.stier{border-color:#8a6a1c;background:#2a2210}
+.sk-node.owned{border-color:#4a8a5a}
+.sk-node.maxed{border-color:#2ead51;background:#13241a}
+.sk-name{font-size:9px;color:#fff;line-height:1.3}
+.sk-fx{font-size:7px;color:var(--muted);line-height:1.45;flex:1}
+.sk-meta{display:flex;justify-content:space-between;gap:6px;font-size:7px;color:#cfc0c8;flex-wrap:wrap}
+.sk-lv{color:var(--cyan);font-weight:bold}
+.sk-actions{display:flex;gap:5px;align-items:center}
+.sk-actions .pixbtn{min-width:32px;height:30px;padding:0 6px;font-size:10px}
+.sk-actions .btn-maxed{min-width:auto;padding:6px 8px;font-size:7px}
+@media(max-width:720px){.skill-tree{min-width:560px}.sk-name{font-size:8px}}
 .chal-overlay{margin-bottom:12px}
 .chal-card{background:#2a1a28;border:3px solid #8a4a9a;border-radius:6px;padding:12px;margin-bottom:10px}
 .chal-card b{color:#e9b0ff;display:block;margin-bottom:6px}
@@ -290,13 +314,13 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- SKILLS -->
 <section id="page-skills" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Wiki Skill-Tree v2.2.6 — clique pour noter les niveaux (S-Tier en or). Pas dans l'export.</p>
+    <p class="prestige-hint">Affichage comme <a href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki Skill-Tree#Skills</a> — clique une case, +/− pour noter. Pas dans l'export.</p>
     <div class="prestige-toolbar">
-      <button class="pixbtn gold" id="btnSkillMaxS">MAX S-TIER</button>
+      <button class="pixbtn gold" id="btnSkillMaxS">MAX PRIORITAIRES</button>
       <button class="pixbtn ghost" id="btnSkillClear">TOUT À 0</button>
       <span class="muted" id="skillHint"></span>
     </div>
-    <div class="prestige-list" id="skillList"></div>
+    <div class="skill-tree-wrap" id="skillList"></div>
     <div class="skill-detail" id="skillDetail"></div>
   </div>
 </section>
@@ -344,8 +368,21 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 
 <!-- STARGAZING -->
 <section id="page-stars" class="page hidden">
-  <div class="panel"><h2>Stargazing — étoiles possédées</h2><div id="starList"></div>
-  <p class="muted">Liste partielle : complète-la au fil de tes débloquages (page wiki Stargazing).</p></div>
+  <div class="panel">
+    <p class="prestige-hint">Stargazing wiki v2.2.6 — niveaux manuels (pas dans l'export). Caps de base ; ajoute + via Super Stars si besoin.</p>
+    <div class="tab-row" id="starTabs">
+      <button class="pixbtn on" data-startab="stars">Stars</button>
+      <button class="pixbtn ghost" data-startab="upgrades">Upgrades</button>
+      <button class="pixbtn ghost" data-startab="super">Super Stars</button>
+      <button class="pixbtn ghost" data-startab="blackhole">Black Hole</button>
+    </div>
+    <div class="prestige-toolbar">
+      <button class="pixbtn gold" id="btnStarMaxTab">TOUT MAXER (onglet)</button>
+      <button class="pixbtn ghost" id="btnStarClearTab">TOUT À 0</button>
+      <span class="muted" id="starHint"></span>
+    </div>
+    <div class="prestige-list" id="starList"></div>
+  </div>
 </section>
 
 <!-- FISHING -->

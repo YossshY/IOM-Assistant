@@ -78,3 +78,36 @@ export const SKILL_NODES = [
 export function skillMaxLevels(s) {
   return s.maxLevels || (Array.isArray(s.cost) ? s.cost.length : 1);
 }
+
+/**
+ * Layout wiki Skill-Tree#Skills — 4 colonnes (L · LC · RC · R).
+ * null = case vide. Ordre = top → bottom comme le tableau wiki.
+ */
+export const SKILL_TREE_ROWS = [
+  [null,              'lucky_strikes',   null,              null],
+  [null,              'bigger_blasts',   'ore_efficiency',  null],
+  [null,              'swing_harder',    'ingot_intuition', null],
+  ['arsenal',         'all_round',       'wait_crits',      'easy_prog'],
+  [null,              'pp_go_up',        'gems_chests',     null],
+  ['super_damage',    'hefty_hammers',   'relic_rampage',   'just_wait'],
+  ['mech_evo',        'chronokeeper',    'gem_bomb',        'treasure_hunter'],
+  [null,              'demo_expert',     'wait_super',      null],
+  [null,              'auto_bomber',     'perfect_gold',    null],
+  [null,              'flamboyant',      'more_ore',        null],
+  [null,              'free_price',      'wait_ultra',      null],
+  [null,              'upgrades_end',    'optical',         null],
+  [null,              'luckier',         'stonks',          null],
+  [null,              'gasoline',        'wares',           null],
+  ['fishing_friends', 'veinmorpher',     'rainy_day',       'pick_pace'],
+  ['friendship_t1',   'whos_asking',     'creative_names',  'fish_summon'],
+  ['motley',          'tons_dmg',        'ctrl_f_stars',    'completionist'],
+  ['poly_while',      'block_bonker',    'avada',           'threes_crowd'],
+  ['poly_power',      'auto_prestige',   null,              null],
+  ['please_sir',      'lep_legacy',      null,              null],
+  ['lootin_bugs',     'insane_vein',     null,              null],
+  ['call_void',       'flaming_veins',   'ctrl_c_stars',    null],
+  ['pond_yield',      'frog_frenzy',     'astral_forge',    null],
+  ['stars_mining',    'ob_mincer',       'buried_it',       null],
+  ['portal_schmortal','yanille',         'mess_bull',       null],
+  [null,              'fronks',          null,              null],
+];

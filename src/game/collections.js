@@ -84,9 +84,28 @@ export function toggleStatue(col,world,name){
 }
 export function getStatues(col,world){ return (col.statues||{})[world]||{}; }
 
-/** étoiles */
-export function toggleStar(col,id){ col.stars||={}; col.stars[id]=!col.stars[id]; }
-export function hasStar(col,id){ return !!(col.stars||{})[id]; }
+/** étoiles : niveau 0..max (bool legacy → 1) */
+export function setStarLevel(col,id,lv){ col.stars||={}; col.stars[id]=Math.max(0,lv|0); }
+export function getStarLevel(col,id){
+  const v=(col.stars||{})[id];
+  if(v===true) return 1;
+  return v|0;
+}
+export function toggleStar(col,id){ setStarLevel(col,id, getStarLevel(col,id)>0?0:1); }
+export function hasStar(col,id){ return getStarLevel(col,id)>0; }
+
+export function setStarUpgrade(col,id,lv){ col.starUpgrades||={}; col.starUpgrades[id]=Math.max(0,lv|0); }
+export function getStarUpgrade(col,id){ return (col.starUpgrades||{})[id]|0; }
+export function setSuperStarUpgrade(col,id,lv){ col.superStarUpgrades||={}; col.superStarUpgrades[id]=Math.max(0,lv|0); }
+export function getSuperStarUpgrade(col,id){ return (col.superStarUpgrades||{})[id]|0; }
+export function toggleBlackHoleBlessing(col,id){
+  col.blackHole||={}; col.blackHole[id]=!col.blackHole[id];
+}
+export function hasBlackHoleBlessing(col,id){ return !!(col.blackHole||{})[id]; }
+
+/** pet quest ranks 0..10 */
+export function setPetQuestRank(col,id,lv){ col.petQuestRanks||={}; col.petQuestRanks[id]=Math.max(0,Math.min(10,lv|0)); }
+export function getPetQuestRank(col,id){ return (col.petQuestRanks||{})[id]|0; }
 
 /** compteurs utiles au moteur de reco */
 export function cardCounts(col){

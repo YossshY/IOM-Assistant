@@ -90,15 +90,8 @@ export const PETS = [
   { id:'whale',  name:'Whale',   unlockTotal:40, price:2000, levelBy:'Dépenser des gemmes',              bonus:'Pickaxe Dmg +10%/niv · Triple Lootbug +3%/niv', maxLevel:20 },
 ];
 
-/* ============================================================
-   stargazing.js inclus — étoiles (structure wiki "Stargazing",
-   liste partielle : à compléter depuis le wiki)
-   ============================================================ */
-export const STARS = [
-  { id:'pisces',  name:'Pisces',  effect:'Pet level cap +1/niv (max +4)' },
-  { id:'aries',   name:'Aries',   effect:'(à compléter depuis le wiki Stargazing)' },
-  { id:'aquarius',name:'Aquarius',effect:'(à compléter depuis le wiki Stargazing)' },
-];
+/* Stargazing — catalogue complet dans starsData.js */
+export { STARS_FULL as STARS } from './starsData.js';
 
 /* Fishing — structure (wiki "Fishing") */
 export const FISHING = {

@@ -5,13 +5,14 @@ import { parseExportStats, deriveProfile } from './game/statsParser.js';
 import { detectMissingInformation } from './game/missingInfo.js';
 import { generateRecommendations, CONFIDENCE } from './game/recommendationEngine.js';
 import { loadHistory, saveImport, diffExports, fmtNum } from './game/history.js';
-import { CARD_STATES, CARD_SETS, PETS, STARS } from './game/cards.js';
+import { CARD_STATES, CARD_SETS } from './game/cards.js';
 import { ORE_CARDS, BAR_CARDS, MISC_CARDS, visibleCards } from './game/cardsData.js';
+import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS, starEffectiveMax } from './game/starsData.js';
 // icônes misc réelles : mapping id → fichier téléchargé depuis le wiki
 const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Misc_Blue_Cow.png',goldore:'Misc_Golden_Vein.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:"Misc_Celio's_Hat.png",vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png'};
 import { ARTIFACTS, SKILLS, OBELISK_UNLOCKS, artifactEffectiveMax } from './game/knowledgeBase.js';
 import { WORKSHOP_UPGRADES, workshopEffectiveMax, formatWorkshopBonus, WORKSHOP_WIKI_REF_CAP } from './game/workshopData.js';
-import { skillMaxLevels } from './game/skillsData.js';
+import { skillMaxLevels, SKILL_TREE_ROWS } from './game/skillsData.js';
 import { DRONE_CORE_UPGRADES, DRONE_SUITS, DRONE_FUEL, coreLevelFromExport, suitCapFromExport } from './game/dronesData.js';
 import { CHALLENGES, CHALLENGE_SHOP } from './game/challengesData.js';
 import * as C from './game/collections.js';
@@ -212,9 +213,9 @@ function cardTile(id,img,name,st,effect,worldTag,mod,unlocked=true){
   const backings=['Card_Backing_Standard','Card_Backing_Standard','Card_Backing_Gilded','Card_Backing_Polychrome','Card_Backing_Infernal'];
   const bg=`assets/backings/${backings[st]}.png`;
   const eff=effect?effect[Math.min(Math.max(st-1,0),effect.length-1)]:'';
-  const icon=img.startsWith('assets/')
-    ? `<img class="em" src="${img}" alt="" loading="lazy">`
-    : `<span class="em">${img}</span>`;
+  const icon=(img&&String(img).startsWith('assets/'))
+    ? `<img class="em" src="${img}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'em',textContent:'🃏'}))">`
+    : `<span class="em">${img||'🃏'}</span>`;
   return `<div class="card ${unlocked?'':'locked'}" data-card="${id}"
     style="background-image:url('${bg}')"
     title="${name}${mod?' — modificateur : '+mod:''}${worldTag?' ['+worldTag+']':''}\n${CARD_STATES[st].name}${eff&&st>0?' : '+eff:''}\nClic : évoluer">
@@ -247,20 +248,25 @@ function renderPets(){
   box.innerHTML=PETS_FULL.map(p=>{
     const lv=C.getPetLevel(state.col,p.id);
     const locked = p.unlockTotal>0 && total<p.unlockTotal && lv===0;
-    const skinOn=owned['skin_'+p.id], questOn=owned['quest_'+p.id];
-    const emoji={Crab:'🦀',Dwarf:'🧔',Duck:'🦆',Rabbit:'🐰',Penguin:'🐧',Axolotl:'🦎',Whale:'🐋'}[p.id]||'🐾';
+    const skinOn=owned['skin_'+p.id];
+    const qRank=C.getPetQuestRank(state.col,p.id);
+    const questOn=qRank>0 || owned['quest_'+p.id];
     return `<div class="petrow ${locked?'locked':''}">
-      <img class="pet-em" src="${p.iconDefault}" alt="" loading="lazy" style="width:44px;height:44px;image-rendering:pixelated">
+      <img class="pet-em" src="${p.iconDefault}" alt="" loading="lazy" style="width:44px;height:44px;image-rendering:pixelated"
+        onerror="this.style.display='none'">
       <div class="pet-info">
-        <b>${p.name}</b> <span class="muted">· requis total niv ${p.unlockTotal} · ${p.price} 💎</span>
+        <b>${p.name}</b> <span class="muted">· unlock ${p.unlockTotal} · ${p.price} 💎 · max ${p.maxLevel}</span>
         <p>${p.levelBy} — ${p.bonus}</p>
         <div class="pet-unlocks">
           <button class="petchip ${skinOn?'on':''}" data-petunlock="skin_${p.id}" title="${p.skin?`${p.skin.name} : ${p.skin.bonus}`:''}">
-            🎨 Skin${p.skin?' : '+p.skin.name+' ('+p.skin.price+' 💎)':''}
+            🎨 ${p.skin?p.skin.name:'Skin'} ${p.skin?'('+p.skin.price+'💎)':''}
           </button>
-          <button class="petchip ${questOn?'on':''}" data-petunlock="quest_${p.id}" title="${p.quest?`${p.quest.name} — Rank up : ${p.quest.rankUp} — Bonus : ${p.quest.bonus}`:''}">
-            🏆 Quête${p.quest?' : '+p.quest.name+' ('+p.quest.price+' 💎)':''}
-          </button>
+          <span class="petchip ${questOn?'on':''}" title="${p.quest?`${p.quest.name} — ${p.quest.rankUp} — ${p.quest.bonus}`:''}">
+            🏆 ${p.quest?p.quest.name:'Quête'}
+            <button class="pixbtn ghost" data-qrank="${p.id}" data-d="-1" style="min-width:28px;height:26px;padding:0">−</button>
+            <b>${qRank}/10</b>
+            <button class="pixbtn" data-qrank="${p.id}" data-d="1" style="min-width:28px;height:26px;padding:0">+</button>
+          </span>
         </div>
       </div>
       <div class="lvbtns">
@@ -268,7 +274,7 @@ function renderPets(){
         <span class="lvval">${lv}/${p.maxLevel}</span>
         <button class="pixbtn" data-pet="${p.id}" data-d="1">+</button>
       </div></div>`;
-  }).join('')+`<p class="muted" style="margin-top:10px">Total niveaux : ${total} · Skins : bonus actif même non équipé, -15→-30% de coût de level up. Quête : disponible au niveau 10 du pet.</p>`;
+  }).join('')+`<p class="muted" style="margin-top:10px">Total niveaux : ${total} · Quest ranks 0–10 (screens Crab/Dwarf/Duck 10/10). Skins = bonus même non équipé.</p>`;
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-pet]');if(!b)return;
@@ -280,6 +286,11 @@ document.addEventListener('click',e=>{
   const c=e.target.closest('[data-petunlock]');if(!c)return;
   state.col.petUnlocks=state.col.petUnlocks||{};
   state.col.petUnlocks[c.dataset.petunlock]=!state.col.petUnlocks[c.dataset.petunlock];
+  C.saveCollections(state.col);renderPets();
+});
+document.addEventListener('click',e=>{
+  const q=e.target.closest('[data-qrank]');if(!q)return;
+  C.setPetQuestRank(state.col,q.dataset.qrank, C.getPetQuestRank(state.col,q.dataset.qrank)+ +q.dataset.d);
   C.saveCollections(state.col);renderPets();
 });
 
@@ -410,33 +421,55 @@ $('#btnWsClear')?.addEventListener('click',()=>{
   C.saveCollections(state.col);renderWorkshop();
 });
 
-/* ================= SKILLS ================= */
+/* ================= SKILLS (layout wiki #Skills) ================= */
 let selectedSkill=null;
+function skillCardHtml(id){
+  const s=SKILLS.find(x=>x.id===id); if(!s) return '';
+  const max=skillMaxLevels(s);
+  const lv=Math.min(max, C.getSkillLevel(state.col,s.id));
+  const maxed=lv>=max && lv>0;
+  const cost=Array.isArray(s.cost)?s.cost.join('/') : s.cost;
+  const sel=selectedSkill===s.id?' sel':'';
+  const st=s.sTier?' stier':'';
+  const owned=lv>0?' owned':'';
+  return `<div class="sk-node${sel}${st}${owned}${maxed?' maxed':''}" data-skillsel="${s.id}">
+    <div class="sk-name">${s.name}${s.sTier?' <span class="tag">prio</span>':''}</div>
+    <div class="sk-fx">${s.effect||''}</div>
+    <div class="sk-meta">
+      <span>Cost: ${cost} SP${s.unlockOb?` · OB${s.unlockOb}`:''}</span>
+      <span class="sk-lv">${lv}/${max}</span>
+    </div>
+    <div class="sk-actions">
+      <button class="pixbtn ghost" data-skill="${s.id}" data-d="-1">−</button>
+      ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-skill="${s.id}" data-d="1">+</button>`}
+    </div>
+  </div>`;
+}
 function renderSkills(){
   const box=$('#skillList'); if(!box) return;
   const owned=SKILLS.filter(s=>C.getSkillLevel(state.col,s.id)>0).length;
   const hint=$('#skillHint');
-  if(hint) hint.textContent=`${owned}/${SKILLS.length} skills · ${SKILLS.filter(s=>s.sTier&&C.getSkillLevel(state.col,s.id)>0).length}/4 S-Tier`;
-  box.innerHTML=SKILLS.map(s=>{
-    const max=skillMaxLevels(s);
-    const lv=Math.min(max, C.getSkillLevel(state.col,s.id));
-    const maxed=lv>=max;
-    const sel=selectedSkill===s.id?' style="outline:2px solid var(--amber)"':'';
-    return `<div class="art-row" data-skillsel="${s.id}"${sel}>
-      <div class="art-ico">${s.sTier?'⭐':'🌳'}</div>
-      <div class="art-desc">${s.name}${s.sTier?' <span class="tag">S-TIER</span>':''}${s.unlockOb?` <span class="muted">OB${s.unlockOb}</span>`:''}</div>
-      <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
-      <div class="art-actions">
-        <button class="pixbtn ghost" data-skill="${s.id}" data-d="-1">−</button>
-        ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-skill="${s.id}" data-d="1">+</button>`}
-      </div>
-    </div>`;
-  }).join('');
+  if(hint) hint.textContent=`${owned}/${SKILLS.length} · layout wiki Skill-Tree#Skills`;
+  box.innerHTML=`<div class="skill-tree">${SKILL_TREE_ROWS.map(row=>{
+    const filled=row.filter(Boolean).length;
+    if(filled===1){
+      const id=row.find(Boolean);
+      return `<div class="sk-row one"><div class="sk-spacer"></div>${skillCardHtml(id)}<div class="sk-spacer"></div></div>`;
+    }
+    if(filled===2 && !row[0] && !row[3]){
+      return `<div class="sk-row two">${skillCardHtml(row[1])}${skillCardHtml(row[2])}</div>`;
+    }
+    if(filled===3 && row[0] && row[1] && row[2] && !row[3]){
+      return `<div class="sk-row three">${skillCardHtml(row[0])}${skillCardHtml(row[1])}${skillCardHtml(row[2])}</div>`;
+    }
+    return `<div class="sk-row four">${row.map(id=>id?skillCardHtml(id):'<div class="sk-empty"></div>').join('')}</div>`;
+  }).join('')}</div>`;
   const d=$('#skillDetail');
   const sk=SKILLS.find(x=>x.id===selectedSkill)||SKILLS[0];
   if(d&&sk){
     const cost=Array.isArray(sk.cost)?sk.cost.join(' / '):sk.cost;
-    d.innerHTML=`<b style="color:var(--amber)">${sk.name}</b><br>${sk.effect||''}<br><span class="muted">Cost: ${cost} SP · Level ${C.getSkillLevel(state.col,sk.id)}/${skillMaxLevels(sk)}</span>`;
+    d.innerHTML=`<b style="color:var(--amber)">${sk.name}</b><br>${sk.effect||''}<br><span class="muted">Cost: ${cost} SP · Level ${C.getSkillLevel(state.col,sk.id)}/${skillMaxLevels(sk)}</span>
+      <a class="muted" href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki ↗</a>`;
   }
 }
 function setSkillLv(id,lv){
@@ -724,15 +757,129 @@ document.addEventListener('change',e=>{
   if(i){C.setStatuesFree(state.col,i.dataset.statuefree,i.value);C.saveCollections(state.col);}
 });
 
-/* ================= STARS ================= */
+/* ================= STARS / STARGAZING ================= */
+let starTab='stars';
+function starExtraCap(id){
+  let x=C.getSuperStarUpgrade(state.col,'star_caps');
+  if(['aries','gemini','cancer'].includes(id)) x+=2*C.getSuperStarUpgrade(state.col,'agc_cap');
+  if(['virgo','aquarius','ophiuchus'].includes(id)) x+=C.getSuperStarUpgrade(state.col,'vao_cap');
+  if(['draco','orion'].includes(id) && C.hasBlackHoleBlessing(state.col,'bh_draco_orion')) x+=5;
+  return x;
+}
 function renderStars(){
-  $('#starList').innerHTML=STARS.map(s=>
-    `<div class="skillrow"><span class="nm">${s.name}</span><span class="muted" style="flex:1">${s.effect}</span>
-     <button class="pixbtn ${C.hasStar(state.col,s.id)?'on':''}" data-star="${s.id}">${C.hasStar(state.col,s.id)?'POSSÉDÉE':'—'}</button></div>`).join('');
+  const box=$('#starList'); if(!box) return;
+  document.querySelectorAll('[data-startab]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.startab===starTab);
+    b.classList.toggle('ghost', b.dataset.startab!==starTab);
+  });
+  const hint=$('#starHint');
+  if(starTab==='stars'){
+    const owned=STARS_FULL.filter(s=>C.getStarLevel(state.col,s.id)>0).length;
+    if(hint) hint.textContent=`${owned}/${STARS_FULL.length} unlocked · telescope ${C.getStarUpgrade(state.col,'telescope')}/21`;
+    box.innerHTML=STARS_FULL.map(s=>{
+      const max=starEffectiveMax(s, starExtraCap(s.id));
+      const lv=Math.min(max, C.getStarLevel(state.col,s.id));
+      const maxed=lv>=max && lv>0;
+      const icon=`assets/cards/${s.name}.png`;
+      return `<div class="art-row">
+        <div class="art-ico"><img src="${icon}" alt="" loading="lazy" style="width:28px;height:28px;image-rendering:pixelated" onerror="this.parentNode.textContent='⭐'"></div>
+        <div class="art-desc"><b>${s.name}</b> — ${s.perk}</div>
+        <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-starlv="${s.id}" data-d="-1">−</button>
+          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-starlv="${s.id}" data-d="1">+</button>
+            <button class="pixbtn gold" data-starmax="${s.id}">Max</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  } else if(starTab==='upgrades'){
+    if(hint) hint.textContent='Stargazing Upgrades (wiki)';
+    box.innerHTML=STAR_UPGRADES.map(u=>{
+      const lv=Math.min(u.max, C.getStarUpgrade(state.col,u.id));
+      const maxed=lv>=u.max;
+      return `<div class="art-row">
+        <div class="art-ico">🔭</div>
+        <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
+        <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-supg="${u.id}" data-d="-1">−</button>
+          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-supg="${u.id}" data-d="1">+</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  } else if(starTab==='super'){
+    if(hint) hint.textContent='Super Stars upgrades';
+    box.innerHTML=SUPER_STAR_UPGRADES.map(u=>{
+      const lv=Math.min(u.max, C.getSuperStarUpgrade(state.col,u.id));
+      const maxed=lv>=u.max;
+      return `<div class="art-row">
+        <div class="art-ico">✨</div>
+        <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
+        <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-ssupg="${u.id}" data-d="-1">−</button>
+          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-ssupg="${u.id}" data-d="1">+</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    if(hint) hint.textContent='Black Hole blessings (toggle)';
+    box.innerHTML=BLACK_HOLE_BLESSINGS.map(b=>{
+      const on=C.hasBlackHoleBlessing(state.col,b.id);
+      return `<div class="art-row">
+        <div class="art-ico">🕳️</div>
+        <div class="art-desc">${b.name}</div>
+        <div class="art-actions">
+          <button class="pixbtn ${on?'on':''}" data-bh="${b.id}">${on?'ACTIF':'—'}</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 document.addEventListener('click',e=>{
-  const b=e.target.closest('[data-star]');if(!b)return;
-  C.toggleStar(state.col,b.dataset.star);C.saveCollections(state.col);renderStars();
+  const t=e.target.closest('[data-startab]');
+  if(t){ starTab=t.dataset.startab; renderStars(); return; }
+  const sl=e.target.closest('[data-starlv]');
+  if(sl){
+    const s=STARS_FULL.find(x=>x.id===sl.dataset.starlv);
+    const max=starEffectiveMax(s, starExtraCap(s.id));
+    C.setStarLevel(state.col,s.id,Math.min(max,Math.max(0,C.getStarLevel(state.col,s.id)+ +sl.dataset.d)));
+    C.saveCollections(state.col);renderStars(); return;
+  }
+  const sm=e.target.closest('[data-starmax]');
+  if(sm){
+    const s=STARS_FULL.find(x=>x.id===sm.dataset.starmax);
+    C.setStarLevel(state.col,s.id,starEffectiveMax(s, starExtraCap(s.id)));
+    C.saveCollections(state.col);renderStars(); return;
+  }
+  const u=e.target.closest('[data-supg]');
+  if(u){
+    const row=STAR_UPGRADES.find(x=>x.id===u.dataset.supg);
+    C.setStarUpgrade(state.col,row.id,Math.min(row.max,Math.max(0,C.getStarUpgrade(state.col,row.id)+ +u.dataset.d)));
+    C.saveCollections(state.col);renderStars(); return;
+  }
+  const ss=e.target.closest('[data-ssupg]');
+  if(ss){
+    const row=SUPER_STAR_UPGRADES.find(x=>x.id===ss.dataset.ssupg);
+    C.setSuperStarUpgrade(state.col,row.id,Math.min(row.max,Math.max(0,C.getSuperStarUpgrade(state.col,row.id)+ +ss.dataset.d)));
+    C.saveCollections(state.col);renderStars(); return;
+  }
+  const bh=e.target.closest('[data-bh]');
+  if(bh){ C.toggleBlackHoleBlessing(state.col,bh.dataset.bh); C.saveCollections(state.col); renderStars(); }
+});
+$('#btnStarMaxTab')?.addEventListener('click',()=>{
+  if(starTab==='stars') for(const s of STARS_FULL) C.setStarLevel(state.col,s.id,starEffectiveMax(s,starExtraCap(s.id)));
+  else if(starTab==='upgrades') for(const u of STAR_UPGRADES) C.setStarUpgrade(state.col,u.id,u.max);
+  else if(starTab==='super') for(const u of SUPER_STAR_UPGRADES) C.setSuperStarUpgrade(state.col,u.id,u.max);
+  else for(const b of BLACK_HOLE_BLESSINGS){ state.col.blackHole||={}; state.col.blackHole[b.id]=true; }
+  C.saveCollections(state.col);renderStars();
+});
+$('#btnStarClearTab')?.addEventListener('click',()=>{
+  if(starTab==='stars') for(const s of STARS_FULL) C.setStarLevel(state.col,s.id,0);
+  else if(starTab==='upgrades') for(const u of STAR_UPGRADES) C.setStarUpgrade(state.col,u.id,0);
+  else if(starTab==='super') for(const u of SUPER_STAR_UPGRADES) C.setSuperStarUpgrade(state.col,u.id,0);
+  else state.col.blackHole={};
+  C.saveCollections(state.col);renderStars();
 });
 
 /* ================= HISTORIQUE ================= */

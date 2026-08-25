@@ -91,7 +91,135 @@ export const MISC_CARDS = [
   M('floor73','Floor 73','Golden Floor 1.02x','1.04x','1.06x',{world:3}),
 ];
 
-export const ALL_CARDS = [...ORE_CARDS, ...BAR_CARDS, ...MISC_CARDS];
+const FX = {
+  bombs: ['On Recharge: 50% to Gain 2x Bomb', '2x', '3x', 'N/A'],
+  veins: ['Vein Gain 1.50x', '2x', '4x-12.27x', '+0.15x/+0.01x'],
+  stars: ['Star Gain 1.50x', '2x', '4x-7.13x', '+0.20x/+0.01x'],
+  fish: ['Fish Gain 1.50x', '2x', '4x-9.2x', '+0.08x/+0.005x'],
+  drones: ['Drone bonus', 'Gilded', 'Poly', '+0.02x/+0.0x'],
+  pets: ['Pet bonus', 'Gilded', 'Poly', '+0.02x/+0.0x'],
+};
+
+const C = (cat, id, name, world, iconFile) => ({
+  id: `${cat}_${id}`,
+  name,
+  cat,
+  world: world ?? null,
+  icon: iconFile ? `assets/cards/${iconFile}` : null,
+  effect: FX[cat],
+});
+
+/* Bomb cards — wiki Bombs (hors golden variants) */
+export const BOMB_CARDS = [
+  C('bombs','basic','Basic Bomb',1,'Basic_Bomb.png'),
+  C('bombs','chain','Chain Bomb',1,'Chain_Bomb.png'),
+  C('bombs','plenty','Bomb of Plenty',1,'Bomb_of_Plenty.png'),
+  C('bombs','exp','Exp Bomb',1,'Exp_Bomb.png'),
+  C('bombs','mega','MEGABOMB',1,'MEGABOMB.png'),
+  C('bombs','infinity','Infinity Bomb',1,'Infinity_Bomb.png'),
+  C('bombs','transmuter','Transmuter Bomb',1,null),
+  C('bombs','gem','Gem Bomb',1,'Gem_Bomb.png'),
+  C('bombs','cherry','Cherry Bomb',1,'Cherry_Bomb.png'),
+  C('bombs','battery','Battery Bomb',1,'Battery_Bomb.png'),
+  C('bombs','d20','D20 Bomb',1,'D20_Bomb.png'),
+  C('bombs','founders','Founders Bomb',1,'Founders_Bomb.png'),
+  C('bombs','veinmorpher','Veinmorpher Bomb',2,null),
+];
+
+/* Vein cards — Construct / Stargazing costs */
+export const VEIN_CARDS = [
+  C('veins','stone','Stone Vein',1,'Stone_Vein.png'),
+  C('veins','magma','Magma Vein',1,'Magma_Vein.png'),
+  C('veins','virtual','Virtual Vein',2,'Virtual_Vein.png'),
+  C('veins','space','Space Vein',2,'Space_Vein.png'),
+  C('veins','atomic','Atomic Vein',2,'Atomic_Vein.png'),
+  C('veins','cloud','Cloud Vein',2,'Cloud_Vein.png'),
+  C('veins','beach','Beach Vein',2,'Beach_Vein.png'),
+  C('veins','valley','Valley Vein',2,'Valley_Vein.png'),
+  C('veins','deepsea','Deepsea Vein',2,'Deepsea_Vein.png'),
+  C('veins','jungle','Jungle Vein',2,'Jungle_Vein.png'),
+  C('veins','jurassic','Jurassic Vein',3,'Jurassic_Vein.png'),
+  C('veins','roman','Roman Vein',3,'Roman_Vein.png'),
+  C('veins','industrial','Industrial Vein',3,'Industrial_Vein.png'),
+  C('veins','warfront','Warfront Vein',3,'Warfront_Vein.png'),
+  C('veins','neon','Neon Vein',3,'Neon_Vein.png'),
+  C('veins','wonderland','Wonderland Vein',4,'Wonderland_Vein.png'),
+  C('veins','enchanted','Enchanted Vein',4,'Enchanted_Vein.png'),
+  C('veins','candyland','Candyland Vein',4,'Candyland_Vein.png'),
+  C('veins','arabian','Arabian Vein',4,'Arabian_Vein.png'),
+  C('veins','pirate','Pirate Vein',4,'Pirate_Vein.png'),
+];
+
+/* Star cards — une par constellation */
+export const STAR_CARDS = [
+  'Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius',
+  'Capricorn','Aquarius','Pisces','Ophiuchus','Orion','Hercules','Draco','Cetus',
+  'Phoenix','Eridanus','Lynx','Vulpecula',
+].map((n,i) => C('stars', n.toLowerCase(), n, i < 12 ? 2 : (i < 17 ? 3 : 4), `${n}.png`));
+
+/* Fish cards — commons + legendaries (heads/icons wiki) */
+export const FISH_CARDS = [
+  C('fish','guppy','Guppy',3,'Guppy.png'),
+  C('fish','golden_trout','Golden Trout',3,'Golden_Trout.png'),
+  C('fish','catfish','Catfish',3,'Catfish.png'),
+  C('fish','gammangler','Gammangler Fish',3,'Gammangler_Fish.png'),
+  C('fish','lantern','Lanternfish Comet',3,'Lanternfish_Comet.png'),
+  C('fish','lunar','Lunar Sunfish',3,'Lunar_Sunfish.png'),
+  C('fish','molten','Molten Archerfish',3,'Molten_Archerfish.png'),
+  C('fish','planetary','Planetary Jellyfish',3,'Planetary_Jellyfish.png'),
+  C('fish','shock','Shocksailfish',3,'Shocksailfish.png'),
+  C('fish','frost_spear','Frostdrip Spearfish',3,'Frostdrip_Spearfish.png'),
+  C('fish','frost_crab','Frostshell Crab',3,'Frostshell_Crab.png'),
+  C('fish','scarab','Scarabshoe Crab',3,'Scarabshoe_Crab.png'),
+  C('fish','leg_lake','Lake Legendary Fish',3,'Lake_Legendary_Fish_Head.png'),
+  C('fish','leg_cave','Cave Legendary Fish',3,'Cave_Legendary_Fish_Head.png'),
+  C('fish','leg_desert','Desert Legendary Fish',3,'Desert_Legendary_Fish_Head.png'),
+  C('fish','leg_ocean','Ocean Legendary Fish',3,'Ocean_Legendary_Fish_Head.png'),
+  C('fish','leg_sky','Sky Legendary Fish',3,'Sky_Legendary_Fish_Head.png'),
+  C('fish','leg_volcano','Volcano Legendary Fish',3,'Volcano_Legendary_Fish_Head.png'),
+  C('fish','leg_abyss','Abyss Legendary Fish',3,'Abyss_Legendary_Fish_Head.png'),
+  C('fish','leg_nuclear','Nuclear Legendary Fish',3,'Nuclear_Legendary_Fish_Head.png'),
+  C('fish','leg_galaxy','Galaxy Legendary Fish',4,'Galaxy_Legendary_Fish_Head.png'),
+  C('fish','leg_solaris','Solaris Legendary Fish',4,'Solaris_Legendary_Fish_Head.png'),
+];
+
+export const DRONE_CARDS = [
+  C('drones','bear','Bomb Bear',1,'Drone_Bear_Icon.png'),
+  C('drones','chain','Chain Bomber',1,'Drone_Chain_Icon.png'),
+  C('drones','midas','Midas',1,'Drone_Midas_Icon.png'),
+  C('drones','frogger','Frogger',1,'Drone_Frogger_Icon.png'),
+  C('drones','veinseeker','Veinseeker',2,'Drone_Veinseeker_Icon.png'),
+  C('drones','starburst','Starburst',2,'Drone_Starburst_Icon.png'),
+  C('drones','elixir','Elixir',2,'Drone_Elixir_Icon.png'),
+  C('drones','void','Void',2,'Drone_Void_Icon.png'),
+  C('drones','angler','Angler',3,'Drone_Angler_Icon.png'),
+  C('drones','prism','Prism',4,'Drone_Prism_Icon.png'),
+  C('drones','minotaur','Minotaur',4,'Drone_Minotaur_Icon.png'),
+];
+
+export const PET_CARDS = [
+  C('pets','crab','Crab',2,'Crab_Default.png'),
+  C('pets','dwarf','Dwarf',2,'Dwarf_Default.png'),
+  C('pets','duck','Duck',2,'Duck_Default.png'),
+  C('pets','rabbit','Rabbit',2,null),
+  C('pets','penguin','Penguin',2,null),
+  C('pets','axolotl','Axolotl',2,null),
+  C('pets','whale','Whale',2,null),
+  C('pets','totem','Totem',2,null),
+  C('pets','happybot','Happy-Bot',3,null),
+  C('pets','leprechaun','Leprechaun',3,null),
+  C('pets','starfish','Starfish',3,'Starfish_Default.png'),
+  C('pets','dino','Dino',3,null),
+  C('pets','mr_nibbles','Mr Nibbles',3,null),
+  C('pets','nagini','Nagini',3,null),
+  C('pets','butterfly','Butterfly',4,'Butterfly_Skin.png'),
+  C('pets','rhino','Rhino',4,null),
+];
+
+export const ALL_CARDS = [
+  ...ORE_CARDS, ...BAR_CARDS, ...BOMB_CARDS, ...VEIN_CARDS,
+  ...STAR_CARDS, ...FISH_CARDS, ...DRONE_CARDS, ...PET_CARDS, ...MISC_CARDS,
+];
 
 /* Déblocage par monde : une carte est visible si world <= maxWorld débloqué
    (ou world null => visible dès l'obtention des cards à OB15). */
