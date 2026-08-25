@@ -9,9 +9,10 @@ import { OBELISK, ARTIFACTS, artifactEffectiveMax } from './src/game/knowledgeBa
 import { workshopEffectiveMax, WORKSHOP_UPGRADES } from './src/game/workshopData.js';
 import { estimateFreebieGemEv, estimatePickaxeGap } from './src/game/playerMath.js';
 import { ORE_CARDS, BAR_CARDS, MISC_CARDS, VEIN_CARDS, ALL_CARDS } from './src/game/cardsData.js';
-import { computeCapSnapshot, liveCaps, petEffectiveMax } from './src/game/capsEngine.js';
+import { computeCapSnapshot, liveCaps, petEffectiveMax, petHardMax, PET_LEVEL_BASE, starCapInfo } from './src/game/capsEngine.js';
 import { STORE_GEM_UPGRADES, STORE_GEM_UNLOCKS, STORE_PERKS } from './src/game/storeData.js';
 import { PETS_FULL } from './src/game/petsData.js';
+import { STARS_FULL } from './src/game/starsData.js';
 import { SITE_STORAGE_KEYS } from './src/game/siteBackup.js';
 import { CHALLENGES } from './src/game/challengesData.js';
 
@@ -103,8 +104,19 @@ const petCol = { pets: { Happybot: 5 } };
 const petSnap = computeCapSnapshot(petCol, {});
 assert(petSnap.artifactT4.current === 5, `Happy-Bot 5 → T4 +5 got ${petSnap.artifactT4.current}`);
 const crab = PETS_FULL.find(p => p.id === 'Crab');
-assert(petEffectiveMax(crab, { stars: { pisces: 2 }, statueStates: { 3: 3, 15: 3 }, challengeShop: { e_pet_cap: 1 }, petUnlocks: { skin_Dino: true } }, {}) === 25 + 8,
-  'pet max = base 25 + pisces2 + slaying1 + feline3 + shop1 + dino1');
+const crabGlobals = { stars: { pisces: 2 }, statueStates: { 3: 3, 15: 3 }, challengeShop: { e_pet_cap: 1 }, petUnlocks: { skin_Dino: true } };
+assert(PET_LEVEL_BASE === 10, 'pet base wiki 10');
+assert(petEffectiveMax(crab, crabGlobals, {}) === 10 + 8,
+  'crab current = base 10 + pisces2 + slaying1 + feline3 + shop1 + dino1');
+assert(petEffectiveMax(crab, { ...crabGlobals, fishing: { legendary: { storm_serpent: 1 } } }, {}) === 10 + 8 + 5,
+  'Storm Serpent T1 +5 Crab cap raises current max');
+assert(petHardMax(crab, {}, {}) === 10 + 4 + 1 + 3 + 1 + 1 + 5,
+  'crab hard = base + pisces4 + slaying + feline + shop + dino + storm5 = 25');
+
+const cancer = STARS_FULL.find(s => s.id === 'cancer');
+assert(starCapInfo(cancer, {}).current === 20, 'cancer base 20');
+assert(starCapInfo(cancer, { fishing: { legendary: { megalodon: 1 } } }).current === 30,
+  'Megalodon T1 +10 Cancer cap');
 
 /* Sources itemisées artefacts = skill + carte poly + slaying plat → 7 */
 const artCol = {

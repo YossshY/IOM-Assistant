@@ -190,7 +190,8 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .sk-row.four{grid-template-columns:repeat(4,1fr)}
 .sk-spacer,.sk-empty{min-height:1px}
 .sk-node{background:#1a1520;border:3px solid #5a4a58;border-radius:6px;padding:10px;cursor:pointer;
-  display:flex;flex-direction:column;gap:6px;min-height:110px;box-shadow:0 3px 0 #00000055}
+  display:flex;flex-direction:column;gap:6px;min-height:96px;box-shadow:0 3px 0 #00000055;
+  user-select:none}
 .sk-node:hover{border-color:#8a7a88}
 .sk-node.sel{border-color:var(--amber);outline:2px solid #ffd97a55}
 .sk-node.stier{border-color:#8a6a1c;background:#2a2210}
@@ -200,9 +201,6 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .sk-fx{font-size:7px;color:var(--muted);line-height:1.45;flex:1}
 .sk-meta{display:flex;justify-content:space-between;gap:6px;font-size:7px;color:#cfc0c8;flex-wrap:wrap}
 .sk-lv{color:var(--cyan);font-weight:bold}
-.sk-actions{display:flex;gap:5px;align-items:center}
-.sk-actions .pixbtn{min-width:32px;height:30px;padding:0 6px;font-size:10px}
-.sk-actions .btn-maxed{min-width:auto;padding:6px 8px;font-size:7px}
 @media(max-width:720px){.skill-tree{min-width:560px}.sk-name{font-size:8px}}
 .chal-overlay{margin-bottom:12px}
 .chal-card{background:#2a1a28;border:3px solid #8a4a9a;border-radius:6px;padding:12px;margin-bottom:10px}
@@ -390,7 +388,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- SKILLS -->
 <section id="page-skills" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Affichage comme <a href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki Skill-Tree#Skills</a> — clique une case, +/− pour noter. Pas dans l'export.</p>
+    <p class="prestige-hint">Affichage comme <a href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki Skill-Tree#Skills</a> — clic gauche : +1 · clic droit : −1 (comme les cartes et statues). Pas dans l'export.</p>
     <div class="prestige-toolbar">
       <button class="pixbtn gold" id="btnSkillMaxS">MAX PRIORITAIRES</button>
       <button class="pixbtn ghost" id="btnSkillClear">TOUT À 0</button>

@@ -73,7 +73,7 @@ export const SUPER_STAR_UPGRADES = [
   { id:'mana', name:'Arcanist Mana Regen', per:'+1.25%', max:20, telescope:21 },
 ];
 
-/** Blessings Black Hole (screens / wiki résumé) — niveau BH = nombre de blessings actifs. */
+/** Blessings Black Hole (wiki Stargazing — 22 niveaux). */
 export const BLACK_HOLE_BLESSINGS = [
   { id:'bh_frogger', name:'Frogger Drone Enhancement' },
   { id:'bh_lep', name:'Leprechaun Pet Cap +2' },
@@ -82,4 +82,19 @@ export const BLACK_HOLE_BLESSINGS = [
   { id:'bh_gal_floor', name:'Galactic Floor Chance +3%' },
   { id:'bh_gold_frog', name:'Golden Lootfrog Chance +2%' },
   { id:'bh_draco_orion', name:'Draco and Orion Star Cap +5' },
+  { id:'bh_lootbug_bank', name:'Lootbug Banked Cap 1.20x' },
+  { id:'bh_bear', name:'Bear Drone Cap +10' },
+  { id:'bh_t2_dock', name:'Tier 2 Dock Power +25%' },
+  { id:'bh_rainbow_void', name:'Rainbow Void Portal Chance +5%' },
+  { id:'bh_nibbles', name:'Mr Nibbles Pet Cap +2' },
+  { id:'bh_primal', name:'Unlock Golden Primal Meat' },
+  { id:'bh_gleaming', name:'Gleaming Vein Chance +5%' },
+  { id:'bh_scorpio', name:'Scorpio Star Cap +40' },
+  { id:'bh_veinmorpher', name:'Unlock Golden Veinmorpher' },
+  { id:'bh_ultra_stonks', name:'Ultra Stonks Chance +2%' },
+  { id:'bh_lollipop', name:'Unlock Golden Lollipop' },
+  { id:'bh_gal_portal', name:'Galactic Portal Chance +3%' },
+  { id:'bh_radiancy', name:'Unlock Spell: Radiancy (OB70)' },
+  { id:'bh_party', name:'Party Wizard Chance +3%' },
+  { id:'bh_prismism', name:'Unlock Spell: Prismism' },
 ];

@@ -7,7 +7,7 @@ import { generateRecommendations, CONFIDENCE } from './game/recommendationEngine
 import { loadHistory, saveImport, diffExports, fmtNum } from './game/history.js';
 import { CARD_STATES, CARD_SETS } from './game/cards.js';
 import { visibleCards } from './game/cardsData.js';
-import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS, starEffectiveMax } from './game/starsData.js';
+import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS } from './game/starsData.js';
 // icônes misc réelles : mapping id → fichier téléchargé depuis le wiki
 const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Blue_Cow.png',goldore:'Golden_Ore_Icon.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:'Misc_Celios_Hat.png',vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png',relic:'Misc_Relic.png',bone:'Misc_Bone.png',store:'Misc_Store.png',cookie:'Misc_Cookie_Clicker.png'};
 import { estimateFreebieGemEv, estimateLootbug2xWorth, estimatePickaxeGap } from './game/playerMath.js';
@@ -24,7 +24,10 @@ import {
 import { ARCH_UPGRADES, ARCH_IDOLS, idolMax } from './game/archaeologyData.js';
 import { RESEARCH_VEINS, MONUMENTS } from './game/constructData.js';
 import * as C from './game/collections.js';
-import { computeCapSnapshot, liveCaps, petEffectiveMax, petHardMax } from './game/capsEngine.js';
+import {
+  computeCapSnapshot, liveCaps, petEffectiveMax, petHardMax, petCapInfo,
+  starCapInfo, noticeT1Max, noticeT1Hard, noticeT1Pack,
+} from './game/capsEngine.js';
 import {
   STORE_PERKS, STORE_PERK_BUNDLES, STORE_GEM_UNLOCKS, STORE_GEM_UPGRADES,
   STORE_SPECIAL, STORE_VALUE_PACKS, STORE_EXPORT_NOTE,
@@ -76,6 +79,7 @@ function capCell(lv, current, hard, tip){
 }
 function touchCaps(){
   renderArtifacts();renderWorkshop();renderPets();renderStore();renderDashCaps();
+  renderStars();renderFishing();renderChallenges();
 }
 /** Somme des états statues (plat=3) — pour bonus « per statue owned ». */
 function statuePower(){
@@ -341,9 +345,11 @@ function renderFishing(){
     return;
   }
   if(fishTab==='notices'){
-    if(hint) hint.textContent='Notice upgrades T1 + T2 (tokens)';
+    const n1=noticeT1Pack(state.col);
+    if(hint) hint.textContent=`Notice upgrades T1 + T2 (tokens) · T1 cap +${n1.current} (max +${n1.potential})`;
+    if(hint) hint.title=n1.tooltip;
     box.innerHTML='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Tier 1 Notices</div></div>'
-      +NOTICE_UPGRADES_T1.map(u=>lvRow('📋',u.name,u.per,C.getFishLv(state.col,'notice',u.id),u.max,'fn1',u.id)).join('')
+      +NOTICE_UPGRADES_T1.map(u=>lvRow('📋',u.name,u.per,C.getFishLv(state.col,'notice',u.id),noticeT1Max(u,state.col),'fn1',u.id,{hardMax:noticeT1Hard(u,state.col),tip:n1.tooltip})).join('')
       +'</div><div class="tier-block t2" style="margin-top:12px"><div class="tier-head"><div class="th-l">Tier 2 Notices</div></div>'
       +NOTICE_UPGRADES_T2.map(u=>lvRow('📋',u.name,u.per,C.getFishLv(state.col,'notice',u.id),u.max,'fn2',u.id)).join('')
       +'</div>';
@@ -385,7 +391,7 @@ document.addEventListener('click',e=>{
   const d=e.target.closest('[data-dock]');
   if(d){ C.setDockUnlocked(state.col,d.dataset.dock,!C.isDockUnlocked(state.col,d.dataset.dock)); C.saveCollections(state.col); renderFishing(); return; }
   const n1=e.target.closest('[data-fn1]');
-  if(n1){ const u=NOTICE_UPGRADES_T1.find(x=>x.id===n1.dataset.fn1); C.setFishLv(state.col,'notice',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'notice',u.id)+ +n1.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
+  if(n1){ const u=NOTICE_UPGRADES_T1.find(x=>x.id===n1.dataset.fn1); C.setFishLv(state.col,'notice',u.id,Math.min(noticeT1Max(u,state.col),Math.max(0,C.getFishLv(state.col,'notice',u.id)+ +n1.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
   const n2=e.target.closest('[data-fn2]');
   if(n2){ const u=NOTICE_UPGRADES_T2.find(x=>x.id===n2.dataset.fn2); C.setFishLv(state.col,'notice',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'notice',u.id)+ +n2.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
   const u1=e.target.closest('[data-fu1]');
@@ -400,7 +406,7 @@ document.addEventListener('click',e=>{
   if(lg){ C.setFishLv(state.col,'legendary',lg.dataset.fleg,Math.min(2,Math.max(0,C.getFishLv(state.col,'legendary',lg.dataset.fleg)+ +lg.dataset.d))); C.saveCollections(state.col); renderFishing(); touchCaps(); }
 });
 $('#btnFishMaxTab')?.addEventListener('click',()=>{
-  if(fishTab==='notices'){ for(const u of NOTICE_UPGRADES_T1) C.setFishLv(state.col,'notice',u.id,u.max); for(const u of NOTICE_UPGRADES_T2) C.setFishLv(state.col,'notice',u.id,u.max); }
+  if(fishTab==='notices'){ for(const u of NOTICE_UPGRADES_T1) C.setFishLv(state.col,'notice',u.id,noticeT1Max(u,state.col)); for(const u of NOTICE_UPGRADES_T2) C.setFishLv(state.col,'notice',u.id,u.max); }
   else if(fishTab==='stats'){ /* export read-only */ }
   else if(fishTab==='upgrades'){ for(const u of FISH_UPGRADES_T1) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const u of FISH_UPGRADES_T2) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,true); }
   else if(fishTab==='enhance'){ for(const u of ENHANCE_T1) C.setFishLv(state.col,'enhance',u.id,u.max); for(const u of ENHANCE_T2) C.setFishLv(state.col,'enhance',u.id,u.max); }
@@ -462,6 +468,7 @@ $('#btnArchClearTab')?.addEventListener('click',()=>{
   if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,0);
   else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,0);
   C.saveCollections(state.col);renderArchaeology();touchCaps();
+});
 
 /* ================= CARDS =================
    Toutes les cartes individuelles, groupées par catégorie.
@@ -567,7 +574,8 @@ function renderPets(){
     const skinOn=owned['skin_'+p.id];
     const qRank=C.getPetQuestRank(state.col,p.id);
     const questOn=qRank>0 || owned['quest_'+p.id];
-    const petTip=snapNow().petLevel.tooltip;
+    const cap=petCapInfo(p, state.col, statsNow());
+    const petTip=cap.tooltip;
     return `<div class="petrow ${locked?'locked':''}">
       <img class="pet-em" src="${p.iconDefault}" alt="" loading="lazy"
         onerror="this.style.display='none'">
@@ -609,7 +617,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('click',e=>{
   const q=e.target.closest('[data-qrank]');if(!q)return;
   C.setPetQuestRank(state.col,q.dataset.qrank, C.getPetQuestRank(state.col,q.dataset.qrank)+ +q.dataset.d);
-  C.saveCollections(state.col);renderPets();
+  C.saveCollections(state.col);renderPets();touchCaps();
 });
 
 /* ================= PRESTIGE / ARTEFACTS (layout jeu) ================= */
@@ -764,16 +772,12 @@ function skillCardHtml(id){
   const sel=selectedSkill===s.id?' sel':'';
   const st=s.sTier?' stier':'';
   const owned=lv>0?' owned':'';
-  return `<div class="sk-node${sel}${st}${owned}${maxed?' maxed':''}" data-skillsel="${s.id}">
+  return `<div class="sk-node${sel}${st}${owned}${maxed?' maxed':''}" data-skill="${s.id}" title="Clic : +1 · Clic droit : −1">
     <div class="sk-name">${s.name}${s.sTier?' <span class="tag">prio</span>':''}</div>
     <div class="sk-fx">${s.effect||''}</div>
     <div class="sk-meta">
       <span>Cost: ${cost} SP${s.unlockOb?` · OB${s.unlockOb}`:''}</span>
-      <span class="sk-lv">${lv}/${max}</span>
-    </div>
-    <div class="sk-actions">
-      <button class="pixbtn ghost" data-skill="${s.id}" data-d="-1">−</button>
-      ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-skill="${s.id}" data-d="1">+</button>`}
+      <span class="sk-lv">${lv}/${max}${maxed?' · Maxed':''}</span>
     </div>
   </div>`;
 }
@@ -800,7 +804,7 @@ function renderSkills(){
   const sk=SKILLS.find(x=>x.id===selectedSkill)||SKILLS[0];
   if(d&&sk){
     const cost=Array.isArray(sk.cost)?sk.cost.join(' / '):sk.cost;
-    d.innerHTML=`<b style="color:var(--amber)">${sk.name}</b><br>${sk.effect||''}<br><span class="muted">Cost: ${cost} SP · Level ${C.getSkillLevel(state.col,sk.id)}/${skillMaxLevels(sk)}</span>
+    d.innerHTML=`<b style="color:var(--amber)">${sk.name}</b><br>${sk.effect||''}<br><span class="muted">Cost: ${cost} SP · Level ${C.getSkillLevel(state.col,sk.id)}/${skillMaxLevels(sk)} · clic gauche +1 · clic droit −1</span>
       <a class="muted" href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki ↗</a>`;
   }
 }
@@ -810,10 +814,17 @@ function setSkillLv(id,lv){
   C.saveCollections(state.col);renderSkills();renderRoadmap();touchCaps();
 }
 document.addEventListener('click',e=>{
-  const sel=e.target.closest('[data-skillsel]');
-  if(sel&&!e.target.closest('[data-skill]')){ selectedSkill=sel.dataset.skillsel; renderSkills(); return; }
-  const b=e.target.closest('[data-skill]');
-  if(b){ selectedSkill=b.dataset.skill; setSkillLv(b.dataset.skill, C.getSkillLevel(state.col,b.dataset.skill)+ +b.dataset.d); }
+  const b=e.target.closest('#skillList [data-skill]');
+  if(!b) return;
+  selectedSkill=b.dataset.skill;
+  setSkillLv(b.dataset.skill, C.getSkillLevel(state.col,b.dataset.skill)+1);
+});
+document.addEventListener('contextmenu',e=>{
+  const b=e.target.closest('#skillList [data-skill]');
+  if(!b) return;
+  e.preventDefault();
+  selectedSkill=b.dataset.skill;
+  setSkillLv(b.dataset.skill, C.getSkillLevel(state.col,b.dataset.skill)-1);
 });
 $('#btnSkillMaxS')?.addEventListener('click',()=>{
   for(const s of SKILLS.filter(x=>x.sTier)) C.setSkillLevel(state.col,s.id,skillMaxLevels(s));
@@ -925,7 +936,7 @@ function overlayChallenge(){
   if(!ch) return null;
   const goal=ov?.goal ?? ch.goal ?? null;
   let progress=ov?.progress;
-  if(progress==null && ch.exportKey){
+  if((progress==null || (progress===0 && !ov?.manual)) && ch.exportKey){
     const n=Number(statsNow()[ch.exportKey]);
     if(Number.isFinite(n)) progress=n;
   }
@@ -1022,13 +1033,16 @@ document.addEventListener('click',e=>{
     const goal=cur?.goal ?? 15;
     const ch=cur?.ch || CHALLENGES.divine.find(x=>x.id==='div_7');
     const progress=Math.max(0, Math.min(goal, (cur?.progress||0)+ +op.dataset.ovp));
-    C.setChallengeOverlay(state.col, { id:ch.id, progress, goal });
+    C.setChallengeOverlay(state.col, { id:ch.id, progress, goal, manual:true });
     C.saveCollections(state.col);renderChallenges(); return;
   }
   const os=e.target.closest('[data-ovset]');
   if(os){
     const ch=CHALLENGES.divine.find(x=>x.id===os.dataset.ovset);
-    C.setChallengeOverlay(state.col,{ id:ch.id, progress:0, goal:ch.goal??null });
+    const prev=C.getChallengeOverlay(state.col);
+    const data={ id:ch.id, goal:ch.goal??null };
+    if(prev?.id===ch.id && prev.manual && prev.progress!=null) data.progress=prev.progress, data.manual=true;
+    C.setChallengeOverlay(state.col, data);
     C.saveCollections(state.col);renderChallenges();
   }
 });
@@ -1246,13 +1260,6 @@ document.addEventListener('contextmenu',e=>{
 
 /* ================= STARS / STARGAZING ================= */
 let starTab='stars';
-function starExtraCap(id){
-  let x=C.getSuperStarUpgrade(state.col,'star_caps');
-  if(['aries','gemini','cancer'].includes(id)) x+=2*C.getSuperStarUpgrade(state.col,'agc_cap');
-  if(['virgo','aquarius','ophiuchus'].includes(id)) x+=C.getSuperStarUpgrade(state.col,'vao_cap');
-  if(['draco','orion'].includes(id) && C.hasBlackHoleBlessing(state.col,'bh_draco_orion')) x+=5;
-  return x;
-}
 function renderStars(){
   const box=$('#starList'); if(!box) return;
   document.querySelectorAll('[data-startab]').forEach(b=>{
@@ -1264,16 +1271,16 @@ function renderStars(){
     const owned=STARS_FULL.filter(s=>C.getStarLevel(state.col,s.id)>0).length;
     if(hint) hint.textContent=`${owned}/${STARS_FULL.length} unlocked · telescope ${C.getStarUpgrade(state.col,'telescope')}/21`;
     box.innerHTML=STARS_FULL.map(s=>{
-      const max=starEffectiveMax(s, starExtraCap(s.id));
+      const cap=starCapInfo(s, state.col);
+      const max=cap.current;
+      const hard=cap.hard;
       const lv=Math.min(max, C.getStarLevel(state.col,s.id));
       const maxed=lv>=max && lv>0;
       const icon=`assets/cards/${s.name}.png`;
-      const snap=snapNow();
-      const tip=s.id==='leo'?snap.workshop.tooltip:s.id==='pisces'?snap.petLevel.tooltip:'';
       return `<div class="art-row">
         <div class="art-ico"><img src="${icon}" alt="" loading="lazy" style="width:28px;height:28px;image-rendering:pixelated" onerror="this.parentNode.textContent='⭐'"></div>
         <div class="art-desc"><b>${s.name}</b> — ${s.perk}</div>
-        ${capCell(lv, max, max, tip)}
+        ${capCell(lv, max, hard, cap.tooltip)}
         <div class="art-actions">
           <button class="pixbtn ghost" data-starlv="${s.id}" data-d="-1">−</button>
           ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-starlv="${s.id}" data-d="1">+</button>
@@ -1331,14 +1338,14 @@ document.addEventListener('click',e=>{
   const sl=e.target.closest('[data-starlv]');
   if(sl){
     const s=STARS_FULL.find(x=>x.id===sl.dataset.starlv);
-    const max=starEffectiveMax(s, starExtraCap(s.id));
-    C.setStarLevel(state.col,s.id,Math.min(max,Math.max(0,C.getStarLevel(state.col,s.id)+ +sl.dataset.d)));
+    const cap=starCapInfo(s, state.col);
+    C.setStarLevel(state.col,s.id,Math.min(cap.current,Math.max(0,C.getStarLevel(state.col,s.id)+ +sl.dataset.d)));
     C.saveCollections(state.col);renderStars();touchCaps(); return;
   }
   const sm=e.target.closest('[data-starmax]');
   if(sm){
     const s=STARS_FULL.find(x=>x.id===sm.dataset.starmax);
-    C.setStarLevel(state.col,s.id,starEffectiveMax(s, starExtraCap(s.id)));
+    C.setStarLevel(state.col,s.id,starCapInfo(s, state.col).current);
     C.saveCollections(state.col);renderStars();touchCaps(); return;
   }
   const u=e.target.closest('[data-supg]');
@@ -1351,13 +1358,13 @@ document.addEventListener('click',e=>{
   if(ss){
     const row=SUPER_STAR_UPGRADES.find(x=>x.id===ss.dataset.ssupg);
     C.setSuperStarUpgrade(state.col,row.id,Math.min(row.max,Math.max(0,C.getSuperStarUpgrade(state.col,row.id)+ +ss.dataset.d)));
-    C.saveCollections(state.col);renderStars(); return;
+    C.saveCollections(state.col);renderStars();touchCaps(); return;
   }
   const bh=e.target.closest('[data-bh]');
-  if(bh){ C.toggleBlackHoleBlessing(state.col,bh.dataset.bh); C.saveCollections(state.col); renderStars(); }
+  if(bh){ C.toggleBlackHoleBlessing(state.col,bh.dataset.bh); C.saveCollections(state.col); renderStars(); touchCaps(); }
 });
 $('#btnStarMaxTab')?.addEventListener('click',()=>{
-  if(starTab==='stars') for(const s of STARS_FULL) C.setStarLevel(state.col,s.id,starEffectiveMax(s,starExtraCap(s.id)));
+  if(starTab==='stars') for(const s of STARS_FULL) C.setStarLevel(state.col,s.id,starCapInfo(s,state.col).current);
   else if(starTab==='upgrades') for(const u of STAR_UPGRADES) C.setStarUpgrade(state.col,u.id,u.max);
   else if(starTab==='super') for(const u of SUPER_STAR_UPGRADES) C.setSuperStarUpgrade(state.col,u.id,u.max);
   else for(const b of BLACK_HOLE_BLESSINGS){ state.col.blackHole||={}; state.col.blackHole[b.id]=true; }
