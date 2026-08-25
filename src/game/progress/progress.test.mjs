@@ -192,6 +192,17 @@ test('déjà possédé → unlocked', () => {
   assert(ev.actionable === false);
 });
 
+test('node(milestone) suit le seuil, pas player.nodes', () => {
+  const g2 = compileGraph([
+    { id: 'fx.power_gate', kind: KIND.milestone, unlock: stat('power', 10) },
+    { id: 'fx.after_gate', kind: KIND.action, unlock: node('fx.power_gate') },
+  ]);
+  const ok = evaluateNode(g2, playerView({ stats: { power: 10 } }), 'fx.after_gate');
+  assert(ok.status === STATUS.available, ok.status);
+  const low = evaluateNode(g2, playerView({ stats: { power: 9 } }), 'fx.after_gate');
+  assert(low.status === STATUS.locked, low.status);
+});
+
 test('milestone Reach, jamais Do', () => {
   const p = playerView({ stats: { power: 4 } });
   const ev = evaluateNode(g, p, 'fx.power_gate');

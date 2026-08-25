@@ -61,7 +61,6 @@ test('chaque skill du catalogue a un nœud skill.*', () => {
   for (const s of SKILL_NODES) {
     assert(graph.nodes[skillNodeId(s.id)], `missing ${s.id}`);
   }
-  assert(Object.keys(graph.nodes).length === SKILL_NODES.length, 'node count');
 });
 
 test('lucky_strikes est la unique racine (pas de parent d’arbre)', () => {

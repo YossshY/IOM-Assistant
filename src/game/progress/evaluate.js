@@ -77,7 +77,16 @@ function evalLeaf(graph, player, cond) {
     case COND.unknown:
       return leafUnknown(cond, true);
     case COND.node: {
-      if (!getNode(graph, cond.id)) return leafUnknown(cond, true);
+      const target = getNode(graph, cond.id);
+      if (!target) return leafUnknown(cond, true);
+      /* Un milestone est un seuil, pas un objet d’inventaire : node(id)
+         suit l’unlock du milestone, pas player.nodes[id]. */
+      if (target.kind === KIND.milestone) {
+        const mil = evaluateCondition(graph, player, target.unlock || always());
+        if (mil.truth === 'true') return leafTrue(cond);
+        if (mil.truth === 'false') return leafFalse(cond);
+        return leafUnknown(cond, true);
+      }
       return nodeLevel(player, cond.id) >= (cond.min ?? 1) ? leafTrue(cond) : leafFalse(cond);
     }
     case COND.stat: {

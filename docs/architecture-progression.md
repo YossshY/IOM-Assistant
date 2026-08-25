@@ -409,9 +409,9 @@ Les producteurs SP / progresseurs OB **attendent** le fragment 5 (ressources). J
 Quand on ajoutera les arêtes wiki, dans cet ordre :
 
 1. **Skill Tree parents** — prioritaire : beaucoup d’objectifs s’appuient dessus ; permet de tester les dépendances indirectes (`veinmorpher` → `tons_dmg` → `poly_while`).
-2. **Docks / chaîne Fishing**
-3. **Poly / Infernal**
-4. **Monuments / Veines**
+2. **Poly / Infernal** — gates de sets, pas une carte par nœud.
+3. **Monuments / Veines** — chaîne Research wiki + coûts monument.
+4. **Docks / chaîne Fishing** — ensuite (tributes Laviathan encore `unknown`).
 5. **Ressources et coûts détaillés** (et seulement là, `produces` / `progresses` IOM s’ils sont sourcés)
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
@@ -431,7 +431,9 @@ Tests : `node src/game/progress/progress.test.mjs` (fixtures `fx.*` uniquement).
 - `have` sur `Acquire` / `Reach` est le stock **actuel**, pas un solde projeté après les `Do` frères (pas de simulation de dépense le long du plan).
 - `blocked` s’exprime par `Node.blockedIf` (condition connue vraie).
 - Une stat absente de `PlayerView.stats` est une feuille `unknown` (donnée joueur manquante), distincte d’une ressource absente (traitée comme 0).
+- `node(id)` vers un nœud `kind: milestone` suit le **seuil** de ce milestone (son `unlock`), pas `player.nodes[id]`. Un milestone n’est pas un objet d’inventaire.
 - L’étape B (fragment Skill Tree parents) : voir §9.
+- Les étapes C et D : voir §10–11.
 
 ---
 
@@ -469,6 +471,64 @@ Exemple réel : `veinmorpher` ← `gasoline` ← … ← `lucky_strikes` ; `poly
 
 ### Hors étape B
 
-- Docks / Fishing, Poly-Infernal cartes, monuments, producteurs SP
+- Docks / Fishing, producteurs SP / progresseurs OB
+- Branchement UI
+
+Poly / Infernal et Monuments / Veines : §10–11.
+
+---
+
+## 10. Étape C (implémentée) — Poly / Infernal
+
+Fragment additif `src/game/progress/fragments/polyInfernal.js`, **non branché** à `app.js`. **Pas de nœud par carte** : uniquement les gates documentées.
+
+### Sources
+
+| Source | Rôle | Certitude |
+|---|---|---|
+| Wiki Cards « unlocked at Obelisk Level 15 » / `OBELISK_UNLOCKS` | `cards.feature` = `stat(ob, 15)` | certaine |
+| Wiki + `poly_while` (`skillsData.js`) | `cards.poly_system` (milestone) ← `skill.poly_while` ; 10 shards poly ; gilded d’abord (`stat(card.{key}, 2)`) | certaine |
+| Wiki Infernal Card Set Unlocks | un nœud `cards.infernal_set.{cat}` par catégorie `CARD_SETS` | certaine comme **table** |
+| Laviathan tributes (`fishingData.js`) | ores/bars ← T1 ; fish / legendary_fish ← T2 | source **nommée** ; chaîne dock encore `unknown('fishing-dock-chain')` |
+| `flaming_veins` / `astral_forge` | veins / stars | certaine (catalogue skills) |
+| `petsData.js` Scorchwing 250 000 gems | pets ← `pets.skin.butterfly.scorchwing` | coût gemmes certain ; unlock pets `unknown('pets-fragment')` |
+| Wiki « Infernal Cards Coal Upgrade » / Hestia / Hades | drones / misc / arch | source **nommée**, fragments drones/arch absents → stubs `unknown` |
+| Wiki Bombs / Essence / Runes / Spells / Orbs = N/A | sets correspondants | `unknown` (wiki N/A) — jamais `available` |
+
+Helpers `polychromeCondition(cardKey)` / `infernalCondition(cardKey, category)` : conditions réutilisables, **pas** des nœuds du graphe. Rank 3 = déjà polychrome (`CARD_STATES`). Coûts de gild (PP / or / gemmes) : non modelés.
+
+### Écarts volontaires
+
+- Un set infernal est un **milestone** : dès que la source est possédée, le set est `unlocked` (pas un achat séparé).
+- Sans la source en inventaire, le set est `locked` (nœud source connu, absent) — sauf N/A wiki → `incomplete`.
+- Producteurs de shards / cartes : index vides (`UnknownStep`).
+
+---
+
+## 11. Étape D (implémentée) — Monuments / Veines
+
+Fragment additif `src/game/progress/fragments/construct.js`, **non branché** à `app.js`. Catalogues `constructData.js` **non modifiés**.
+
+### Sources
+
+| Source | Rôle | Certitude |
+|---|---|---|
+| Wiki Construct + `OBELISK_UNLOCKS` | `construct.feature` = `stat(ob, 19)` | certaine |
+| Wiki Construct#Vein_unlocks | `research.vein.{id}` : veine précédente + lingots | k/m/b/t/q comme le reste du repo (`q` = 1e15) |
+| Wiki Construct#Monuments | W2 2 000 gems + 2k stone/magma/virtual ; W3 7 500 + 750k valley/jungle/volcano ; W4 1M gems + 1q industrial/warfront/neon | certaine |
+| `OBELISK_UNLOCKS` / `WORLDS` | W3 `stat(ob, 42)` ; W4 `stat(ob, 64)` ; W2 pas de palier OB dédié | certaine dans l’app |
+| Enchaînement des mondes (wiki : W2 ouvre 43–72, W3 73–102, W4 103–132) | W3 exige `monument.w2` ; W4 exige `monument.w3` | **inféré** de la séquence des mondes, pas d’une ligne « previous monument » dans la table des coûts |
+
+### Suffixes non convertis
+
+`qi` / `oc` / `no` / `udc` / `ddc` ne sont **pas** convertis (éviter d’inventer une échelle hors convention `k/m/b/t/q` déjà utilisée). Conséquence :
+
+- Enchanted / Candyland : coût veine `qi` → `unknown` **dans l’unlock** → `incomplete`
+- Wonderland / Pirate / Arabian : veines en `q`/`t` converties ; lingots `oc`/`no` → `unknown` **dans le coût** → `available` possible, jamais `actionable`
+
+### Hors étape D
+
+- Research Vein Spawn Rate 2×, statues, Docks / Fishing
+- Producteurs de veines / lingots / gemmes (`produces` vide → `Acquire` + `UnknownStep`)
 - Branchement UI
 
