@@ -13,6 +13,10 @@ Il complète la proposition déjà validée (graphe compilé depuis les catalogu
 - L’AST existant suffit : `all`, `any`, `node(id, min)`, `stat`, `resource`, `unknown`.
 - Les catalogues UI (`skillsData`, fishing, etc.) ne sont pas réécrits. Le graphe se compile **à côté**.
 - On n’invente pas d’arêtes wiki, ni de producteurs de ressources IOM, tant que les données ne sont pas dans l’application. On pose `unknown` (ou un index `produces` / `progresses` vide).
+- Certification d’une arête :
+  - **Explicit** — écrite comme telle par une source (table, phrase wiki, catalogue).
+  - **Derived** — non écrite comme arête, mais déductible de contraintes documentées, et validée par des tests. Ce n’est pas `unknown`.
+  - **Unknown** — aucune conclusion fiable : `unknown` / `UnknownStep`, jamais `available` artificiel.
 - `capMod` n’est pas un unlock.
 - Confiance `confirmed | partial | unknown` : **conservée**, mais désormais **orthogonale** au statut de progression (plus de fusion implicite avec « probable / données insuffisantes » côté reco).
 
@@ -411,8 +415,9 @@ Quand on ajoutera les arêtes wiki, dans cet ordre :
 1. **Skill Tree parents** — prioritaire : beaucoup d’objectifs s’appuient dessus ; permet de tester les dépendances indirectes (`veinmorpher` → `tons_dmg` → `poly_while`).
 2. **Poly / Infernal** — gates de sets, pas une carte par nœud.
 3. **Monuments / Veines** — chaîne Research wiki + coûts monument.
-4. **Docks / chaîne Fishing** — ensuite (tributes Laviathan encore `unknown`).
-5. **Ressources et coûts détaillés** (et seulement là, `produces` / `progresses` IOM s’ils sont sourcés)
+4. **Docks** — bateaux wiki ; mapping bateau → dock **derived**. Tributes Laviathan encore `unknown` (tests C).
+5. **Notices / tributes / Enhance Fishing** — après les docks.
+6. **Ressources et coûts détaillés** (et seulement là, `produces` / `progresses` IOM s’ils sont sourcés)
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
 
@@ -433,7 +438,7 @@ Tests : `node src/game/progress/progress.test.mjs` (fixtures `fx.*` uniquement).
 - Une stat absente de `PlayerView.stats` est une feuille `unknown` (donnée joueur manquante), distincte d’une ressource absente (traitée comme 0).
 - `node(id)` vers un nœud `kind: milestone` suit le **seuil** de ce milestone (son `unlock`), pas `player.nodes[id]`. Un milestone n’est pas un objet d’inventaire.
 - L’étape B (fragment Skill Tree parents) : voir §9.
-- Les étapes C et D : voir §10–11.
+- Les étapes C, D et E : voir §10–12.
 
 ---
 
@@ -471,7 +476,7 @@ Exemple réel : `veinmorpher` ← `gasoline` ← … ← `lucky_strikes` ; `poly
 
 ### Hors étape B
 
-- Docks / Fishing, producteurs SP / progresseurs OB
+- Docks : §12. Notices / tributes / Enhance, producteurs SP / progresseurs OB
 - Branchement UI
 
 Poly / Infernal et Monuments / Veines : §10–11.
@@ -528,7 +533,38 @@ Fragment additif `src/game/progress/fragments/construct.js`, **non branché** à
 
 ### Hors étape D
 
-- Research Vein Spawn Rate 2×, statues, Docks / Fishing
+- Research Vein Spawn Rate 2×, statues, notices / tributes / Enhance Fishing
 - Producteurs de veines / lingots / gemmes (`produces` vide → `Acquire` + `UnknownStep`)
+- Branchement UI
+
+Docks : §12.
+
+---
+
+## 12. Étape E (implémentée) — Docks
+
+Fragment additif `src/game/progress/fragments/docks.js`, **non branché** à `app.js`. Catalogues `fishingData.js` **non modifiés**.
+
+Certification : **explicit** / **derived** / **unknown** (§ « Ce qui ne change pas »).
+
+### Sources
+
+| Fait | Certification | Détail |
+|---|---|---|
+| `fishing.feature` = `stat(ob, 37)` | explicit | Wiki Fishing + `OBELISK_UNLOCKS` |
+| Upgrade Boat T1, 5 paliers, coûts poissons | explicit | Wiki Upgrade Boat |
+| T2 Boat exige bateau T1 niv.5, 5 paliers, coûts | explicit | Wiki Upgrade Tier 2 Boat, colonne Boat Level = 5 |
+| Poisson 4 → dock exclusif | explicit | Wiki Aquarium |
+| Lake starter ; bateau N ouvre le dock suivant | **derived** | 6 T1 / 5 bateaux ; coût du palier N = poisson 4 du dock N ; le palier « unlock new docks ». Validé par tests. |
+| Un dock est un milestone, le bateau est l’action | derived | On n’achète pas le dock ; le bateau l’ouvre |
+| Producteurs de poissons | unknown | `Acquire` + `no-documented-producer` |
+| Notices, Enhance, tributes, catch legendary | unknown / hors fragment | stubs Laviathan C : `unknown('fishing-dock-chain')` **inchangés** (tests C) |
+| Skills fishing, Angler, monument W3/W4, cartes `world:3/4` | non utilisés | pas des parents de dock |
+
+### Hors étape E
+
+- Notices, tributes, Enhance, upgrades rod/drone/tick
+- Relier `fish.tribute.laviathan.*` à `fish.dock.volcano`
+- Producteurs de poissons, progresseurs d’OB
 - Branchement UI
 

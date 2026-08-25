@@ -1,11 +1,12 @@
 /* ============================================================
-   progress/fragments/index.js — assemblage des fragments (B + C + D)
+   progress/fragments/index.js — assemblage des fragments (B + C + D + E)
    ============================================================ */
 
 import { compileGraph } from '../compile.js';
 import { buildSkillTreeNodes } from './skillTree.js';
 import { buildPolyInfernalNodes } from './polyInfernal.js';
 import { buildConstructNodes } from './construct.js';
+import { buildDocksNodes } from './docks.js';
 
 export { buildSkillTreeNodes, skillNodeId, catalogSkillId, skillTreeParentMap, STAT_OB, RESOURCE_SP, SKILL_TREE_UNLOCK_OB } from './skillTree.js';
 export { deriveSkillTreeParents, SKILL_TREE_CONNECTORS } from './skillTreeConnectors.js';
@@ -20,11 +21,16 @@ export {
   VEIN_UNLOCK_CHAIN, MONUMENT_UNLOCKS, constructFeatureId, CONSTRUCT_UNLOCK_OB,
   RESOURCE_GEMS,
 } from './construct.js';
+export {
+  buildDocksNodes, dockId, boatT1Id, boatT2Id, fishResource,
+  BOAT_T1, BOAT_T2, fishingFeatureId, FISHING_UNLOCK_OB, STARTER_DOCK,
+} from './docks.js';
 
 export function buildProgressGraph() {
   return compileGraph([
     ...buildSkillTreeNodes(),
     ...buildPolyInfernalNodes(),
     ...buildConstructNodes(),
+    ...buildDocksNodes(),
   ]);
 }
