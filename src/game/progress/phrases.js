@@ -31,7 +31,7 @@ export function labelCondition(graph, cond) {
   if (!cond || typeof cond !== 'object') return null;
   if (cond.type === COND.stat) {
     const name = cond.id === STAT_OB ? 'OB' : cond.id;
-    return `${name} ≥ ${cond.min}`;
+    return `${name} >= ${cond.min}`;
   }
   if (cond.type === COND.resource) return `${cond.id} (≥ ${cond.min})`;
   if (cond.type === COND.node) {
@@ -73,7 +73,7 @@ export function stepCaption(graph, step) {
   }
   if (step.step === STEP.Reach) {
     const name = step.stat === STAT_OB ? 'OB' : step.stat;
-    return `${name} ≥ ${step.min}`;
+    return `${name} >= ${step.min}`;
   }
   if (step.step === STEP.Acquire) return `${step.resource} (≥ ${step.min})`;
   if (step.step === STEP.UnknownStep) return UNKNOWN_STEP_PHRASE;
