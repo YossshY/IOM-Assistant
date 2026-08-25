@@ -43,10 +43,13 @@ export const PRESTIGE = {
   minLevelToPrestige: 20,
 };
 
-/* ---------- Artefacts (wiki Prestige/Costs + UI jeu v2.2.6)
-   maxBase = max wiki AVANT cap increase.
-   T4 : max affiché = maxBase + artifact_cap_increase + artifact_tier4_cap_increase (export).
-   perStatue : bonus/niv = perLevel × somme des états statues (plat=3). */
+/* ---------- Artefacts (wiki Prestige v2.2.6)
+   maxBase = colonne « Max Level » du wiki, qui inclut déjà Artifact Upgrade Cap +7
+   (skill + carte Happy-Bot + statue Slaying). Comme le Workshop :
+   max affiché = maxBase − ARTIFACT_WIKI_REF_CAP + cap live.
+   T4 wiki (52 / 37) = cette table + Artifact Tier 4 Cap ; on ajoute t4 à part. */
+export const ARTIFACT_WIKI_REF_CAP = 7;
+
 export const ARTIFACTS = [
   /* Tier 1 */
   { id:'pick_t1',     tier:1, name:'Pickaxe Damage',           icon:'⛏', perLevel:10,   unit:'%',     maxBase:32 },
@@ -71,7 +74,7 @@ export const ARTIFACTS = [
   { id:'bombscrit',   tier:3, name:'Bomb Super Crit Chance',   icon:'💥', perLevel:2,    unit:'%',     maxBase:17, unlockOb:14 },
   { id:'armorred',    tier:3, name:'Obelisk Armor',            icon:'🛡️', perLevel:-2,   unit:'%',     maxBase:17, unlockOb:14 },
   { id:'bombcap',     tier:3, name:'Bomb Capacity',            icon:'🎒', perLevel:3,    unit:'',      maxBase:17, unlockOb:14 },
-  /* Tier 4 — OB19 ; maxBase = avant tier4_cap_increase */
+  /* Tier 4 — OB19 ; maxBase = table T1 (déjà +7 général), avant tier4_cap_increase */
   { id:'statue_dmg',  tier:4, name:'Pickaxe Damage',           icon:'🗿', perLevel:10,   unit:'%',     maxBase:32, unlockOb:19, perStatue:true },
   { id:'statue_bomb', tier:4, name:'Bomb Damage',              icon:'🗿', perLevel:15,   unit:'%',     maxBase:32, unlockOb:19, perStatue:true },
   { id:'omega_crit',  tier:4, name:'Pickaxe Omega Crit Chance',icon:'⚡', perLevel:1,    unit:'%',     maxBase:17, unlockOb:19 },
@@ -79,12 +82,13 @@ export const ARTIFACTS = [
   { id:'veinspawn',   tier:4, name:'Vein Spawn Rate',          icon:'💠', perLevel:4,    unit:'%',     maxBase:17, unlockOb:19 },
 ];
 
-/** Max effectif : maxBase + bonus cap (export et/ou sources itemisées via liveCaps). */
+/** Max effectif : table wiki − +7 déjà inclus + cap live (export / sources site). */
 export function artifactEffectiveMax(a, stats = {}, caps = null) {
   const gen = +(caps?.artifact ?? stats.artifact_cap_increase ?? 0) || 0;
   const t4 = +(caps?.artifactT4 ?? stats.artifact_tier4_cap_increase ?? 0) || 0;
-  if (a.tier === 4) return a.maxBase + gen + t4;
-  return a.maxBase + gen;
+  const fromWiki = a.maxBase - ARTIFACT_WIKI_REF_CAP + gen;
+  if (a.tier === 4) return Math.max(1, fromWiki + t4);
+  return Math.max(1, fromWiki);
 }
 
 /* ---------- Skill Tree — liste complète dans skillsData.js ---------- */

@@ -47,7 +47,7 @@ function fmtSource(src){
   return String(src);
 }
 
-/** Max affiché : T4 = maxBase + caps live (export + sources site). */
+/** Max affiché : table wiki déjà +7, on ajoute seulement l'écart vs cap live. */
 function statsNow(){ return state.parsed?.stats || {}; }
 function capsNow(){ return liveCaps(state.col, statsNow()); }
 function snapNow(){ return computeCapSnapshot(state.col, statsNow()); }

@@ -65,10 +65,12 @@ const caps = {
   artifactT4: parsed.stats.artifact_tier4_cap_increase,
   workshop: parsed.stats.bomb_workshop_cap_increase,
 };
-assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'pick_t1'), parsed.stats, caps) === 39, 'T1 pick max 32+7');
-assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'armorred'), parsed.stats, caps) === 24, 'T3 armor max 17+7');
-assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'statue_dmg'), parsed.stats, caps) === 59, 'T4 pick max 32+7+20');
-assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'omega_crit'), parsed.stats, caps) === 44, 'T4 omega max 17+7+20');
+assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'pick_t1'), parsed.stats, caps) === 32, 'T1 pick wiki 32 (cap +7 déjà dans la table)');
+assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'armorred'), parsed.stats, caps) === 17, 'T3 armor wiki 17');
+assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'statue_dmg'), parsed.stats, caps) === 52, 'T4 pick wiki 52 = 32-7+7+20');
+assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'omega_crit'), parsed.stats, caps) === 37, 'T4 omega wiki 37');
+assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'pick_t1'), {}, { artifact: 0 }) === 25, 'T1 pick sans cap = 25');
+assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'pick_t1'), {}, { artifact: 8 }) === 33, 'T1 pick cap +8 = 33');
 const ham = WORKSHOP_UPGRADES.find(u => u.id === 'hamburger');
 assert(workshopEffectiveMax(ham, caps) === 42, `hamburger max expected 42 got ${workshopEffectiveMax(ham, caps)}`);
 const chain = WORKSHOP_UPGRADES.find(u => u.id === 'basic_chain_dmg');
