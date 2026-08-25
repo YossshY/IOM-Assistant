@@ -80,10 +80,12 @@ function applyDelta(cur, d, max){
 function lvActionsHtml(dataAttr, id, maxed){
   return `<div class="art-actions">
     <button type="button" class="pixbtn ghost" data-${dataAttr}="${id}" data-d="-1">−</button>
-    ${maxed
-      ? `<span class="btn-maxed">Maxed</span>`
-      : `<button type="button" class="pixbtn" data-${dataAttr}="${id}" data-d="1">+</button>
-         <button type="button" class="pixbtn gold" data-${dataAttr}="${id}" data-d="max">Max</button>`}
+    <div class="art-actions-rest">
+      ${maxed
+        ? `<span class="btn-maxed">Maxed</span>`
+        : `<button type="button" class="pixbtn" data-${dataAttr}="${id}" data-d="1">+</button>
+           <button type="button" class="pixbtn gold" data-${dataAttr}="${id}" data-d="max">Max</button>`}
+    </div>
   </div>`;
 }
 function blockHead(title, secId){
