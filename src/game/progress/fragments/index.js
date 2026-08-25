@@ -7,6 +7,7 @@ import { buildSkillTreeNodes } from './skillTree.js';
 import { buildPolyInfernalNodes } from './polyInfernal.js';
 import { buildConstructNodes } from './construct.js';
 import { buildDocksNodes } from './docks.js';
+import { buildFishingNodes } from './fishing.js';
 
 export { buildSkillTreeNodes, skillNodeId, catalogSkillId, skillTreeParentMap, STAT_OB, RESOURCE_SP, SKILL_TREE_UNLOCK_OB } from './skillTree.js';
 export { deriveSkillTreeParents, SKILL_TREE_CONNECTORS } from './skillTreeConnectors.js';
@@ -25,6 +26,11 @@ export {
   buildDocksNodes, dockId, boatT1Id, boatT2Id, fishResource,
   BOAT_T1, BOAT_T2, fishingFeatureId, FISHING_UNLOCK_OB, STARTER_DOCK,
 } from './docks.js';
+export {
+  buildFishingNodes, legendaryId, fishTributeId, starResource,
+  TRIBUTE_COSTS, SKIP_TRIBUTE_IDS, legendaryPolyUnknown,
+  LEGENDARY_CATCH_UNKNOWN, TRIBUTE_BAR_UNKNOWN,
+} from './fishing.js';
 
 export function buildProgressGraph() {
   return compileGraph([
@@ -32,5 +38,6 @@ export function buildProgressGraph() {
     ...buildPolyInfernalNodes(),
     ...buildConstructNodes(),
     ...buildDocksNodes(),
+    ...buildFishingNodes(),
   ]);
 }

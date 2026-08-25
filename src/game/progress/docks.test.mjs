@@ -201,7 +201,8 @@ test('pas de nœud par poisson aquarium / notice / enhance', () => {
     id.startsWith('fish.')
     && !id.startsWith('fish.dock.')
     && !id.startsWith('fish.upgrade.boat.')
-    && !id.startsWith('fish.tribute.'));
+    && !id.startsWith('fish.tribute.')
+    && !id.startsWith('fish.legendary.'));
   assert(extra.length === 0, extra.join(','));
 });
 

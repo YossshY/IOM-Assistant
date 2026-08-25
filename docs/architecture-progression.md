@@ -415,9 +415,10 @@ Quand on ajoutera les arêtes wiki, dans cet ordre :
 1. **Skill Tree parents** — prioritaire : beaucoup d’objectifs s’appuient dessus ; permet de tester les dépendances indirectes (`veinmorpher` → `tons_dmg` → `poly_while`).
 2. **Poly / Infernal** — gates de sets, pas une carte par nœud.
 3. **Monuments / Veines** — chaîne Research wiki + coûts monument.
-4. **Docks** — bateaux wiki ; mapping bateau → dock **derived**. Tributes Laviathan encore `unknown` (tests C).
-5. **Notices / tributes / Enhance Fishing** — après les docks.
-6. **Ressources et coûts détaillés** (et seulement là, `produces` / `progresses` IOM s’ils sont sourcés)
+4. **Docks** — bateaux wiki ; mapping bateau → dock **derived**.
+5. **Légendaires / tributes Fishing** — sauf Laviathan (stubs C).
+6. **Notices / Enhance Fishing** — hors graphe (farm).
+7. **Ressources et coûts détaillés** (et seulement là, `produces` / `progresses` IOM s’ils sont sourcés)
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
 
@@ -438,7 +439,7 @@ Tests : `node src/game/progress/progress.test.mjs` (fixtures `fx.*` uniquement).
 - Une stat absente de `PlayerView.stats` est une feuille `unknown` (donnée joueur manquante), distincte d’une ressource absente (traitée comme 0).
 - `node(id)` vers un nœud `kind: milestone` suit le **seuil** de ce milestone (son `unlock`), pas `player.nodes[id]`. Un milestone n’est pas un objet d’inventaire.
 - L’étape B (fragment Skill Tree parents) : voir §9.
-- Les étapes C, D et E : voir §10–12.
+- Les étapes C–F : voir §10–13.
 
 ---
 
@@ -558,13 +559,34 @@ Certification : **explicit** / **derived** / **unknown** (§ « Ce qui ne change
 | Lake starter ; bateau N ouvre le dock suivant | **derived** | 6 T1 / 5 bateaux ; coût du palier N = poisson 4 du dock N ; le palier « unlock new docks ». Validé par tests. |
 | Un dock est un milestone, le bateau est l’action | derived | On n’achète pas le dock ; le bateau l’ouvre |
 | Producteurs de poissons | unknown | `Acquire` + `no-documented-producer` |
-| Notices, Enhance, tributes, catch legendary | unknown / hors fragment | stubs Laviathan C : `unknown('fishing-dock-chain')` **inchangés** (tests C) |
+| Notices, Enhance, catch legendary | unknown / hors fragment E | tributes/légendaires : §13 ; stubs Laviathan C inchangés |
 | Skills fishing, Angler, monument W3/W4, cartes `world:3/4` | non utilisés | pas des parents de dock |
 
 ### Hors étape E
 
-- Notices, tributes, Enhance, upgrades rod/drone/tick
-- Relier `fish.tribute.laviathan.*` à `fish.dock.volcano`
+- Notices, Enhance, upgrades rod/drone/tick
+- Relier `fish.tribute.laviathan.*` à `fish.dock.volcano` (volontaire, tests C)
+- Légendaires / tributes hors Laviathan : §13
 - Producteurs de poissons, progresseurs d’OB
+- Branchement UI
+
+---
+
+## 13. Étape F (implémentée) — Légendaires / tributes
+
+Fragment additif `src/game/progress/fragments/fishing.js`, **non branché** à `app.js`. Catalogues **non modifiés**. Fragments A–E **non modifiés** (hors assemblage).
+
+### Nœuds
+
+- `fish.legendary.{id}` — **kind: unlock** (inventaire « attrapé »). L’analyse parlait de milestone ; unlock est requis pour enregistrer le catch malgré des `unknown` d’éligibilité (même motif que les stubs tribute C).
+- Unlock légendaire : `node(fish.dock.{dock})` (**derived**) + `unknown('legendary-poly-cards-{dock}')` + `unknown('legendary-catch-chance-100')` (**explicit** comme règles, **unknown** comme feuilles).
+- `fish.tribute.{id}.t1` / `.t2` — actions. T1 ← légendaire (**derived**) ; T2 ← T1 (**derived**, paliers). **Pas** Laviathan (ids C).
+- Coût : gemmes + star + veine + poisson (k/m/b/t/q **explicit**) + `unknown('tribute-bar-suffix')` (qi/sx/oc/no).
+
+### Hors étape F
+
+- Notices, Enhance, upgrades hors bateau
+- Recâblage Laviathan C ; stubs bombs/drones/items débloqués par tributes
+- Producteurs stars / veines / poissons / gemmes
 - Branchement UI
 

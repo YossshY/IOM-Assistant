@@ -55,4 +55,13 @@ export {
   fishingFeatureId,
   FISHING_UNLOCK_OB,
   STARTER_DOCK,
+  buildFishingNodes,
+  legendaryId,
+  fishTributeId,
+  starResource,
+  TRIBUTE_COSTS,
+  SKIP_TRIBUTE_IDS,
+  legendaryPolyUnknown,
+  LEGENDARY_CATCH_UNKNOWN,
+  TRIBUTE_BAR_UNKNOWN,
 } from './fragments/index.js';
