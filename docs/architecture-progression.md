@@ -430,6 +430,7 @@ Suite produit (après A–F) :
 13. **J3 — choix de branche `any`** — §19. Une branche known ; unknown → alternatives.
 14. **K — UI** — §20. `evaluate`/`plan` sur le dashboard ; reco actuelle = hint.
 15. **L — Bascule graphe** — §21. Vue d’ensemble des objectifs ; hints un clic.
+16. **M — Stocks manuels** — §22. `collections.stocks` (SP, gems, golden_trout) → `PlayerView.resources`. Pas de producteurs.
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
 
@@ -664,7 +665,7 @@ Module additif (ex. `src/game/progress/fromExport.js`), **sans** `app.js`. Entr�
 | `nodes[fish.dock.*]` | **dérivés des bateaux** (pas des toggles UI) | derived |
 | `nodes[monument.wN]` | `profile.monuments[N]` | **partial** (inférence) |
 | `nodes[research.vein.{id}]` | `hasResearchUnlock` | confirmed si renseigné |
-| ressources gems/SP/poissons/veines/lingots/étoiles | **absentes** de `exportstats` | 0 → `Acquire` / jamais `actionable` sur tributs |
+| ressources gems/SP/poissons/veines/lingots/étoiles | **absentes** de `exportstats` ; **M** : whitelist `collections.stocks` pour SP / gems / golden_trout | 0 → `Acquire` / jamais `actionable` sur tributs |
 | 4 cartes poly d’un dock / 100 % catch | **absentes** | feuilles `unknown` conservées |
 
 Légendaires / tributs (à valider, pas inventer un 4ᵉ état UI) :
@@ -740,7 +741,7 @@ Décisions de la spec §14.4 :
 | `profile.monuments` | `monument.w2–w4` (**partial**, inférence) | toggles `collections.monuments` |
 | `hasResearchUnlock` | `research.vein.{id}` | spawn 2× |
 | `getFishLv(...,'legendary')` | lv≥1 → catch + T1 ; lv≥2 → T2 ; lv=0 → rien | catch sans tribut (pas d’état UI) |
-| — | `resources: {}` | gems / SP / poissons / veines / lingots / étoiles |
+| — | `resources: {}` à I ; **M** lit `collections.stocks` (whitelist) | veines / lingots / étoiles / autres poissons |
 
 Notices, Enhance, rod/drone/tick, pets, drones, artefacts : ignorés.
 
@@ -847,4 +848,24 @@ Mode Graphe : `progressOverview` — un row par objectif `DASHBOARD_GOALS`, **or
 Mode Hints : `generateRecommendations` inchangé.
 
 `check.mjs` inchangé. Tests : `dashboard.l.test.mjs`.
+
+---
+
+## 22. Étape M (implémentée) — Stocks manuels
+
+SP, gemmes et poissons sont **absents** de `exportstats`. Sans stock, `actionable` reste faux (Acquire + `UnknownStep`, pas de `Do` farm).
+
+Whitelist uniquement (`src/game/progress/stocks.js`) :
+
+| Id | Usage dashboard |
+|---|---|
+| `sp` | Lucky Strikes / skills |
+| `gems` | monuments |
+| `fish.golden_trout` | bateau Desert (15) |
+
+Saisie dans `collections.stocks` (localStorage, comme le reste des collections). Clés hors whitelist ignorées. `Number()`, `> 0`. Pas de conversion de suffixes. Collections vides → `resources: {}` (tests I inchangés).
+
+UI dashboard : panneau **Stocks (absents de l'export)**. `recommendationEngine` / `check.mjs` **inchangés**. Aucun producteur ajouté.
+
+Tests : `fromExport.test.mjs` (mapping) + `dashboard.m.test.mjs` (Lucky Strikes + bateau T1.1 via `collections.stocks`, pas d’overlay `resources`).
 

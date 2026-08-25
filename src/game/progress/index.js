@@ -10,6 +10,7 @@ export {
 export { compileGraph, getNode } from './compile.js';
 export { evaluateCondition, evaluateNode, playerView } from './evaluate.js';
 export { playerViewFromExport, BOAT_UPGRADE_T1, BOAT_UPGRADE_T2 } from './fromExport.js';
+export { MANUAL_STOCKS, resourcesFromStocks } from './stocks.js';
 export { plan, planNode, satisfy, walkPlan } from './plan.js';
 export {
   STATUS_PHRASE, ACTIONABLE_NOW, UNKNOWN_STEP_PHRASE, CONFIDENCE_LABEL,

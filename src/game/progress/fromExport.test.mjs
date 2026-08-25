@@ -9,12 +9,12 @@ import { parseExportStats, deriveProfile } from '../statsParser.js';
 import {
   STATUS, KIND,
   evaluateNode, evaluateCondition, playerViewFromExport, playerView,
-  buildProgressGraph, STAT_OB, RESOURCE_SP,
+  buildProgressGraph, STAT_OB, RESOURCE_SP, RESOURCE_GEMS,
   skillNodeId, polySystemId, cardRankStat,
   monumentId, researchVeinId,
   dockId, boatT1Id, boatT2Id, STARTER_DOCK,
   legendaryId, fishTributeId, tributeId,
-  BOAT_UPGRADE_T1, BOAT_UPGRADE_T2,
+  BOAT_UPGRADE_T1, BOAT_UPGRADE_T2, fishResource,
 } from './index.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -173,6 +173,21 @@ test('pas de nœud notice / enhance inventé depuis collections', () => {
 test('profile omis : deriveProfile(parsed)', () => {
   const p = playerViewFromExport({ parsed, collections: {} });
   assert(p.stats[STAT_OB] === 64);
+});
+
+test('stocks.sp=1 → resources.sp ; clés hors whitelist ignorées', () => {
+  const p = view({ stocks: { [RESOURCE_SP]: 1, gold: 99, 'fish.fake': 3 } });
+  assert(p.resources[RESOURCE_SP] === 1, JSON.stringify(p.resources));
+  assert(!Object.prototype.hasOwnProperty.call(p.resources, 'gold'));
+  assert(!Object.prototype.hasOwnProperty.call(p.resources, 'fish.fake'));
+  assert(Object.keys(p.resources).length === 1, JSON.stringify(p.resources));
+});
+
+test('stocks <= 0 ignorés ; golden_trout whitelisté', () => {
+  const zero = view({ stocks: { [RESOURCE_SP]: 0, [RESOURCE_GEMS]: -5 } });
+  assert(Object.keys(zero.resources).length === 0, JSON.stringify(zero.resources));
+  const p = view({ stocks: { [fishResource('golden_trout')]: 15 } });
+  assert(p.resources[fishResource('golden_trout')] === 15, JSON.stringify(p.resources));
 });
 
 test('SP absent : lucky_strikes available pas actionable (OB64, racine)', () => {

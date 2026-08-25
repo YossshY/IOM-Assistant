@@ -26,6 +26,7 @@ import { RESEARCH_VEINS, MONUMENTS } from './game/constructData.js';
 import * as C from './game/collections.js';
 import { DASHBOARD_GOALS, DEFAULT_PROGRESS_GOAL, progressSnapshot, progressOverview } from './game/progress/dashboard.js';
 import { ACTIONABLE_NOW } from './game/progress/phrases.js';
+import { MANUAL_STOCKS } from './game/progress/stocks.js';
 
 /** Durée du run prestige (raw.time) — pas le lifetime du compte. */
 function fmtRunDuration(sec){
@@ -134,7 +135,7 @@ function renderTop(){
 /* ---------- dashboard ---------- */
 function renderDash(){
   const g=$('#dashProfile');
-  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();renderProgress();return;}
+  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();renderStocks();renderProgress();return;}
   const p=state.profile;
   const nextA=p.nextObeliskArmor;
   g.innerHTML=[
@@ -150,6 +151,7 @@ function renderDash(){
   ].map(c=>`<div class="cell"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');
   renderDashTools();
   renderDashMath();
+  renderStocks();
   renderProgress();
 }
 /** Estimateurs wiki/export — guider sans réécrire tout ObeliskFarm. */
@@ -193,6 +195,32 @@ function renderDashTools(){
     return `<a class="tool-link" href="${t.url}" target="_blank" rel="noopener">${t.name}${sub?`<small>${sub}</small>`:''}</a>`;
   }).join('');
 }
+
+function renderStocks(){
+  const box=$('#stockFields');
+  if(!box)return;
+  if(!box.dataset.ready){
+    box.innerHTML=MANUAL_STOCKS.map(s=>`<label class="stock-field">${esc(s.label)}
+      <small>${esc(s.hint)}</small>
+      <input type="number" min="0" step="any" inputmode="decimal" placeholder="0" data-stock="${esc(s.id)}">
+    </label>`).join('');
+    box.dataset.ready='1';
+  }
+  box.querySelectorAll('[data-stock]').forEach(el=>{
+    if(document.activeElement===el) return;
+    const n=C.getStock(state.col, el.dataset.stock);
+    el.value=n>0?String(n):'';
+  });
+}
+
+document.addEventListener('change',e=>{
+  const inp=e.target.closest('[data-stock]');
+  if(!inp) return;
+  C.setStock(state.col, inp.dataset.stock, inp.value);
+  C.saveCollections(state.col);
+  renderProgress();
+  renderRoadmap();
+});
 
 function fillProgressGoalSelect(){
   const sel=$('#progressGoal');
@@ -1267,5 +1295,5 @@ function renderHistory(){
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
   }
 })();
-renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderProgress();renderRoadmap();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderStocks();renderProgress();renderRoadmap();
 show('export');

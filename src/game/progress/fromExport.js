@@ -16,6 +16,7 @@ import {
   STARTER_DOCK, FISHING_UNLOCK_OB,
 } from './fragments/docks.js';
 import { legendaryId, fishTributeId } from './fragments/fishing.js';
+import { resourcesFromStocks } from './stocks.js';
 
 export const BOAT_UPGRADE_T1 = 'u1_boat';
 export const BOAT_UPGRADE_T2 = 'u2_boat';
@@ -88,6 +89,6 @@ export function playerViewFromExport({ parsed, profile, collections } = {}) {
     if (lv >= 2) own(nodes, fishTributeId(f.id, 2));
   }
 
-  /* ressources absentes de exportstats : {} → 0 à l’évaluation */
-  return playerView({ nodes, stats, resources: {} });
+  /* ressources : absentes de exportstats, saisies dans collections.stocks */
+  return playerView({ nodes, stats, resources: resourcesFromStocks(col.stocks) });
 }

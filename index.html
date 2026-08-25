@@ -231,6 +231,10 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .blocked{color:var(--red);font-size:8px;margin-top:10px}
 .plan-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
 .plan-toolbar label{color:var(--muted);font-size:8px}
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.stock-field{display:flex;flex-direction:column;gap:4px;color:var(--ink);font-size:8px}
+.stock-field small{color:var(--muted);font-size:7px}
+.stock-field input{width:100%}
 .plan-eval{background:#120d16;border:3px solid var(--line);border-radius:6px;padding:10px 12px;margin:0 0 12px}
 .plan-eval .st{display:block;font-size:8px;margin-bottom:6px}
 .plan-eval p{margin:0;color:var(--ink);font-size:8px;line-height:1.6}
@@ -310,6 +314,10 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- DASHBOARD -->
 <section id="page-dashboard" class="page hidden">
   <div class="panel"><h2>Profil joueur</h2><div class="grid" id="dashProfile"></div></div>
+  <div class="panel"><h2>Stocks (absents de l'export)</h2>
+    <p class="muted">SP, gemmes et poissons ne sont pas dans exportstats. Saisie manuelle — aucun producteur inventé.</p>
+    <div class="stock-grid" id="stockFields"></div>
+  </div>
   <div class="panel"><h2>Progression (graphe)</h2>
     <p class="muted">Évaluation et plan du moteur.</p>
     <div class="plan-toolbar">
