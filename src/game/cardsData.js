@@ -1,6 +1,6 @@
 /* ============================================================
    cardsData.js — Cards individuelles générées depuis les données
-   wiki extraites (77 ores, 77 bars, v2.2.6) + misc cards.
+   wiki (v2.2.6) : 86 ores, 77 bars, misc, bombs, veins, stars, fish…
    Chaque carte : { id, name, cat, world, icon, effect:[std,gild,poly,inf] }
    Le monde est dérivé du floor d'apparition de la ressource.
    ============================================================ */
@@ -76,7 +76,7 @@ export const MISC_CARDS = [
   M('rainbowvein','Rainbow Vein','Multi 1.08x','1.16x','1.24x',{world:2}),
   M('gleamvein','Gleaming Vein','Multi 1.08x','1.16x','1.24x',{world:3}),
   M('fuel','Fuel','Duration 1.02x','1.05x','1.10x',{world:2}),
-  M('rod','Fishing Rod','Power 1.02x','1.05x','1.10x',{world:3}),
+  M('rod','Fishing Rod','Power 1.02x','1.05x','1.10x',{world:2}),
   M('code','Code','Item Dur 1.01x','1.03x','1.06x'),
   M('frozenara','FrozenAra','10x Contract 0.1%','0.2%','0.3%'),
   M('celio',"Celio's Hat",'PP Gain 1.10x','1.20x','1.40x'),
@@ -89,6 +89,10 @@ export const MISC_CARDS = [
   M('bigfrog','Big Lootfrog','Multi 1.09x','1.18x','1.27x'),
   M('massfrog','Massive Lootfrog','Chance +0.2%','+0.4%','+0.6%'),
   M('floor73','Floor 73','Golden Floor 1.02x','1.04x','1.06x',{world:3}),
+  M('relic','Relic','Extra Relic Chest +1%','+2%','+3%'),
+  M('bone','Bone','Bomb Damage 1.05x','1.10x','1.15x',{world:3}),
+  M('store','Store','Freebie Timer -2s','-4s','-6s'),
+  M('cookie','Cookie Clicker','Wizard Loot Multi +1%','+2%','+4%',{world:4}),
 ];
 
 const FX = {
@@ -100,13 +104,13 @@ const FX = {
   pets: ['Pet bonus', 'Gilded', 'Poly', '+0.02x/+0.0x'],
 };
 
-const C = (cat, id, name, world, iconFile) => ({
+const C = (cat, id, name, world, iconFile, effect) => ({
   id: `${cat}_${id}`,
   name,
   cat,
   world: world ?? null,
-  icon: iconFile ? `assets/cards/${iconFile}` : null,
-  effect: FX[cat],
+  icon: iconFile ? (iconFile.startsWith('assets/') ? iconFile : `assets/cards/${iconFile}`) : null,
+  effect: effect || FX[cat],
 });
 
 /* Bomb cards — wiki Bombs (hors golden variants) */
@@ -138,6 +142,7 @@ export const VEIN_CARDS = [
   C('veins','valley','Valley Vein',2,'Valley_Vein.png'),
   C('veins','deepsea','Deepsea Vein',2,'Deepsea_Vein.png'),
   C('veins','jungle','Jungle Vein',2,'Jungle_Vein.png'),
+  C('veins','volcano','Volcano Vein',2,'Volcano_Vein.png'),
   C('veins','jurassic','Jurassic Vein',3,'Jurassic_Vein.png'),
   C('veins','roman','Roman Vein',3,'Roman_Vein.png'),
   C('veins','industrial','Industrial Vein',3,'Industrial_Vein.png'),
@@ -160,17 +165,17 @@ export const STAR_CARDS = [
 /* Fish cards — commons + legendaries (heads/icons wiki) */
 /* Legendary fish cards — effets wiki (pas le template Fish Gain) */
 export const LEGENDARY_FISH_CARDS = [
-  { id:'fish_rainbow_trout', name:'Rainbow Trout', cat:'legendary_fish', world:3, icon:'assets/cards/Lake_Legendary_Fish_Head.png',
+  { id:'fish_rainbow_trout', name:'Rainbow Trout', cat:'legendary_fish', world:2, icon:'assets/cards/Lake_Legendary_Fish_Head.png',
     effect:['Rainbow Floor Multi +25%','+50%','+100%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_dunes_eelworm', name:"Dune's Eelworm", cat:'legendary_fish', world:3, icon:'assets/cards/Desert_Legendary_Fish_Head.png',
+  { id:'fish_dunes_eelworm', name:"Dune's Eelworm", cat:'legendary_fish', world:2, icon:'assets/cards/Desert_Legendary_Fish_Head.png',
     effect:['Golden Portal Multi +40%','+80%','+140%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_glacial_shellstealer', name:'Glacial Shellstealer', cat:'legendary_fish', world:3, icon:null,
+  { id:'fish_glacial_shellstealer', name:'Glacial Shellstealer', cat:'legendary_fish', world:2, icon:'assets/cards/Tundra_Legendary_Fish_Head.png',
     effect:['Rainbow Vein Multi +30%','+60%','+100%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_megalodon', name:'Megalodon', cat:'legendary_fish', world:3, icon:'assets/cards/Ocean_Legendary_Fish_Head.png',
+  { id:'fish_megalodon', name:'Megalodon', cat:'legendary_fish', world:2, icon:'assets/cards/Ocean_Legendary_Fish_Head.png',
     effect:['Star Supernova Multi +35%','+70%','+125%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_radioactive_slug', name:'Radioactive Slug', cat:'legendary_fish', world:3, icon:'assets/cards/Nuclear_Legendary_Fish_Head.png',
+  { id:'fish_radioactive_slug', name:'Radioactive Slug', cat:'legendary_fish', world:2, icon:'assets/cards/Nuclear_Legendary_Fish_Head.png',
     effect:['Bomb Damage/Exp Gain +300%','+500%','+1100%','+0.20x/+0.001x'], legendary:true, damageLever:true },
-  { id:'fish_cthulhu', name:'Cthulhu', cat:'legendary_fish', world:3, icon:'assets/cards/Abyss_Legendary_Fish_Head.png',
+  { id:'fish_cthulhu', name:'Cthulhu', cat:'legendary_fish', world:2, icon:'assets/cards/Abyss_Legendary_Fish_Head.png',
     effect:['Divine Relics Cap +1','+2','+4','+0.20x/+0.001x'], legendary:true },
   { id:'fish_glimmering_geoduck', name:'Glimmering Geoduck', cat:'legendary_fish', world:3, icon:'assets/cards/Cave_Legendary_Fish_Head.png',
     effect:['Banked Freebie Cap +14%','+28%','+52%','+0.20x/+0.001x'], legendary:true },
@@ -185,51 +190,52 @@ export const LEGENDARY_FISH_CARDS = [
 ];
 
 export const FISH_CARDS = [
-  C('fish','guppy','Guppy',3,'Guppy.png'),
-  C('fish','golden_trout','Golden Trout',3,'Golden_Trout.png'),
-  C('fish','catfish','Catfish',3,'Catfish.png'),
-  C('fish','gammangler','Gammangler Fish',3,'Gammangler_Fish.png'),
-  C('fish','lantern','Lanternfish Comet',3,'Lanternfish_Comet.png'),
-  C('fish','lunar','Lunar Sunfish',3,'Lunar_Sunfish.png'),
-  C('fish','molten','Molten Archerfish',3,'Molten_Archerfish.png'),
+  C('fish','guppy','Guppy',2,'Guppy.png'),
+  C('fish','golden_trout','Golden Trout',2,'Golden_Trout.png'),
+  C('fish','catfish','Catfish',2,'Catfish.png'),
+  C('fish','gammangler','Gammangler Fish',2,'Gammangler_Fish.png'),
+  C('fish','lantern','Lanternfish Comet',2,'Lanternfish_Comet.png'),
+  C('fish','lunar','Lunar Sunfish',2,'Lunar_Sunfish.png'),
+  C('fish','molten','Molten Archerfish',2,'Molten_Archerfish.png'),
   C('fish','planetary','Planetary Jellyfish',3,'Planetary_Jellyfish.png'),
   C('fish','shock','Shocksailfish',3,'Shocksailfish.png'),
   C('fish','frost_spear','Frostdrip Spearfish',3,'Frostdrip_Spearfish.png'),
-  C('fish','frost_crab','Frostshell Crab',3,'Frostshell_Crab.png'),
-  C('fish','scarab','Scarabshoe Crab',3,'Scarabshoe_Crab.png'),
+  C('fish','frost_crab','Frostshell Crab',2,'Frostshell_Crab.png'),
+  C('fish','scarab','Scarabshoe Crab',2,'Scarabshoe_Crab.png'),
 ];
 
+/* Effets wiki Cards v2.2.6 */
 export const DRONE_CARDS = [
-  C('drones','bear','Bomb Bear',1,'Drone_Bear_Icon.png'),
-  C('drones','chain','Chain Bomber',1,'Drone_Chain_Icon.png'),
-  C('drones','midas','Midas',1,'Drone_Midas_Icon.png'),
-  C('drones','frogger','Frogger',1,'Drone_Frogger_Icon.png'),
-  C('drones','veinseeker','Veinseeker',2,'Drone_Veinseeker_Icon.png'),
-  C('drones','starburst','Starburst',2,'Drone_Starburst_Icon.png'),
-  C('drones','elixir','Elixir',2,'Drone_Elixir_Icon.png'),
-  C('drones','void','Void',2,'Drone_Void_Icon.png'),
-  C('drones','angler','Angler',3,'Drone_Angler_Icon.png'),
-  C('drones','prism','Prism',4,'Drone_Prism_Icon.png'),
-  C('drones','minotaur','Minotaur',4,'Drone_Minotaur_Icon.png'),
+  C('drones','bear','Bomb Bear',1,'Drone_Bear_Icon.png',['Grade Cap +2','+5','+10','Pickaxe/Bomb Damage +45%']),
+  C('drones','chain','Chain Bomber',1,'Drone_Chain_Icon.png',['Grade Cap +2','+5','+10','Golden Floor Multi +14%']),
+  C('drones','midas','Midas',1,'Drone_Midas_Icon.png',['Grade Cap +2','+5','+10','Coal Capacity +6%']),
+  C('drones','frogger','Frogger',1,'Drone_Frogger_Icon.png',['Grade Cap +2','+5','+10','Lootfrog Loot Multi +10%']),
+  C('drones','veinseeker','Veinseeker',2,'Drone_Veinseeker_Icon.png',['Grade Cap +2','+5','+10','Vein Income Multi +11%']),
+  C('drones','starburst','Starburst',2,'Drone_Starburst_Icon.png',['Grade Cap +2','+5','+10','Star Supergiant Multi +9%']),
+  C('drones','elixir','Elixir',2,'Drone_Elixir_Icon.png',['Grade Cap +2','+5','+10','Elixir Crit Multi +7%']),
+  C('drones','void','Void',2,'Drone_Void_Icon.png',['Grade Cap +2','+5','+10','Void Portal Base Multi +9%']),
+  C('drones','angler','Angler',3,'Drone_Angler_Icon.png',['Grade Cap +2','+5','+10','Tier 2 Dock Power +11%']),
+  C('drones','prism','Prism',4,'Drone_Prism_Icon.png',['Grade Cap +2','+5','+10','Prismatic Floor Chance +1%']),
+  C('drones','minotaur','Minotaur',4,'Drone_Minotaur_Icon.png',['Grade Cap +2','+5','+10','Galactic Portal Multi 15%']),
 ];
 
 export const PET_CARDS = [
-  C('pets','crab','Crab',2,'Crab_Default.png'),
-  C('pets','dwarf','Dwarf',2,'Dwarf_Default.png'),
-  C('pets','duck','Duck',2,'Duck_Default.png'),
-  C('pets','rabbit','Rabbit',2,null),
-  C('pets','penguin','Penguin',2,null),
-  C('pets','axolotl','Axolotl',2,null),
-  C('pets','whale','Whale',2,null),
-  C('pets','totem','Totem',2,null),
-  C('pets','happybot','Happy-Bot',3,null),
-  C('pets','leprechaun','Leprechaun',3,null),
-  C('pets','starfish','Starfish',3,'Starfish_Default.png'),
-  C('pets','dino','Dino',3,null),
-  C('pets','mr_nibbles','Mr Nibbles',3,null),
-  C('pets','nagini','Nagini',3,null),
-  C('pets','butterfly','Butterfly',4,'Butterfly_Skin.png'),
-  C('pets','rhino','Rhino',4,null),
+  C('pets','crab','Crab',null,'assets/pets/Crab_Default.png',['Bomb Capacity +5%','+10%','+15%','Bomb Recharge Speed +3.25%']),
+  C('pets','dwarf','Dwarf',null,'assets/pets/Dwarf_Default.png',['Pickaxe Super/Ultra Crit +3%','+6%','+10%','Pickaxe Damage +25%']),
+  C('pets','duck','Duck',null,'assets/pets/Duck_Default.png',['Lootbug Spawn Rate +5%','+10%','+15%','Vein Income Multi +9%']),
+  C('pets','rabbit','Rabbit',null,'assets/pets/Rabbit_Default.png',['Contract Cost x0.94','x0.88','x0.80','Item Duration +2.5%']),
+  C('pets','penguin','Penguin',null,'assets/pets/Penguin_Default.png',['Golden Floor Multi +1x','+2x','+4x','Golden Ore Multi +6%']),
+  C('pets','axolotl','Axolotl',null,'assets/pets/Axolotl_Default.png',['Bar Craft Cost -3%','-6%','-10%','Bar Output Multi +4%']),
+  C('pets','whale','Whale',null,'assets/pets/Whale_Default.png',['Triple Lootbug +5%','+10%','+15%','Super Stonks Multi +10%']),
+  C('pets','totem','Totem',null,'assets/pets/Totem_Default.png',['Vein Spawn Rate +10%','+20%','+30%','Rainbow Vein Multi +6.5%']),
+  C('pets','happybot','Happy-Bot',null,'assets/pets/Happybot_Default.png',['All Artifact Caps +1','+2','+3','Stonks Chance +0.02%']),
+  C('pets','leprechaun','Leprechaun',null,'assets/pets/Leprechaun_Default.png',['Rainbow Floor Multi +10%','+20%','+30%','Galactic Floor Chance +0.85%']),
+  C('pets','starfish','Starfish',null,'assets/pets/Starfish_Default.png',['Super Star Spawn +5%','+10%','+15%','Star Radiant Chance +0.25%']),
+  C('pets','dino','Dino',null,'assets/pets/Dino_Default.png',['Experience Gain 1.5x','2x','4x','Gleaming Vein Chance +0.85%']),
+  C('pets','mr_nibbles','Mr Nibbles',null,'assets/pets/Mr_Nibbles_Default.png',['Tiny Notice Chance +1%','+2%','+4%','5x Fishing Tick +0.9%']),
+  C('pets','nagini','Nagini',null,'assets/pets/Nagini_Default.png',['Galactic Floor Chance +1%','+2%','+4%','All Floor Multis +3%']),
+  C('pets','butterfly','Butterfly',null,'assets/pets/Butterfly_Default.png',['Rainbow Portal Multi +12%','+24%','+50%','Lootfrog Loot Multi +4%']),
+  C('pets','rhino','Rhino',null,'assets/pets/Rhino_Default.png',['Essence Super Shiny +1%','+2%','+4%','Essence Ultra Shiny +0.32%']),
 ];
 
 export const ALL_CARDS = [

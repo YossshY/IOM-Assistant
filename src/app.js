@@ -6,12 +6,12 @@ import { detectMissingInformation } from './game/missingInfo.js';
 import { generateRecommendations, CONFIDENCE } from './game/recommendationEngine.js';
 import { loadHistory, saveImport, diffExports, fmtNum } from './game/history.js';
 import { CARD_STATES, CARD_SETS } from './game/cards.js';
-import { ORE_CARDS, BAR_CARDS, MISC_CARDS, visibleCards } from './game/cardsData.js';
+import { visibleCards } from './game/cardsData.js';
 import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS, starEffectiveMax } from './game/starsData.js';
 // icônes misc réelles : mapping id → fichier téléchargé depuis le wiki
-const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Blue_Cow.png',goldore:'Misc_Golden_Vein.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:'Misc_Celios_Hat.png',vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png'};
+const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Blue_Cow.png',goldore:'Golden_Ore_Icon.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:'Misc_Celios_Hat.png',vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png',relic:'Misc_Relic.png',bone:'Misc_Bone.png',store:'Misc_Store.png',cookie:'Misc_Cookie_Clicker.png'};
 import { estimateFreebieGemEv, estimateLootbug2xWorth, estimatePickaxeGap } from './game/playerMath.js';
-import { ARTIFACTS, SKILLS, OBELISK_UNLOCKS, artifactEffectiveMax, EXTERNAL_TOOLS } from './game/knowledgeBase.js';
+import { ARTIFACTS, SKILLS, artifactEffectiveMax, EXTERNAL_TOOLS, STATS_CATALOG } from './game/knowledgeBase.js';
 import { WORKSHOP_UPGRADES, workshopEffectiveMax, formatWorkshopBonus, WORKSHOP_WIKI_REF_CAP } from './game/workshopData.js';
 import { skillMaxLevels, SKILL_TREE_ROWS } from './game/skillsData.js';
 import { DRONE_CORE_UPGRADES, DRONE_SUITS, DRONE_FUEL, coreLevelFromExport, suitCapFromExport } from './game/dronesData.js';
@@ -75,7 +75,10 @@ function show(page){
   $('#page-'+page).classList.remove('hidden');
   window.scrollTo({top:0});
 }
-document.querySelectorAll('.menu-btn').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));
+document.querySelectorAll('.menu-btn').forEach(b=>b.addEventListener('click',()=>{
+  if(b.classList.contains('dim')) return;
+  show(b.dataset.go);
+}));
 
 /* ---------- import ---------- */
 $('#btnImport').addEventListener('click',()=>doImport($('#statsText').value));
@@ -90,6 +93,7 @@ function doImport(text){
   state.col=C.applyExportProgress(state.col,state.profile);
   state.col=C.applyExportCaps(state.col,parsed.stats);
   applyDronesFromExport(parsed.stats);
+  C.applyExportFishing(state.col, parsed.stats);
   C.saveCollections(state.col);
   state.history=saveImport(parsed);
   el.innerHTML=`✅ ${parsed.version} — ${parsed.statCount} stats`+(parsed.unknownKeys.length?` · <span class="warn">${parsed.unknownKeys.length} inconnues</span>`:'')+` · OB ${state.profile.obeliskLevel??'?'} · W${state.profile.maxWorld??'?'}`;
@@ -216,7 +220,7 @@ function renderAllStats(){
 }
 
 /* ================= FISHING ================= */
-let fishTab='notices';
+let fishTab='stats';
 /** Emoji ou chemin assets/ → HTML pour .art-ico */
 function artIco(icon, fallback='🔧'){
   if(icon&&String(icon).startsWith('assets/'))
@@ -242,6 +246,18 @@ function renderFishing(){
     b.classList.toggle('ghost', b.dataset.fishtab!==fishTab);
   });
   const hint=$('#fishHint');
+  if(fishTab==='stats'){
+    if(hint) hint.textContent='Stats fishing de l\'export (niveaux Notices / Enhance restent manuels)';
+    const s=state.parsed?.stats;
+    if(!s){ box.innerHTML='<p class="muted">Importe un exportstats pour voir rod power, ticks, shiny…</p>'; return; }
+    const labels=STATS_CATALOG.fishing||{};
+    box.innerHTML='<div class="prestige-list">'+FISHING_EXPORT_KEYS.map(k=>{
+      const v=s[k];
+      const shown=v==null?'—':(typeof v==='number'?fmtNum(v):String(v));
+      return `<div class="statline"><span>${labels[k]||k}</span><b>${shown}</b></div>`;
+    }).join('')+'</div>';
+    return;
+  }
   if(fishTab==='notices'){
     if(hint) hint.textContent='Notice upgrades T1 + T2 (tokens)';
     box.innerHTML='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Tier 1 Notices</div></div>'
@@ -303,6 +319,7 @@ document.addEventListener('click',e=>{
 });
 $('#btnFishMaxTab')?.addEventListener('click',()=>{
   if(fishTab==='notices'){ for(const u of NOTICE_UPGRADES_T1) C.setFishLv(state.col,'notice',u.id,u.max); for(const u of NOTICE_UPGRADES_T2) C.setFishLv(state.col,'notice',u.id,u.max); }
+  else if(fishTab==='stats'){ /* export read-only */ }
   else if(fishTab==='upgrades'){ for(const u of FISH_UPGRADES_T1) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const u of FISH_UPGRADES_T2) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,true); }
   else if(fishTab==='enhance'){ for(const u of ENHANCE_T1) C.setFishLv(state.col,'enhance',u.id,u.max); for(const u of ENHANCE_T2) C.setFishLv(state.col,'enhance',u.id,u.max); }
   else if(fishTab==='legendary') for(const f of LEGENDARY_FISH) C.setFishLv(state.col,'legendary',f.id,2);
@@ -442,7 +459,7 @@ document.addEventListener('contextmenu',e=>{
 });
 
 /* ================= PETS =================
-   17 pets avec skins (lvl 5) et quêtes (lvl 10) — wiki Pets v2.2.6.
+   16 pets avec skins (lvl 5) et quêtes (lvl 10) — wiki Pets v2.2.6.
    Clic sur les icônes skin/quest pour marquer débloqué. */
 import { PETS_FULL } from './game/petsData.js';
 
@@ -506,7 +523,12 @@ function renderArtifacts(){
   const box=$('#artGrid');
   const caps=C.getCaps(state.col);
   const hint=$('#artCapHint');
-  if(hint) hint.textContent=`Caps export : +${caps.artifact} · T4 +${caps.artifactT4}`+(caps.artifactT4?` → max ${32+caps.artifactT4}/${17+caps.artifactT4}`:'');
+  if(hint){
+    const t1=artifactMax(ARTIFACTS.find(a=>a.id==='pick_t1'));
+    const t4a=artifactMax(ARTIFACTS.find(a=>a.id==='statue_dmg'));
+    const t4b=artifactMax(ARTIFACTS.find(a=>a.id==='omega_crit'));
+    hint.textContent=`Caps export : artefacts +${caps.artifact} · T4 +${caps.artifactT4} → max T1 ${t1} · T4 ${t4a}/${t4b}`;
+  }
 
   let html='';
   for(const tier of [1,2,3,4]){
@@ -995,10 +1017,6 @@ document.addEventListener('contextmenu',e=>{
   const s=e.target.closest('[data-statue]');
   if(s){e.preventDefault();C.setStatueState(state.col,+s.dataset.statue,Math.max(0,C.getStatueState(state.col,+s.dataset.statue)-1));C.saveCollections(state.col);renderConstruct();}
 });
-document.addEventListener('change',e=>{
-  const i=e.target.closest('[data-statuefree]');
-  if(i){C.setStatuesFree(state.col,i.dataset.statuefree,i.value);C.saveCollections(state.col);}
-});
 
 /* ================= STARS / STARGAZING ================= */
 let starTab='stars';
@@ -1126,17 +1144,32 @@ $('#btnStarClearTab')?.addEventListener('click',()=>{
 });
 
 /* ================= HISTORIQUE ================= */
+let histSelected = 0;
 function renderHistory(){
   const h=loadHistory(),sel=$('#histSelect'),out=$('#histOut');
+  if(!sel||!out) return;
+  const keep=histSelected;
   sel.innerHTML=h.map((x,i)=>`<option value="${i}">${new Date(x.importedAt).toLocaleString('fr')} · ${x.version}</option>`).join('');
-  out.innerHTML=h.length<2?'<p class="muted">Importe un 2e export pour comparer.</p>':'';
-  if(h.length>=2){
-    const d=diffExports(h[1],h[0]);let html='<h3>Évolutions</h3>';
-    for(const c of d.changed.slice(0,30))html+=`<div class="statline"><span>${c.key}</span><b>${fmtNum(c.from)} → ${fmtNum(c.to)} ${c.dir==='up'?'📈':'📉'}</b></div>`;
-    if(d.added.length)html+=`<h3 class="ok">Nouvelles stats (${d.added.length})</h3><p class="ok" style="font-size:8px">${d.added.map(a=>a.key).join(', ')}</p>`;
-    out.innerHTML=html;
+  if(h.length){
+    histSelected=Math.min(Math.max(0,keep), h.length-1);
+    sel.value=String(histSelected);
   }
+  if(h.length<2){
+    out.innerHTML='<p class="muted">Importe un 2e export pour comparer. Choisis un ancien snapshot pour le diff vs le plus récent.</p>';
+    return;
+  }
+  const oldIdx=histSelected===0?1:histSelected;
+  const d=diffExports(h[oldIdx],h[0]);
+  let html=`<h3>Évolutions — ${new Date(h[oldIdx].importedAt).toLocaleString('fr')} → plus récent</h3>`;
+  for(const c of d.changed.slice(0,30))html+=`<div class="statline"><span>${c.key}</span><b>${fmtNum(c.from)} → ${fmtNum(c.to)} ${c.dir==='up'?'📈':'📉'}</b></div>`;
+  if(!d.changed.length) html+='<p class="muted">Aucune stat numérique n\'a changé.</p>';
+  if(d.added.length)html+=`<h3 class="ok">Nouvelles stats (${d.added.length})</h3><p class="ok" style="font-size:8px">${d.added.map(a=>a.key).join(', ')}</p>`;
+  out.innerHTML=html;
 }
+$('#histSelect')?.addEventListener('change',e=>{
+  histSelected=+e.target.value;
+  renderHistory();
+});
 
 /* ---------- init ---------- */
 (function hydrateCapsFromHistory(){
@@ -1148,6 +1181,7 @@ function renderHistory(){
   if(h[0]?.stats && !Object.keys(state.col.droneCore||{}).length){
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
   }
+  if(h[0]?.stats) C.applyExportFishing(state.col, h[0].stats);
 })();
 renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();
 show('export');

@@ -29,6 +29,7 @@ function get(url, n = 0) {
 async function fetchFile(destRel, wikiName) {
   const dest = path.join(ROOT, destRel);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
+  if (fs.existsSync(dest) && fs.statSync(dest).size > 200) return `skip ${fs.statSync(dest).size}`;
   const url = 'https://shminer.miraheze.org/wiki/Special:FilePath/' + encodeURIComponent(wikiName);
   const { status, buf, ctype } = await get(url);
   if (status === 200 && buf.length > 200 && /image|png|octet/i.test(ctype)) {
@@ -51,9 +52,25 @@ const jobs = [
   ['assets/stargazing/Star_Spawn.png', 'Star_Spawn_Rate.png'],
   ['assets/menu/Store_Button.png', 'Store_Button.png'],
   ['assets/menu/Arcanist_Button.png', 'Arcanist_Button.png'],
+  ['assets/ores/VR-Tin.png', 'VR-Tin_Ore.png'],
+  ['assets/ores/VR-Amethyst.png', 'VR-Amethyst_Ore.png'],
+  ['assets/ores/VR-Demonite.png', 'VR-Demonite_Ore.png'],
+  ['assets/ores/VR-ERROR.png', 'VR-ERROR_Ore.png'],
+  ['assets/ores/Earth-C-137.png', 'Earth-C-137_Ore.png'],
+  ['assets/ores/Radion-73.png', 'Radion-73_Ore.png'],
+  ['assets/ores/Blood-Onyx.png', 'Blood-Onyx_Ore.png'],
+  ['assets/ores/MVPD-1988.png', 'MVPD-1988_Ore.png'],
+  ['assets/ores/Crystal-Rose.png', 'Crystal-Rose_Ore.png'],
+  ['assets/cards/Golden_Ore_Icon.png', 'Golden_Ore_Icon.png'],
+  ['assets/cards/Volcano_Vein.png', 'Volcano_Vein.png'],
+  ['assets/cards/Misc_Relic.png', 'Misc_Relic.png'],
+  ['assets/cards/Misc_Bone.png', 'Misc_Bone.png'],
+  ['assets/cards/Misc_Store.png', 'Misc_Store.png'],
+  ['assets/cards/Misc_Cookie_Clicker.png', 'Misc_Cookie_Clicker.png'],
 ];
 
 for (const [dest, wiki] of jobs) {
   const r = await fetchFile(dest, wiki);
-  console.log(r.startsWith('ok') ? 'OK' : 'FAIL', dest, wiki, r);
+  console.log(r.startsWith('ok') || r.startsWith('skip') ? r.split(' ')[0].toUpperCase() : 'FAIL', dest, wiki, r);
 }
+process.exit(0);

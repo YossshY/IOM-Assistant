@@ -1,5 +1,5 @@
 /* ============================================================
-   petsData.js — 17 pets (wiki "Pets", v2.2.6) avec skins et quêtes.
+   petsData.js — 16 pets (wiki "Pets", v2.2.6) avec skins et quêtes.
    Icônes : assets/pets/{Pet}_{Default|Skin|Quest}.png
    Chaque pet : base + skin (lvl 5 requis) + quest (pet lvl 10).
    ============================================================ */

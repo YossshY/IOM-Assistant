@@ -137,10 +137,24 @@ export function cardCounts(col){
   return {owned,gilded,poly,infernal};
 }
 
-/** Applique statues + monuments dérivés de l'export (écrase les états statue). */
+/** Applique statues + monuments dérivés de l'export.
+ * Statues = source de vérité export. Monuments : l'export peut passer à true,
+ * mais ne décoche pas un monument déjà noté à la main. */
 export function applyExportProgress(col, profile){
   col.statueStates = { ...(profile.statueStates || {}) };
-  col.monuments = { ...(col.monuments || {}), ...(profile.monuments || {}) };
+  col.monuments ||= {};
+  const inferred = profile.monuments || {};
+  for (const w of [2, 3, 4]) {
+    if (inferred[w]) col.monuments[w] = true;
+  }
+  return col;
+}
+
+/** Débloque le dock Lake dès qu'un rod power est dans l'export (niveaux notices restent manuels). */
+export function applyExportFishing(col, stats = {}){
+  if ((stats.fishing_rod_power ?? 0) > 0) {
+    setDockUnlocked(col, 'lake', true);
+  }
   return col;
 }
 

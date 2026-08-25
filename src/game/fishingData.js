@@ -1,6 +1,6 @@
 /* ============================================================
    fishingData.js — Fishing wiki (v2.1.5+, docks/legendaries v2.2.x)
-   Tabs: Stats · Docks · Notices · Enhance · Legendary
+   Tabs UI : Stats (export) · Notices · Upgrades/Docks · Enhance · Legendary
    ============================================================ */
 
 export const FISHING_DOCKS = [

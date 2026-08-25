@@ -45,7 +45,7 @@ export const PRESTIGE = {
 
 /* ---------- Artefacts (wiki Prestige/Costs + UI jeu v2.2.6)
    maxBase = max wiki AVANT cap increase.
-   T4 : max affiché = maxBase + artifact_tier4_cap_increase (export).
+   T4 : max affiché = maxBase + artifact_cap_increase + artifact_tier4_cap_increase (export).
    perStatue : bonus/niv = perLevel × somme des états statues (plat=3). */
 export const ARTIFACTS = [
   /* Tier 1 */
@@ -79,11 +79,14 @@ export const ARTIFACTS = [
   { id:'veinspawn',   tier:4, name:'Vein Spawn Rate',          icon:'💠', perLevel:4,    unit:'%',     maxBase:17, unlockOb:19 },
 ];
 
-/** Max effectif selon caps export persistés ou stats brutes. */
+/** Max effectif selon caps export persistés ou stats brutes.
+ * Wiki Stats : Artifact Upgrade Cap Increase = tous les artefacts ;
+ * Artifact Tier 4 Cap Increase = bonus T4 en plus. */
 export function artifactEffectiveMax(a, stats = {}, caps = null) {
-  const t4 = caps?.artifactT4 ?? stats.artifact_tier4_cap_increase ?? 0;
-  if (a.tier === 4) return a.maxBase + (+t4 || 0);
-  return a.maxBase;
+  const gen = +(caps?.artifact ?? stats.artifact_cap_increase ?? 0) || 0;
+  const t4 = +(caps?.artifactT4 ?? stats.artifact_tier4_cap_increase ?? 0) || 0;
+  if (a.tier === 4) return a.maxBase + gen + t4;
+  return a.maxBase + gen;
 }
 
 /* ---------- Skill Tree — liste complète dans skillsData.js ---------- */
@@ -189,6 +192,7 @@ export const STATS_CATALOG = {
     prism_fuel_grade:'Prism grade', minotaur_fuel_grade:'Minotaur grade',
     elixir_crit_chance:'Elixir crit %', elixir_crit_multi:'Elixir crit multi',
     is_drone_basic_equipped:'Basic équipé',
+    is_drone_basic_equipped_and_fueled:'Basic fuelé',
     is_drone_bear_equipped:'Bear équipé', is_drone_bear_equipped_and_fueled:'Bear fuelé',
     is_drone_chain_equipped:'Chain équipé', is_drone_chain_equipped_and_fueled:'Chain fuelé',
     is_drone_midas_equipped:'Midas équipé', is_drone_midas_equipped_and_fueled:'Midas fuelé',

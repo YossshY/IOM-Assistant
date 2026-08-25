@@ -13,7 +13,7 @@ export const RESEARCH_VEINS = [
   { id:'beach', name:'Beach Veins', icon:'assets/cards/Beach_Vein.png' },
   { id:'valley', name:'Valley Veins', icon:'assets/cards/Valley_Vein.png' },
   { id:'jungle', name:'Jungle Veins', icon:'assets/cards/Jungle_Vein.png' },
-  { id:'volcano', name:'Volcano Veins', icon:'assets/cards/Magma_Vein.png' },
+  { id:'volcano', name:'Volcano Veins', icon:'assets/cards/Volcano_Vein.png' },
   { id:'jurassic', name:'Jurassic Veins', icon:'assets/cards/Jurassic_Vein.png' },
   { id:'roman', name:'Roman Veins', icon:'assets/cards/Roman_Vein.png' },
   { id:'industrial', name:'Industrial Veins', icon:'assets/cards/Industrial_Vein.png' },
