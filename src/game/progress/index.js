@@ -9,6 +9,7 @@ export {
 } from './conditions.js';
 export { compileGraph, getNode } from './compile.js';
 export { evaluateCondition, evaluateNode, playerView } from './evaluate.js';
+export { playerViewFromExport, BOAT_UPGRADE_T1, BOAT_UPGRADE_T2 } from './fromExport.js';
 export { plan, planNode, satisfy, walkPlan } from './plan.js';
 export {
   buildProgressGraph,

@@ -1,6 +1,6 @@
 # Architecture du moteur de progression
 
-Document de conception vivant (étapes A–H implémentées ; I–K = suite).
+Document de conception vivant (étapes A–I implémentées ; J–K = suite).
 Ce fichier fige les ajustements validés. L’UI et `app.js` restent **non branchés** tant que K n’est pas ouverte.
 
 Il complète la proposition déjà validée (graphe compilé depuis les catalogues, `PlayerView`, AST de conditions, fragments wiki, axes plutôt qu’une priorité unique). Seules les sections ci-dessous **remplacent** les parties correspondantes de cette proposition.
@@ -424,7 +424,7 @@ Suite produit (après A–F) :
 
 8. **G — audit global** — §14 (inventaire, inconnus, spec H–K). Pas de nouveau fragment.
 9. **H — recâblage Laviathan** — §15. Même modèle que F ; stubs C retirés.
-10. **I — ExportStats → PlayerView** — adaptateur, pas d’UI.
+10. **I — ExportStats → PlayerView** — §16. Adaptateur, pas d’UI.
 11. **J — planification / optimisation** — sur un PlayerView réel ; pas de producteurs inventés.
 12. **K — UI** — brancher le moteur ; reco actuelle reste hint jusqu’à bascule.
 
@@ -721,4 +721,28 @@ Comportement après H :
 Les nœuds `fish.tribute.laviathan.t1/t2` sont créés par `fishing.js` comme les 10 autres. `polyInfernal.js` ne pose plus de stubs ; `INFERNAL_SET_SOURCES` pointe toujours vers ces ids.
 
 Tests C/E/F mis à jour : plus d’attente `incomplete` + `fishing-dock-chain`. `node check.mjs` inchangé.
+
+---
+
+## 16. Étape I (implémentée) — ExportStats → PlayerView
+
+Module additif `src/game/progress/fromExport.js` : `playerViewFromExport({ parsed, profile, collections })`. **Non branché** à `app.js`. `check.mjs` inchangé.
+
+Décisions de la spec §14.4 :
+
+| Source | Mapping | Non-mapping |
+|---|---|---|
+| `profile.obeliskLevel` | `stats.ob` | autres clés `exportstats` (dont `fishing_rod_power`) |
+| `collections.skills` | `nodes[skill.{id}]` si niveau > 0 ; absent = 0 | — |
+| `collections.cards` | `stats[card.{id}]` si la clé est **présente** ; absente → feuille `unknown` | — |
+| `u1_boat` / `u2_boat` | paliers cumulatifs + docks **derived** | toggles `collections.fishing.docks` |
+| OB ≥ 37 | `fish.dock.lake` (starter, comme le graphe) | rod power |
+| `profile.monuments` | `monument.w2–w4` (**partial**, inférence) | toggles `collections.monuments` |
+| `hasResearchUnlock` | `research.vein.{id}` | spawn 2× |
+| `getFishLv(...,'legendary')` | lv≥1 → catch + T1 ; lv≥2 → T2 ; lv=0 → rien | catch sans tribut (pas d’état UI) |
+| — | `resources: {}` | gems / SP / poissons / veines / lingots / étoiles |
+
+Notices, Enhance, rod/drone/tick, pets, drones, artefacts : ignorés.
+
+Tests : `fromExport.test.mjs` sur `samples/exportstats-v2.2.6.json`.
 
