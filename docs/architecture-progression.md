@@ -24,8 +24,9 @@ L’évaluation d’une cible (nœud, condition ou objectif) retourne **deux cha
 
 ```text
 Evaluation = {
-  status:     unlocked | available | actionable | locked | blocked | incomplete | unknown
+  status:     unlocked | available | locked | blocked | incomplete | unknown
   confidence: confirmed | partial | unknown
+  actionable: boolean              // dérivé, jamais un statut exclusif
   knownSatisfied:    Condition[]   // feuilles requises connues et vraies
   knownUnsatisfied:  Condition[]   // feuilles requises connues et fausses
   unknownRequired:   Condition[]   // feuilles requises encore inconnues
@@ -33,17 +34,36 @@ Evaluation = {
 }
 ```
 
+`actionable` est une **propriété dérivée**, pas une valeur de `status` :
+
+```text
+status: available
+confidence: confirmed
+actionable: true
+```
+
+Cela sépare : l’accès (`available`) · la connaissance (`confidence`) · la possibilité réelle de l’effectuer maintenant (`actionable`).
+
+```text
+actionable ⇔ status === 'available'
+            && kind === 'action'
+            && coût connu et payable (cost.truth === 'true')
+```
+
+Un trou `unlock` requis interdit `available`, donc interdit aussi `actionable`. Un trou optionnel (`any` déjà satisfait) peut laisser `available` + `confidence: partial` + `actionable: true`.
+
 ### 1.1 Statut de progression (`status`)
 
 | Statut | Signification | Ce que l’UI a le droit de dire |
 |---|---|---|
 | **unlocked** | Déjà possédé / déjà atteint (seuil déjà vrai). | « Tu as déjà ça. » |
-| **available** | Toutes les conditions d’**accès** (`unlock`) sont **connues et satisfaites**. Le nœud n’est pas encore possédé. Les coûts peuvent encore manquer. | « Les prérequis d’accès connus sont remplis. » — **pas** « tu peux le faire maintenant » si le coût n’est pas réglé. |
-| **actionable** | C’est une **Action**, `available`, **et** tous les coûts sont **connus et payables maintenant**. | « Tu peux faire cette action maintenant. » |
-| **locked** | Au moins une condition requise **connue** est fausse, mais encore éventuellement rattrapable. | « Il manque X » (X est documenté). |
+| **available** | Toutes les conditions d’**accès** (`unlock`) sont **connues et satisfaites**. Le nœud n’est pas encore possédé. Les coûts peuvent encore manquer. | « Les prérequis d’accès connus sont remplis. » — **pas** « tu peux le faire maintenant » si `actionable` est faux. |
+| **locked** | Au moins une condition d’accès requise **connue** est fausse, mais encore éventuellement rattrapable. | « Il manque X » (X est documenté). |
 | **blocked** | Condition requise connue **et irréversible** depuis l’état actuel (choix exclusif déjà pris, branche fermée). À n’utiliser que si l’impossibilité est documentée. Sinon : `locked`. | « Ce n’est plus possible depuis ton état actuel. » |
-| **incomplete** | Aucune condition requise connue n’est fausse, **mais** au moins une condition requise est `unknown`. Analyse partielle possible. | « Les conditions connues sont remplies, mais certains prérequis ne sont pas encore documentés dans l’application. » |
+| **incomplete** | Aucune condition d’accès requise connue n’est fausse, **mais** au moins une condition requise est `unknown`. Analyse partielle possible. | « Les conditions connues sont remplies, mais certains prérequis ne sont pas encore documentés dans l’application. » |
 | **unknown** | La cible elle-même n’est pas dans le graphe, ou on n’a aucune condition évaluable. | « L’application ne connaît pas encore cet élément. » |
+
+`actionable: true` (propriété, pas un statut) : « Tu peux faire cette action maintenant. » Uniquement si `status === available`, `kind === action`, coût connu et payable.
 
 **Règle dure (données inconnues) :** un prérequis **obligatoire** inconnu **interdit** `available` et `actionable`. Une donnée inconnue peut servir à un plan partiel ; elle ne permet **jamais** d’affirmer que l’action est réellement possible.
 
@@ -60,14 +80,14 @@ Exemple demandé :
 On sépare donc :
 
 - **progression partiellement analysable** → plan avec `UnknownStep`, statut `incomplete` ou `locked` + `confidence: partial`
-- **action confirmée comme réalisable** → uniquement `status: actionable` **et** `confidence: confirmed` sur les conditions requises
+- **action confirmée comme réalisable** → `status: available` **et** `actionable: true` (le cas typique a aussi `confidence: confirmed` sur les conditions requises)
 
 ### 1.2 Confiance (`confidence`) — orthogonale
 
 | Confiance | Signification |
 |---|---|
 | **confirmed** | Aucune feuille **requise** n’est `unknown`. Le statut est entièrement justifié par des données documentées. |
-| **partial** | Certaines feuilles sont inconnues. Si elles sont requises, le statut ne peut pas être `available` / `actionable`. Si elles sont optionnelles (autre branche d’un `any` déjà satisfaite, hint), le statut peut rester `available` / `locked` / etc. |
+| **partial** | Certaines feuilles sont inconnues. Si elles sont requises, le statut ne peut pas être `available` (donc `actionable` reste faux). Si elles sont optionnelles (autre branche d’un `any` déjà satisfaite, hint), le statut peut rester `available` / `locked` / etc. |
 | **unknown** | On n’a pratiquement rien d’évaluable (nœud absent, ou condition réduite à `unknown`). |
 
 Combinaisons légitimes (exemples) :
@@ -78,13 +98,12 @@ Combinaisons légitimes (exemples) :
 | `locked` | `partial` | On sait déjà qu’une condition connue échoue, **et** d’autres prérequis requis ne sont pas documentés. |
 | `incomplete` | `partial` | Rien de connu ne bloque, mais il manque des prérequis documentés. |
 | `incomplete` | `unknown` | Presque aucune condition n’est connue. |
-| `actionable` | `confirmed` | Seule combinaison qui autorise « tu peux le faire maintenant ». |
-| `available` | `confirmed` | Accès OK ; le coût peut encore manquer (alors ce n’est pas `actionable`). |
-| `available` | `partial` | Uniquement si les trous sont **non requis** (OR déjà satisfait, hint). Jamais si un `unlock` obligatoire est `unknown`. |
+| `available` | `confirmed` | Accès OK. `actionable: true` si action + coût payé ; `actionable: false` si le coût manque (ou si ce n’est pas une action). |
+| `available` | `partial` | Uniquement si les trous sont **non requis** (OR déjà satisfait, hint). `actionable` peut rester `true` si une branche suffisante est connue et le coût est payé. Jamais si un `unlock` obligatoire est `unknown`. |
 | `unlocked` | `confirmed` | L’inventaire / le seuil dit que c’est déjà vrai. |
 | `blocked` | `confirmed` | Impossibilité documentée. |
 
-**Interdit :** `actionable` + `partial` (trou requis) ; `available` + trou `unlock` requis.
+**Interdit :** `actionable: true` s’il existe un trou **requis** ; `available` + trou `unlock` requis.
 
 ### 1.3 Accès vs coût
 
@@ -96,9 +115,9 @@ Sur un nœud, deux groupes de conditions :
 | Trou | Effet |
 |---|---|
 | `unlock` requis `unknown` | pas `available`, pas `actionable` → `incomplete` si rien de connu n’échoue, sinon `locked` + `partial` |
-| `cost` `unknown`, `unlock` OK | `available` + `partial` possible ; **jamais** `actionable` |
-| `cost` connu et insuffisant, `unlock` OK | `available` + `confirmed` ; plan : `Acquire(...)` |
-| `unlock` et `cost` connus et OK, `kind: action` | `actionable` + `confirmed` |
+| `cost` `unknown`, `unlock` OK | `available` + `partial` ; `actionable: false` |
+| `cost` connu et insuffisant, `unlock` OK | `available` + `confirmed` ; `actionable: false` ; plan : `Acquire(...)` |
+| `unlock` et `cost` connus et OK, `kind: action` | `available` + `confirmed` ; `actionable: true` |
 
 ### 1.4 Ordre de classification
 
@@ -106,12 +125,12 @@ Sur un nœud, deux groupes de conditions :
 si la cible n’est pas dans le graphe          → unknown / unknown
 si déjà possédé / seuil déjà vrai             → unlocked / confirmed (inventaire)
 si contradiction irréversible documentée      → blocked / confirmed|partial
-si une feuille unlock/cost requise connue est fausse
+si une feuille unlock requise connue est fausse
                                              → locked / confirmed|partial
 sinon si une feuille unlock requise est unknown
                                              → incomplete / partial|unknown
-sinon si unlock OK, kind = action, cost OK    → actionable / confirmed
 sinon si unlock OK                            → available / confirmed|partial
+                                             actionable ← kind action ∧ cost connu et payable
 ```
 
 `actionable` n’existe que pour une **Action**. Un jalon (`OB >= 26`) déjà atteint est `unlocked` ; non atteint, il est `locked` (ou `Reach` dans le plan), jamais `Do`.
@@ -214,7 +233,7 @@ si any(...)                                → branches connues utilisables ;
                                            branches unknown → UnknownStep alternatives
 ```
 
-On s’arrête de descendre quand on atteint une **Action** `actionable` **confirmed** (feuille `Do`) ou un `UnknownStep`.
+On s’arrête de descendre quand on atteint une **Action** `available` + `actionable: true` (feuille `Do`) ou un `UnknownStep`.
 
 ### 3.2 Lecture produit
 
@@ -318,7 +337,7 @@ poly_while  : non possédé
 - **Pas** `available`, **pas** `actionable`
 
 `veinmorpher` : unlock OK (`ob 20 >= 19`), cost OK (`30 >= 28`), aucune inconnue requise  
-→ `status: actionable`, `confidence: confirmed`  ← **action immédiate**
+→ `status: available`, `confidence: confirmed`, `actionable: true`  ← **action immédiate**
 
 ### 5.4 Arbre `plan(Unlock poly_while)`
 
@@ -328,7 +347,7 @@ Unlock(skill.poly_while)                 status: locked   confidence: partial
 │  └─ UnknownStep("aucun progressor OB documenté")
 │                                        ← objectif intermédiaire, PAS Do(ob26)
 ├─ Unlock(skill.tons_dmg)                status: locked   confidence: confirmed
-│  ├─ Do(skill.veinmorpher)              status: actionable confidence: confirmed
+│  ├─ Do(skill.veinmorpher)              status: available  confidence: confirmed  actionable: true
 │  │                                     ← action immédiate
 │  │                                     ← dépendance INDIRECTE (grand-parent)
 │  ├─ Reach(ob, 23)                      (absorbé par Reach(ob, 26) du parent)
@@ -368,7 +387,7 @@ Pas de nouvel AST. Pas de second graphe. Trois ajouts **additifs** :
 | `Condition` AST | inchangé (`unknown` déjà prévu) | — |
 | `Node.unlock` / `Node.cost` | inchangés sémantiquement | — |
 | `Node` | `kind?`, `produces?`, `progresses?` | non (défaut + index vides) |
-| `evaluate(node, player) → bool` | devient `{ status, confidence, ... }` | oui (cœur du contrat) |
+| `evaluate(node, player) → bool` | devient `{ status, confidence, actionable, ... }` | oui (cœur du contrat) |
 | `plan(goal)` | arbre d’étapes `Do \| Reach \| Acquire \| Unlock \| UnknownStep` | oui (cœur du contrat) |
 | compilation | index `producersOf` / `progressorsOf` / reverse `unlock` | oui, même vides |
 | catalogues UI | inchangés | — |
@@ -399,8 +418,17 @@ Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent 
 
 ---
 
-## 8. Hors périmètre jusqu’à validation
+## 8. Étape A (implémentée)
 
-- Aucune modification de code.
-- Étape A (modules `src/game/progress/*`, tests, UI inchangée) : **après** validation de ce document.
-- Aucun producteur SP, aucun progresseur OB, aucune arête Skill Tree inventés « pour que le plan soit joli ».
+Modules additifs sous `src/game/progress/` — **non branchés** à l’UI ni aux catalogues IOM.
+
+Tests : `node src/game/progress/progress.test.mjs` (fixtures `fx.*` uniquement).
+
+### Écarts volontaires par rapport aux exemples pédagogiques §5
+
+- `actionable` n’est plus un `status` : c’est un booléen dérivé (préférence validée à l’étape A).
+- Les exemples de code/tests n’utilisent **aucun** id IOM (`poly_while`, etc.). Le scénario équivalent est `fx.gate` / `fx.alpha` / `fx.gamma`.
+- `have` sur `Acquire` / `Reach` est le stock **actuel**, pas un solde projeté après les `Do` frères (pas de simulation de dépense le long du plan).
+- `blocked` s’exprime par `Node.blockedIf` (condition connue vraie).
+- Une stat absente de `PlayerView.stats` est une feuille `unknown` (donnée joueur manquante), distincte d’une ressource absente (traitée comme 0).
+- L’étape B (fragments wiki / Skill Tree parents) n’est **pas** commencée.

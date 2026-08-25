@@ -1,0 +1,12 @@
+/* ============================================================
+   progress/index.js — API publique additive (non branchée à l'UI)
+   ============================================================ */
+
+export { STATUS, CONFIDENCE, STEP, KIND, FIXTURE_PREFIX, isFixtureId } from './ids.js';
+export {
+  COND, all, any, node, stat, resource, unknown, always,
+  isCondition, isLeaf, normalizeCost, collectNodeIds, walk,
+} from './conditions.js';
+export { compileGraph, getNode } from './compile.js';
+export { evaluateCondition, evaluateNode, playerView } from './evaluate.js';
+export { plan, planNode, satisfy, walkPlan } from './plan.js';
