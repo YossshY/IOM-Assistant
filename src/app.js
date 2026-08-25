@@ -24,6 +24,8 @@ import {
 import { ARCH_UPGRADES, ARCH_IDOLS, ARCH_IDOL_MAX } from './game/archaeologyData.js';
 import { RESEARCH_VEINS, MONUMENTS } from './game/constructData.js';
 import * as C from './game/collections.js';
+import { DASHBOARD_GOALS, DEFAULT_PROGRESS_GOAL, progressSnapshot } from './game/progress/dashboard.js';
+import { ACTIONABLE_NOW } from './game/progress/phrases.js';
 
 /** Durée du run prestige (raw.time) — pas le lifetime du compte. */
 function fmtRunDuration(sec){
@@ -68,6 +70,11 @@ function formatArtBonus(a, lv){
 
 const $ = s => document.querySelector(s);
 let state = { parsed:null, profile:{}, history:[], col:C.loadCollections() };
+let selectedProgressGoal = DEFAULT_PROGRESS_GOAL;
+
+function esc(s){
+  return String(s??'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
 
 /* ---------- navigation : menu principal + onglets ---------- */
 function show(page){
@@ -125,7 +132,7 @@ function renderTop(){
 /* ---------- dashboard ---------- */
 function renderDash(){
   const g=$('#dashProfile');
-  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();return;}
+  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();renderProgress();return;}
   const p=state.profile;
   const nextA=p.nextObeliskArmor;
   g.innerHTML=[
@@ -141,6 +148,7 @@ function renderDash(){
   ].map(c=>`<div class="cell"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');
   renderDashTools();
   renderDashMath();
+  renderProgress();
 }
 /** Estimateurs wiki/export — guider sans réécrire tout ObeliskFarm. */
 function renderDashMath(){
@@ -183,6 +191,54 @@ function renderDashTools(){
     return `<a class="tool-link" href="${t.url}" target="_blank" rel="noopener">${t.name}${sub?`<small>${sub}</small>`:''}</a>`;
   }).join('');
 }
+
+function fillProgressGoalSelect(){
+  const sel=$('#progressGoal');
+  if(!sel)return;
+  if(!sel.options.length){
+    sel.innerHTML=DASHBOARD_GOALS.map(g=>`<option value="${esc(g.id)}">${esc(g.label)}</option>`).join('');
+  }
+  if(!DASHBOARD_GOALS.some(g=>g.id===selectedProgressGoal)) selectedProgressGoal=DEFAULT_PROGRESS_GOAL;
+  sel.value=selectedProgressGoal;
+}
+
+function planTreeHtml(steps){
+  if(!steps?.length) return '';
+  const item=s=>{
+    const cls=['plan-step', s.actionable?'actionable':''].filter(Boolean).join(' ');
+    const now=s.actionable?` · ${esc(ACTIONABLE_NOW)}`:'';
+    const why=s.reason?` <code>${esc(s.reason)}</code>`:'';
+    let h=`<li class="${cls}"><b>${esc(s.step)}</b> ${esc(s.caption)}${now}${why}`;
+    if(s.children?.length) h+=`<ul>${s.children.map(item).join('')}</ul>`;
+    return h+'</li>';
+  };
+  return `<ul class="plan-tree">${steps.map(item).join('')}</ul>`;
+}
+
+function renderProgress(){
+  const box=$('#progressOut');
+  if(!box)return;
+  fillProgressGoalSelect();
+  if(!state.parsed){box.innerHTML='<p class="muted">Importe un exportstats pour évaluer le graphe.</p>';return;}
+  const snap=progressSnapshot({
+    parsed:state.parsed,
+    profile:state.profile,
+    collections:state.col,
+    goalId:selectedProgressGoal,
+  });
+  const ev=snap.evaluation;
+  const stCls='st-'+ev.status;
+  box.innerHTML=`<div class="plan-eval">
+    <span class="st ${stCls}">${esc(ev.status)} · ${esc(ev.confidenceLabel)}</span>
+    <p>${esc(ev.phrase)}</p>
+    ${ev.nowPhrase?`<p class="now">${esc(ev.nowPhrase)}</p>`:''}
+  </div>${planTreeHtml(snap.steps)}`;
+}
+
+$('#progressGoal')?.addEventListener('change',e=>{
+  selectedProgressGoal=e.target.value;
+  renderProgress();
+});
 
 /* ---------- roadmap ---------- */
 function renderRoadmap(){
@@ -237,6 +293,7 @@ function lvRow(icon, title, sub, lv, max, dataAttr, id){
 }
 function renderFishing(){
   const box=$('#fishingStats'); if(!box) return;
+  renderProgress();
   document.querySelectorAll('[data-fishtab]').forEach(b=>{
     b.classList.toggle('on', b.dataset.fishtab===fishTab);
     b.classList.toggle('ghost', b.dataset.fishtab!==fishTab);
@@ -678,6 +735,7 @@ function renderSkills(){
     d.innerHTML=`<b style="color:var(--amber)">${sk.name}</b><br>${sk.effect||''}<br><span class="muted">Cost: ${cost} SP · Level ${C.getSkillLevel(state.col,sk.id)}/${skillMaxLevels(sk)}</span>
       <a class="muted" href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki ↗</a>`;
   }
+  renderProgress();
 }
 function setSkillLv(id,lv){
   const s=SKILLS.find(x=>x.id===id); if(!s)return;
@@ -942,6 +1000,7 @@ function renderConstructStatuesHtml(){
 }
 function renderConstruct(){
   const body=$('#constructBody'); if(!body) return;
+  renderProgress();
   document.querySelectorAll('[data-constructtab]').forEach(b=>{
     b.classList.toggle('on', b.dataset.constructtab===constructTab);
     b.classList.toggle('ghost', b.dataset.constructtab!==constructTab);
@@ -1149,5 +1208,5 @@ function renderHistory(){
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
   }
 })();
-renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderProgress();
 show('export');

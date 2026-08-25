@@ -1,6 +1,6 @@
 /* ============================================================
    progress/fromExport.js — étape I
-   ExportStats + collections → PlayerView. Non branché à app.js.
+   ExportStats + collections → PlayerView. Branché au dashboard (K).
    ============================================================ */
 
 import { deriveProfile } from '../statsParser.js';

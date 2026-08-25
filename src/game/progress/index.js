@@ -1,5 +1,5 @@
 /* ============================================================
-   progress/index.js — API publique additive (non branchée à l'UI)
+   progress/index.js — API publique (dashboard K ; reco non branchée)
    ============================================================ */
 
 export { STATUS, CONFIDENCE, STEP, KIND, FIXTURE_PREFIX, isFixtureId } from './ids.js';
@@ -11,6 +11,13 @@ export { compileGraph, getNode } from './compile.js';
 export { evaluateCondition, evaluateNode, playerView } from './evaluate.js';
 export { playerViewFromExport, BOAT_UPGRADE_T1, BOAT_UPGRADE_T2 } from './fromExport.js';
 export { plan, planNode, satisfy, walkPlan } from './plan.js';
+export {
+  STATUS_PHRASE, ACTIONABLE_NOW, UNKNOWN_STEP_PHRASE, CONFIDENCE_LABEL,
+  describeEvaluation, formatPlanTree, statusPhrase,
+} from './phrases.js';
+export {
+  getProgressGraph, DASHBOARD_GOALS, DEFAULT_PROGRESS_GOAL, progressSnapshot,
+} from './dashboard.js';
 export {
   buildProgressGraph,
   buildSkillTreeNodes,

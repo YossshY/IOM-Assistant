@@ -1,7 +1,7 @@
 # Architecture du moteur de progression
 
-Document de conception vivant (étapes A–J3 implémentées ; K = suite).
-Ce fichier fige les ajustements validés. L’UI et `app.js` restent **non branchés** tant que K n’est pas ouverte.
+Document de conception vivant (étapes A–K implémentées).
+Ce fichier fige les ajustements validés. `recommendationEngine` reste un hint (pas de bascule). Le dashboard affiche `evaluate`/`plan` (K).
 
 Il complète la proposition déjà validée (graphe compilé depuis les catalogues, `PlayerView`, AST de conditions, fragments wiki, axes plutôt qu’une priorité unique). Seules les sections ci-dessous **remplacent** les parties correspondantes de cette proposition.
 
@@ -428,7 +428,7 @@ Suite produit (après A–F) :
 11. **J1 — planification sémantique** — §17. Graph + PlayerView I → plan ; pas d’optimisation.
 12. **J2 — état virtuel + dédup** — §18. Coûts des `Do` ; Reach/Acquire uniques.
 13. **J3 — choix de branche `any`** — §19. Une branche known ; unknown → alternatives.
-14. **K — UI** — brancher le moteur ; reco actuelle = hint jusqu’à bascule.
+14. **K — UI** — §20. `evaluate`/`plan` sur le dashboard ; reco actuelle = hint.
 
 Tant qu’un fragment n’est pas chargé, les feuilles correspondantes restent `unknown` / index vides. Le moteur reste correct : il refuse `available` / `actionable` dès qu’un requis manque.
 
@@ -686,7 +686,7 @@ Tests I : sample `exportstats-v2.2.6.json` (OB64, W3, fishing stats présentes, 
 
 ### 14.6 Spec K — UI
 
-Après I (+ J si besoin). Brancher `evaluate`/`plan` sur le dashboard. Phrases = tableau §1.1. `recommendationEngine` reste hint jusqu’à bascule explicite. Pas de câblage anticipé.
+**K** (§20) : brancher `evaluate`/`plan` sur le dashboard. Phrases = tableau §1.1. `recommendationEngine` reste hint jusqu’à bascule explicite.
 
 ### 14.7 Spec H — recâblage Laviathan (validé par cet audit)
 
@@ -820,4 +820,17 @@ On **commit** seulement la branche choisie sur `ctx.virtual` (re-`satisfy` depui
 Les branches known non choisies n’apparaissent pas.
 
 Tests : `plan.j3.test.mjs`. `plan.j2.test.mjs` test 8 aligne le cas `any` à égalité (1re branche).
+
+---
+
+## 20. Étape K (implémentée) — Dashboard evaluate / plan
+
+Phrases UI = tableau §1.1 (`src/game/progress/phrases.js`). Objectifs = nœuds déjà dans le graphe (Lucky Strikes, poly_while, Poly système, Monument W4, Desert, Rainbow Trout, Fishing).
+
+- PlayerView via `playerViewFromExport` (export + collections).
+- Panneau **Progression (graphe)** : statut + phrase + arbre `Do` / `Reach` / `Acquire` / `Unlock` / `UnknownStep`.
+- `recommendationEngine` **inchangé**, affiché comme **Hints — reco actuelle**. Pas de bascule : la reco n’est pas alimentée par le graphe.
+- Pas de `Do` inventé (index producteurs toujours vide).
+
+Tests : `dashboard.k.test.mjs`. `check.mjs` inchangé (reco).
 
