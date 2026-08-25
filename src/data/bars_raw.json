@@ -1,0 +1,310 @@
+{
+"Tin": {
+"icon": "https://static.wikitide.net/shminerwiki/d/d6/Tin_Bar.png",
+"floor": null
+},
+"Copper": {
+"icon": "https://static.wikitide.net/shminerwiki/f/f1/Copper_Bar.png",
+"floor": null
+},
+"Mithril": {
+"icon": "https://static.wikitide.net/shminerwiki/6/65/Mithril_Bar.png",
+"floor": null
+},
+"Adamant": {
+"icon": "https://static.wikitide.net/shminerwiki/2/2c/Adamant_Bar.png",
+"floor": null
+},
+"Runite": {
+"icon": "https://static.wikitide.net/shminerwiki/d/da/Runite_Bar.png",
+"floor": null
+},
+"Citrine": {
+"icon": "https://static.wikitide.net/shminerwiki/d/d0/Citrine_Bar.png",
+"floor": null
+},
+"Amethyst": {
+"icon": "https://static.wikitide.net/shminerwiki/e/ee/Amethyst_Bar.png",
+"floor": null
+},
+"Topaz": {
+"icon": "https://static.wikitide.net/shminerwiki/c/c7/Topaz_Bar.png",
+"floor": null
+},
+"Obsidian": {
+"icon": "https://static.wikitide.net/shminerwiki/7/78/Obsidian_Bar.png",
+"floor": null
+},
+"Demonite": {
+"icon": "https://static.wikitide.net/shminerwiki/6/67/Demonite_Bar.png",
+"floor": null
+},
+"Lunarium": {
+"icon": "https://static.wikitide.net/shminerwiki/9/9b/Lunarium_Bar.png",
+"floor": null
+},
+"Meteorite": {
+"icon": "https://static.wikitide.net/shminerwiki/a/a2/Meteorite_Bar.png",
+"floor": null
+},
+"Singularity": {
+"icon": "https://static.wikitide.net/shminerwiki/a/a6/Singularity_Bar.png",
+"floor": null
+},
+"Halium": {
+"icon": "https://static.wikitide.net/shminerwiki/1/1c/Halium_Bar.png",
+"floor": null
+},
+"Blasphemite": {
+"icon": "https://static.wikitide.net/shminerwiki/b/b5/Blasphemite_Bar.png",
+"floor": null
+},
+"Angelite": {
+"icon": "https://static.wikitide.net/shminerwiki/4/41/Angelite_Bar.png",
+"floor": null
+},
+"Elysium": {
+"icon": "https://static.wikitide.net/shminerwiki/2/2e/Elysium_Bar.png",
+"floor": null
+},
+"Enemite": {
+"icon": "https://static.wikitide.net/shminerwiki/7/7a/Enemite_Bar.png",
+"floor": null
+},
+"Beepboopium": {
+"icon": "https://static.wikitide.net/shminerwiki/1/19/Beepboopium_Bar.png",
+"floor": null
+},
+"Cranium": {
+"icon": "https://static.wikitide.net/shminerwiki/0/08/Cranium_Bar.png",
+"floor": null
+},
+"Lapis": {
+"icon": "https://static.wikitide.net/shminerwiki/0/09/Lapis_Bar.png",
+"floor": null
+},
+"Quartz": {
+"icon": "https://static.wikitide.net/shminerwiki/b/be/Quartz_Bar.png",
+"floor": null
+},
+"Glacialite": {
+"icon": "https://static.wikitide.net/shminerwiki/0/0f/Glacialite_Bar.png",
+"floor": null
+},
+"Twinklestone": {
+"icon": "https://static.wikitide.net/shminerwiki/f/f4/Twinklestone_Bar.png",
+"floor": null
+},
+"Sandcasium": {
+"icon": "https://static.wikitide.net/shminerwiki/e/e3/Sandcasium_Bar.png",
+"floor": null
+},
+"Clamite": {
+"icon": "https://static.wikitide.net/shminerwiki/7/7b/Clamite_Bar.png",
+"floor": null
+},
+"Thunderstone": {
+"icon": "https://static.wikitide.net/shminerwiki/a/a9/Thunderstone_Bar.png",
+"floor": null
+},
+"Crabrock": {
+"icon": "https://static.wikitide.net/shminerwiki/f/f2/Crabrock_Bar.png",
+"floor": null
+},
+"Hailstone": {
+"icon": "https://static.wikitide.net/shminerwiki/a/ad/Hailstone_Bar.png",
+"floor": null
+},
+"Frostbite": {
+"icon": "https://static.wikitide.net/shminerwiki/8/81/Frostbite_Bar.png",
+"floor": null
+},
+"Icebloom": {
+"icon": "https://static.wikitide.net/shminerwiki/b/be/Icebloom_Bar.png",
+"floor": null
+},
+"Pinguinus": {
+"icon": "https://static.wikitide.net/shminerwiki/1/17/Pinguinus_Bar.png",
+"floor": null
+},
+"Macawrock": {
+"icon": "https://static.wikitide.net/shminerwiki/4/4f/Macawrock_Bar.png",
+"floor": null
+},
+"Cocore": {
+"icon": "https://static.wikitide.net/shminerwiki/d/dd/Cocore_Bar.png",
+"floor": null
+},
+"Rafflenium": {
+"icon": "https://static.wikitide.net/shminerwiki/2/22/Rafflenium_Bar.png",
+"floor": null
+},
+"Carnivorian": {
+"icon": "https://static.wikitide.net/shminerwiki/c/c4/Carnivorian_Bar.png",
+"floor": null
+},
+"Infernite": {
+"icon": "https://static.wikitide.net/shminerwiki/b/bb/Infernite_Bar.png",
+"floor": null
+},
+"Cyrogem": {
+"icon": "https://static.wikitide.net/shminerwiki/3/3c/Cyrogem_Bar.png",
+"floor": null
+},
+"Pinnaclite": {
+"icon": "https://static.wikitide.net/shminerwiki/6/65/Pinnaclite_Bar.png",
+"floor": null
+},
+"Omeletite": {
+"icon": "https://static.wikitide.net/shminerwiki/8/82/Omeletite_Bar.png",
+"floor": null
+},
+"Resinite": {
+"icon": "https://static.wikitide.net/shminerwiki/f/fc/Resinite_Bar.png",
+"floor": null
+},
+"Impactium": {
+"icon": "https://static.wikitide.net/shminerwiki/a/ac/Impactium_Bar.png",
+"floor": null
+},
+"Tricerastone": {
+"icon": "https://static.wikitide.net/shminerwiki/d/d9/Tricerastone_Bar.png",
+"floor": null
+},
+"Duelysium": {
+"icon": "https://static.wikitide.net/shminerwiki/7/7a/Duelysium_Bar.png",
+"floor": null
+},
+"Arcusite": {
+"icon": "https://static.wikitide.net/shminerwiki/e/e4/Arcusite_Bar.png",
+"floor": null
+},
+"Phalanxite": {
+"icon": "https://static.wikitide.net/shminerwiki/2/20/Phalanxite_Bar.png",
+"floor": null
+},
+"Guardium": {
+"icon": "https://static.wikitide.net/shminerwiki/5/5b/Guardium_Bar.png",
+"floor": null
+},
+"Cognite": {
+"icon": "https://static.wikitide.net/shminerwiki/8/8b/Cognite_Bar.png",
+"floor": null
+},
+"Telophite": {
+"icon": "https://static.wikitide.net/shminerwiki/9/9b/Telophite_Bar.png",
+"floor": null
+},
+"Steamstone": {
+"icon": "https://static.wikitide.net/shminerwiki/3/32/Steamstone_Bar.png",
+"floor": null
+},
+"Equinine": {
+"icon": "https://static.wikitide.net/shminerwiki/d/d0/Equinine_Bar.png",
+"floor": null
+},
+"Dynamite": {
+"icon": "https://static.wikitide.net/shminerwiki/b/bc/Dynamite_Bar.png",
+"floor": null
+},
+"Genevium": {
+"icon": "https://static.wikitide.net/shminerwiki/d/d3/Genevium_Bar.png",
+"floor": null
+},
+"Manhattite": {
+"icon": "https://static.wikitide.net/shminerwiki/b/b7/Manhattite_Bar.png",
+"floor": null
+},
+"Rationium": {
+"icon": "https://static.wikitide.net/shminerwiki/4/4c/Rationium_Bar.png",
+"floor": null
+},
+"Vaporium": {
+"icon": "https://static.wikitide.net/shminerwiki/6/6d/Vaporium_Bar.png",
+"floor": null
+},
+"Palmite": {
+"icon": "https://static.wikitide.net/shminerwiki/e/ea/Palmite_Bar.png",
+"floor": null
+},
+"Ransomite": {
+"icon": "https://static.wikitide.net/shminerwiki/0/06/Ransomite_Bar.png",
+"floor": null
+},
+"Chronite": {
+"icon": "https://static.wikitide.net/shminerwiki/5/5d/Chronite_Bar.png",
+"floor": null
+},
+"Hattium": {
+"icon": "https://static.wikitide.net/shminerwiki/5/50/Hattium_Bar.png",
+"floor": null
+},
+"Pishalvite": {
+"icon": "https://static.wikitide.net/shminerwiki/0/0e/Pishalvite_Bar.png",
+"floor": null
+},
+"Teatimium": {
+"icon": "https://static.wikitide.net/shminerwiki/1/1e/Teatimium_Bar.png",
+"floor": null
+},
+"Rumium": {
+"icon": "https://static.wikitide.net/shminerwiki/3/3e/Rumium_Bar.png",
+"floor": null
+},
+"Anchorium": {
+"icon": "https://static.wikitide.net/shminerwiki/4/41/Anchorium_Bar.png",
+"floor": null
+},
+"Mateyum": {
+"icon": "https://static.wikitide.net/shminerwiki/d/d7/Mateyum_Bar.png",
+"floor": null
+},
+"Hookite": {
+"icon": "https://static.wikitide.net/shminerwiki/1/1f/Hookite_Bar.png",
+"floor": null
+},
+"Carpetite": {
+"icon": "https://static.wikitide.net/shminerwiki/2/25/Carpetite_Bar.png",
+"floor": null
+},
+"Djinnium": {
+"icon": "https://static.wikitide.net/shminerwiki/1/1b/Djinnium_Bar.png",
+"floor": null
+},
+"Sinbadium": {
+"icon": "https://static.wikitide.net/shminerwiki/4/43/Sinbadium_Bar.png",
+"floor": null
+},
+"Turbanite": {
+"icon": "https://static.wikitide.net/shminerwiki/c/cf/Turbanite_Bar.png",
+"floor": null
+},
+"Carriagum": {
+"icon": "https://static.wikitide.net/shminerwiki/f/f5/Carriagum_Bar.png",
+"floor": null
+},
+"Frogstone": {
+"icon": "https://static.wikitide.net/shminerwiki/f/f0/Frogstone_Bar.png",
+"floor": null
+},
+"Slipperite": {
+"icon": "https://static.wikitide.net/shminerwiki/c/cd/Slipperite_Bar.png",
+"floor": null
+},
+"Jellystone": {
+"icon": "https://static.wikitide.net/shminerwiki/0/00/Jellystone_Bar.png",
+"floor": null
+},
+"Lollipopite": {
+"icon": "https://static.wikitide.net/shminerwiki/3/3a/Lollipopite_Bar.png",
+"floor": null
+},
+"Mintium": {
+"icon": "https://static.wikitide.net/shminerwiki/5/57/Mintium_Bar.png",
+"floor": null
+},
+"Neopolium": {
+"icon": "https://static.wikitide.net/shminerwiki/1/1e/Neopolium_Bar.png",
+"floor": null
+}
+}

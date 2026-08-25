@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IOM Progress Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1a1420; --panel:#3d1f24; --panel2:#4a2830; --line:#7a4a52;
+  --ink:#f5e9dc; --muted:#c9a9a2;
+  --cyan:#5ce1e6; --violet:#9d84ff; --green:#82e58d; --amber:#ffc56b; --red:#ff7d8d;
+  --gold:#f4c542; --poly:#ff9de2; --inf:#ff5a3c;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:'Press Start 2P',monospace;font-size:10px;line-height:1.8;
+  background:
+   radial-gradient(circle at 80% 0%, #4a2a4f55, transparent 50%),
+   radial-gradient(circle at 10% 100%, #2a3a5f44, transparent 50%),
+   repeating-linear-gradient(0deg,#191320 0 4px,#161019 4px 8px);
+  min-height:100vh}
+.app{max-width:1200px;margin:0 auto;padding:18px 14px 90px}
+h1{font-size:13px;color:var(--amber);text-shadow:3px 3px 0 #000;margin:6px 0}
+h2{font-size:10px;color:var(--ink);background:var(--panel2);border:3px solid var(--line);
+  border-radius:4px;display:inline-block;padding:7px 14px;margin:18px 0 12px;text-shadow:2px 2px 0 #000}
+h3{font-size:9px;color:var(--amber)}
+.muted{color:var(--muted);font-size:9px} .ok{color:var(--green)} .warn{color:var(--amber)}
+code{font-family:inherit;font-size:8px;color:var(--muted)}
+
+/* ---- menu principal façon jeu ---- */
+.menu-section{margin:16px 0}
+.menu-grid{display:flex;flex-wrap:wrap;gap:14px}
+.menu-btn{width:92px;background:linear-gradient(#a03038,#7c222b);border:4px solid #d86a6a;
+  border-radius:8px;box-shadow:0 5px 0 #000000aa, inset 0 0 0 2px #00000055;
+  color:#fff;text-align:center;padding:12px 4px 10px;cursor:pointer;user-select:none}
+.menu-btn:hover{filter:brightness(1.15)}
+.menu-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #000}
+.menu-btn .ic{font-size:22px;display:block;margin-bottom:8px;filter:drop-shadow(2px 2px 0 #00000066);height:44px;display:flex;align-items:center;justify-content:center}
+.menu-btn .ic img{width:44px;height:44px;image-rendering:auto;border-radius:6px}
+.menu-btn .lb{font-size:7px;line-height:1.4;display:block}
+.menu-btn.dim{filter:grayscale(.8) brightness(.6);pointer-events:none}
+
+/* ---- panneaux ---- */
+.panel{background:var(--panel);border:4px solid var(--line);border-radius:8px;
+  box-shadow:0 0 0 3px #120d16, 5px 7px 0 #00000088;padding:16px;margin:12px 0}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+nav button{font:inherit;font-size:8px;background:var(--panel2);color:var(--muted);
+  border:3px solid var(--line);border-radius:5px;padding:9px 11px;cursor:pointer;box-shadow:0 4px 0 #00000088}
+nav button.on{background:#a03038;color:#fff;border-color:#d86a6a}
+nav button:active{transform:translateY(3px);box-shadow:none}
+.pixbtn{font:inherit;font-size:8px;background:linear-gradient(#5a48b8,#44359a);color:#fff;
+  border:3px solid #c7b8ff;border-radius:5px;padding:8px 12px;cursor:pointer;box-shadow:0 4px 0 #00000088}
+.pixbtn.gold{background:linear-gradient(#b8862c,#8a621c);border-color:#ffd97a}
+.pixbtn.poly{background:linear-gradient(#b83c92,#8a2a6c);border-color:#ff9de2}
+.pixbtn.inf{background:linear-gradient(#b83c2c,#8a2218);border-color:#ff8a7a}
+.pixbtn.ghost{background:var(--panel2);color:var(--muted);border-color:var(--line)}
+.pixbtn.on{outline:3px solid var(--amber)}
+.pixbtn:active{transform:translateY(3px);box-shadow:none}
+textarea{width:100%;height:120px;background:#120d16;color:#d8c8ee;border:3px solid var(--line);
+  border-radius:5px;padding:10px;font:9px/1.6 monospace;resize:vertical;outline:none}
+input[type=number],input[type=text],select{background:#120d16;color:var(--ink);border:3px solid var(--line);
+  border-radius:5px;padding:7px 9px;font:inherit;font-size:9px}
+.msg{margin-top:8px;font-size:9px}.msg.err{color:var(--red)}.msg.ok{color:var(--green)}
+
+/* ---- grille cards : 9 par ligne, dos de carte du jeu en fond ---- */
+.cardgrid{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:10px}
+@media(max-width:900px){.cardgrid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:560px){.cardgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.card{aspect-ratio:2/3;cursor:pointer;user-select:none;text-align:center;padding:6px 3px;border-radius:8px;
+  border:none;background-size:cover;background-position:center;transition:transform .08s;position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+.card:hover{transform:translateY(-3px)}
+.card .em{font-size:18px;display:block;margin-bottom:4px}
+.card img.em{width:30px;height:30px;margin-left:auto;margin-right:auto;filter:drop-shadow(1px 1px 0 #00000088)}
+.card .nm{font-size:6px;line-height:1.4;color:#fff;text-shadow:1px 1px 0 #000}
+.card .st{display:none}
+.card.locked{filter:grayscale(1) brightness(.45)}
+.card.locked .nm{color:#aaa}
+/* états = couleurs de dos de carte */
+.st0{background:#241a20;color:#8a7a80;border:2px solid #4a3a40}
+.st1{background:#3a5a8a;color:#dce8ff;border:2px solid #7aa0e0}
+.st2{background:#8a6a1c;color:#ffe9a8;border:2px solid #ffd97a}
+.st3{background:#8a2a6c;color:#ffd6f2;border:2px solid #ff9de2}
+.st4{background:#8a2218;color:#ffcabb;border:2px solid #ff5a3c;box-shadow:0 0 10px #ff5a3c66}
+.card.glow{box-shadow:0 0 12px currentColor}
+.wtag{display:inline-block;font-size:6px;color:var(--muted);margin-top:3px;border:2px solid var(--line);border-radius:3px;padding:1px 4px}
+.card .em{font-size:20px;display:block;margin-bottom:4px}
+
+/* ---- statues : 3x3 façon jeu, grandes tuiles ---- */
+.statue-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px}
+@media(max-width:640px){.statue-grid{gap:10px}}
+.statue{cursor:pointer;display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:18px 12px;border-radius:8px;min-height:0}
+.statue img{width:96px;height:96px;max-width:40%;image-rendering:pixelated;filter:drop-shadow(2px 3px 0 #00000066);margin-bottom:10px}
+.statue .nm{font-size:9px;color:var(--ink)}
+.statue .author{font-size:7px;color:var(--muted);margin-top:3px}
+.statue small{color:var(--muted);font-size:7.5px;line-height:1.6;margin-top:8px;display:flex;flex-direction:column;gap:3px}
+.statue small .bl{display:block}
+.statue.ss0 img{filter:grayscale(1) brightness(.45) drop-shadow(2px 3px 0 #00000066)}
+.statue.ss0 .nm{color:#77707a}
+.statue.ss1{border-color:#7aa0e0;background:#22304a}
+.statue.ss2{border-color:#ffd97a;background:#4a3a14}
+.statue.ss3{border-color:#f2f6ff;background:#3a4450;box-shadow:0 0 14px #ffffff44}
+.statue:hover{transform:translateY(-3px)}
+
+/* ---- pets ---- */
+.petrow{display:flex;gap:12px;align-items:center;padding:10px;border-bottom:3px solid var(--line);flex-wrap:wrap}
+.petrow:last-child{border:0}
+.pet-em{font-size:26px;filter:drop-shadow(2px 2px 0 #00000066)}
+.petrow.locked{opacity:.55}
+.petchip{font:inherit;font-size:7px;background:#241a20;color:var(--muted);border:2px solid var(--line);
+  border-radius:999px;padding:4px 9px;cursor:pointer}
+.petchip.on{color:#ffe9a8;border-color:#ffd97a;background:#8a6a1c33}
+.pet-unlocks{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.pet-info{flex:1;min-width:200px}
+.pet-info b{color:var(--amber);font-size:9px}
+.pet-info p{margin:3px 0 0;color:var(--muted);font-size:8px}
+.lvbtns{display:flex;gap:5px;align-items:center}
+.lvbtns button{width:34px;height:34px;font-size:12px}
+.lvval{min-width:52px;text-align:center;background:#120d16;border:3px solid var(--line);border-radius:5px;padding:7px 4px;color:var(--cyan)}
+
+/* ---- artefacts / skills / stars ---- */
+.artgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.art{background:#2a1a20;border:3px solid var(--line);border-radius:6px;padding:10px}
+.art b{color:var(--cyan);font-size:8px;display:block;margin-bottom:6px}
+.art small{color:var(--muted);font-size:7px;display:block;margin-bottom:6px}
+.art .row{display:flex;gap:6px;align-items:center}
+.art input{width:64px}
+.skillrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
+.skillrow:last-child{border:0}
+.skillrow .nm{flex:1;min-width:160px}
+.tag{font-size:7px;padding:2px 6px;border-radius:3px;background:#8a6a1c;color:#ffe9a8;border:2px solid #ffd97a}
+
+/* dashboard */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.cell{background:#2a1a20;border:3px solid var(--line);border-radius:6px;padding:10px}
+.cell span{color:var(--muted);font-size:7px;display:block;margin-bottom:5px;text-transform:uppercase}
+.cell b{color:var(--cyan);font-size:10px;word-break:break-all}
+.rec{display:flex;gap:12px;padding:12px 0;border-bottom:3px solid var(--line)}
+.rec:last-child{border:0}
+.rank{min-width:34px;height:34px;background:#000;color:var(--amber);border:3px solid var(--amber);
+  display:grid;place-items:center;border-radius:5px;font-size:12px;flex-shrink:0}
+.rec strong{display:block;margin-bottom:4px;font-size:9px}
+.rec p{color:var(--muted);margin:5px 0 3px;font-size:8px}
+.conf{font-size:7px;padding:3px 6px;border-radius:3px;border:2px solid var(--line)}
+.bar{height:14px;background:#120d16;border:3px solid var(--line);max-width:400px;margin-top:6px}
+.bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--green) 0 8px,#63c46d 8px 16px)}
+.blocked{color:var(--red);font-size:8px;margin-top:10px}
+.page.hidden{display:none}
+.statline{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:2px solid #4a3a40;font-size:8px}
+.statline span{color:var(--muted);word-break:break-all}
+.statline b{color:var(--ink)}
+@media(max-width:640px){.menu-btn{width:78px}.app{padding:12px 8px 80px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <h1>⛏ IOM PROGRESS ASSISTANT</h1>
+  <p class="muted" id="topVersion">Importe ton exportstats pour activer l'assistant.</p>
+</header>
+
+<!-- ============ MENU PRINCIPAL façon jeu ============ -->
+<div id="mainMenu">
+  <div class="menu-section"><h2>Permanent</h2>
+    <div class="menu-grid">
+      <div class="menu-btn" data-go="prestige"><span class="ic"><img src="assets/menu/Prestige_Button.png" alt=""></span><span class="lb">Prestige</span></div>
+      <div class="menu-btn" data-go="cards"><span class="ic"><img src="assets/menu/Cards_Button.png" alt=""></span><span class="lb">Cards</span></div>
+      <div class="menu-btn" data-go="pets"><span class="ic"><img src="assets/menu/Pets_Button.png" alt=""></span><span class="lb">Pets</span></div>
+      <div class="menu-btn" data-go="artifacts"><span class="ic">🏺</span><span class="lb">Artefacts</span></div>
+      <div class="menu-btn" data-go="skills"><span class="ic"><img src="assets/menu/Skill-Tree_Button.png" alt=""></span><span class="lb">Skill-Tree</span></div>
+      <div class="menu-btn" data-go="construct"><span class="ic"><img src="assets/menu/Construct_Button_Gilded.png" alt=""></span><span class="lb">Construct</span></div>
+      <div class="menu-btn" data-go="stars"><span class="ic"><img src="assets/menu/Stargazing_Button.png" alt=""></span><span class="lb">Stargazing</span></div>
+      <div class="menu-btn" data-go="fishing"><span class="ic"><img src="assets/menu/Fishing_Button.png" alt=""></span><span class="lb">Fishing</span></div>
+    </div>
+  </div>
+  <div class="menu-section"><h2>Miscellaneous</h2>
+    <div class="menu-grid">
+      <div class="menu-btn" data-go="dashboard"><span class="ic"><img src="assets/menu/Stats_Button.png" alt=""></span><span class="lb">Dashboard</span></div>
+      <div class="menu-btn" data-go="export"><span class="ic">📥</span><span class="lb">ExportStats</span></div>
+      <div class="menu-btn" data-go="history"><span class="ic">🕓</span><span class="lb">Historique</span></div>
+      <div class="menu-btn" data-go="knowledge"><span class="ic">📚</span><span class="lb">Knowledge</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAGES ============ -->
+<div id="pages">
+
+<!-- DASHBOARD -->
+<section id="page-dashboard" class="page hidden">
+  <div class="panel"><h2>Profil joueur</h2><div class="grid" id="dashProfile"></div></div>
+  <div class="panel"><h2>Mon prochain objectif</h2><div id="roadList"></div>
+    <p class="muted">🟢 Confirmé · 🟡 Probable · 🔴 Données insuffisantes</p></div>
+</section>
+
+<!-- EXPORT -->
+<section id="page-export" class="page hidden">
+  <div class="panel"><h2>Importer mon ExportStats</h2>
+    <textarea id="statsText" placeholder='{"version":"v2.2.6","time":...,"stats":{...}}'></textarea>
+    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+      <button class="pixbtn" id="btnImport">ANALYSER</button>
+      <label class="pixbtn ghost">FICHIER<input type="file" id="btnFile" accept=".json" hidden></label>
+    </div>
+    <p id="importMsg" class="msg"></p></div>
+  <div class="panel"><h2>Toutes les statistiques importées</h2><div id="allStats"></div></div>
+</section>
+
+<!-- CARDS -->
+<section id="page-cards" class="page hidden">
+  <div class="panel">
+    <h2>Cards — clique pour évoluer : Standard → Gilded → Polychrome → Infernal</h2>
+    <p class="muted">Gilded coûte PP + Or + Gemmes · Polychrome nécessite le skill « This Is Gonna Take A While.. » (40 pts) + 10 shards · Infernal : set par set, 10 shards.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0">
+      <button class="pixbtn gold"  data-bulk="2">Tout Gilded</button>
+      <button class="pixbtn poly"  data-bulk="3">Tout Polychrome</button>
+      <button class="pixbtn inf"   data-bulk="4">Tout Infernal</button>
+      <button class="pixbtn ghost" data-bulk="0">Tout effacer</button>
+      <span class="muted" id="cardCounts"></span>
+    </div>
+    <div id="cardSets"></div>
+  </div>
+</section>
+
+<!-- PETS -->
+<section id="page-pets" class="page hidden">
+  <div class="panel"><h2>Pets — niveau actuel (clique +/−)</h2><div id="petList"></div>
+  <p class="muted">Total niveaux requis pour débloquer le suivant. Skins : -15 à -30% de coût de level up + bonus (ex : Not A Duck = armure Obelisk -10%).</p></div>
+</section>
+
+<!-- ARTEFACTS -->
+<section id="page-artifacts" class="page hidden">
+  <div class="panel"><h2>Artefacts Prestige — niveaux actuels</h2><div class="artgrid" id="artGrid"></div></div>
+</section>
+
+<!-- SKILLS -->
+<section id="page-skills" class="page hidden">
+  <div class="panel"><h2>Skill-Tree — compétences possédées</h2><div id="skillList"></div></div>
+</section>
+
+<!-- CONSTRUCT -->
+<section id="page-construct" class="page hidden">
+  <div class="panel"><h2>Construct — Statues</h2>
+    <p class="muted">Note tes statues possédées par monde. W3/W4 : noms à confirmer — champ libre pour l'instant.</p>
+    <div id="statueList"></div></div>
+  <div class="panel"><h2>Monuments</h2><div id="monumentList"></div></div>
+</section>
+
+<!-- STARGAZING -->
+<section id="page-stars" class="page hidden">
+  <div class="panel"><h2>Stargazing — étoiles possédées</h2><div id="starList"></div>
+  <p class="muted">Liste partielle : complète-la au fil de tes débloquages (page wiki Stargazing).</p></div>
+</section>
+
+<!-- FISHING -->
+<section id="page-fishing" class="page hidden">
+  <div class="panel"><h2>Fishing — tes stats importées</h2><div id="fishingStats"></div></div>
+</section>
+
+<!-- HISTORIQUE -->
+<section id="page-history" class="page hidden">
+  <div class="panel"><h2>Historique des exports</h2><select id="histSelect"></select><div id="histOut" style="margin-top:12px"></div></div>
+</section>
+
+<!-- KNOWLEDGE -->
+<section id="page-knowledge" class="page hidden">
+  <div class="panel"><h2>Base de connaissances</h2>
+    <p class="muted">Données dans src/game/*.js — knowledgeBase (formules, caps, déblocages), cards.js (sets + misc + pets + stars), collections.js (ton état local).
+    Pour ajouter une source communautaire : KB.FARMING.registerSource(nom, data).</p></div>
+</section>
+
+</div>
+</div>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+[
+{
+"id": "Tin",
+"floor": "1-2",
+"mod": null
+},
+{
+"id": "Copper",
+"floor": "1-4",
+"mod": null
+},
+{
+"id": "Mithril",
+"floor": "3-6",
+"mod": null
+},
+{
+"id": "Adamant",
+"floor": "5-8",
+"mod": null
+},
+{
+"id": "Runite",
+"floor": "7-10",
+"mod": null
+},
+{
+"id": "Citrine",
+"floor": "9-12",
+"mod": null
+},
+{
+"id": "Amethyst",
+"floor": "11-14",
+"mod": null
+},
+{
+"id": "Topaz",
+"floor": "13-16",
+"mod": null
+},
+{
+"id": "Obsidian",
+"floor": "15-18",
+"mod": "1.37k"
+},
+{
+"id": "Demonite",
+"floor": "17-18",
+"mod": "2.69k"
+},
+{
+"id": "Lunarium",
+"floor": "25-26",
+"mod": "45.98k"
+},
+{
+"id": "Meteorite",
+"floor": "27-30",
+"mod": "108.06k"
+},
+{
+"id": "Singularity",
+"floor": "29-30",
+"mod": "154.89k"
+},
+{
+"id": "Halium",
+"floor": "31-32",
+"mod": "211.69k"
+},
+{
+"id": "Blasphemite",
+"floor": "31-34",
+"mod": "275.19k"
+},
+{
+"id": "Angelite",
+"floor": "33-36",
+"mod": "339.40k"
+},
+{
+"id": "Elysium",
+"floor": "35-36",
+"mod": "395.97k"
+},
+{
+"id": "Enemite",
+"floor": "37-38",
+"mod": "435.57k"
+},
+{
+"id": "Beepboopium",
+"floor": "37-40",
+"mod": "450.09k"
+},
+{
+"id": "Cranium",
+"floor": "41-42",
+"mod": "450.09k"
+},
+{
+"id": "Lapis",
+"floor": "43-44",
+"mod": "Super crit+ only"
+},
+{
+"id": "Quartz",
+"floor": "43-46",
+"mod": "Damage -50%"
+},
+{
+"id": "Glacialite",
+"floor": "45-48",
+"mod": "Bomb Damage -75%"
+},
+{
+"id": "Twinklestone",
+"floor": "47-48",
+"mod": "Health +200%"
+},
+{
+"id": "Sandcasium",
+"floor": "49-50",
+"mod": "Bomb Damage -75%"
+},
+{
+"id": "Clamite",
+"floor": "49-52",
+"mod": "Super crit+ only"
+},
+{
+"id": "Thunderstone",
+"floor": "51-54",
+"mod": "Damage -60%"
+},
+{
+"id": "Crabrock",
+"floor": "53-54",
+"mod": "Health +300%"
+},
+{
+"id": "Hailstone",
+"floor": "55-56",
+"mod": "Ultra crit+ only"
+},
+{
+"id": "Frostbite",
+"floor": "55-58",
+"mod": "Ultra crit+ only"
+},
+{
+"id": "Icebloom",
+"floor": "57-60",
+"mod": "Health +300%"
+},
+{
+"id": "Pinguinus",
+"floor": "59-60",
+"mod": "Health +400%"
+},
+{
+"id": "Macawrock",
+"floor": "61-62",
+"mod": "Bomb Damage -85%"
+},
+{
+"id": "Cocore",
+"floor": "61-64",
+"mod": "Ultra crit+ only"
+},
+{
+"id": "Rafflenium",
+"floor": "63-66",
+"mod": "Health +500%"
+},
+{
+"id": "Carnivorian",
+"floor": "65-66",
+"mod": "Rainbow multi 0.50x"
+},
+{
+"id": "Infernite",
+"floor": "67-68",
+"mod": "Bomb recharge 0.40x"
+},
+{
+"id": "Cyrogem",
+"floor": "69-72",
+"mod": "Golden floor = 50%"
+},
+{
+"id": "Pinnaclite",
+"floor": "71-72",
+"mod": "Game speed -25%"
+},
+{
+"id": "Omeletite",
+"floor": "73-74",
+"mod": "Health +600%"
+},
+{
+"id": "Resinite",
+"floor": "73-76",
+"mod": "Ultra crit+ only"
+},
+{
+"id": "Impactium",
+"floor": "75-78",
+"mod": "Golden floor = 50%"
+},
+{
+"id": "Tricerastone",
+"floor": "77-78",
+"mod": "Health +800%"
+},
+{
+"id": "Duelysium",
+"floor": "79-80",
+"mod": "Ultra crit+ only"
+},
+{
+"id": "Arcusite",
+"floor": "79-82",
+"mod": "Bomb recharge 0.30x"
+},
+{
+"id": "Phalanxite",
+"floor": "81-84",
+"mod": "Golden floor = 45%"
+},
+{
+"id": "Guardium",
+"floor": "83-84",
+"mod": "Damage -85%"
+},
+{
+"id": "Cognite",
+"floor": "85-87",
+"mod": "Rainbow multi 0.50x"
+},
+{
+"id": "Telophite",
+"floor": "85-89",
+"mod": "Omega crit+ only"
+},
+{
+"id": "Steamstone",
+"floor": "87-90",
+"mod": "Golden Floor = 40%"
+},
+{
+"id": "Equinine",
+"floor": "89-90",
+"mod": "Game speed -25%"
+},
+{
+"id": "Dynamite",
+"floor": "91-92",
+"mod": "Game speed -25%"
+},
+{
+"id": "Genevium",
+"floor": "91-94",
+"mod": "Golden floor = 45%"
+},
+{
+"id": "Manhattite",
+"floor": "93-96",
+"mod": "Omega Crit+ only"
+},
+{
+"id": "Rationium",
+"floor": "95-96",
+"mod": "Health +800%"
+},
+{
+"id": "Vaporium",
+"floor": "97-98",
+"mod": "Game speed -25%"
+},
+{
+"id": "Palmite",
+"floor": "97-100",
+"mod": "Health +800%"
+},
+{
+"id": "Ransomite",
+"floor": "99-102",
+"mod": "Golden floor = 40%"
+},
+{
+"id": "Chronite",
+"floor": "103-104",
+"mod": "Bomb recharge 0.35x"
+},
+{
+"id": "Hattium",
+"floor": "103-106",
+"mod": "Portal chance 0.40x"
+},
+{
+"id": "Pishalvite",
+"floor": "105-108",
+"mod": "Golden floor = 40%"
+},
+{
+"id": "Teatimium",
+"floor": "107-108",
+"mod": "Item buff drain 2x"
+},
+{
+"id": "Rumium",
+"floor": "109-110",
+"mod": "Rainbow multi 0.40x"
+},
+{
+"id": "Anchorium",
+"floor": "109-112",
+"mod": "Freebie rate 0.40x"
+},
+{
+"id": "Mateyum",
+"floor": "111-114",
+"mod": "Golden floor = 35%"
+},
+{
+"id": "Hookite",
+"floor": "113-114",
+"mod": "Lootbug spawn 0.35x"
+},
+{
+"id": "Carpetite",
+"floor": "115-116",
+"mod": "G.Ore Multi 0.50x"
+},
+{
+"id": "Djinnium",
+"floor": "115-118",
+"mod": "Fuel depletion 2x"
+},
+{
+"id": "Sinbadium",
+"floor": "117-120",
+"mod": "Golden floor = 30%"
+},
+{
+"id": "Turbanite",
+"floor": "119-120",
+"mod": "Game speed -30%"
+},
+{
+"id": "Carriagum",
+"floor": "121-122",
+"mod": "Health +800%"
+},
+{
+"id": "Frogstone",
+"floor": "123-126",
+"mod": "Prismatic Chance -15%"
+},
+{
+"id": "Slipperite",
+"floor": "125-126",
+"mod": "Bomb recharge 0.35x"
+},
+{
+"id": "Jellystone",
+"floor": "127-128",
+"mod": "Health +800%"
+},
+{
+"id": "Lollipopite",
+"floor": "127-130",
+"mod": "Golden floor = 30%"
+},
+{
+"id": "Mintium",
+"floor": "129-132",
+"mod": "Portal chance 0.40x"
+},
+{
+"id": "Neopolium",
+"floor": "131-132",
+"mod": "Freebie rate 0.40x"
+}
+]
