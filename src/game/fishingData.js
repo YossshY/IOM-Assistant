@@ -67,6 +67,31 @@ export const ENHANCE_T2 = [
   { id:'e2_t2_dock', name:'Tier 2 Dock Power', per:'+0.05x', max:20 },
 ];
 
+/** Fishing Upgrades (fish currency) — wiki Fishing#Upgrades */
+export const FISH_UPGRADES_T1 = [
+  { id:'u1_rod', name:'Fishing Rod', per:'x1.16 power', max:60 },
+  { id:'u1_drone', name:'Fishing Drone +1', per:'+1 drone', max:50 },
+  { id:'u1_boat', name:'Upgrade Boat', per:'+1 boat level', max:5 },
+  { id:'u1_tick', name:'Tick Speed', per:'+0.50s', max:40 },
+  { id:'u1_fish_multi', name:'Fish Multiplier', per:'+0.03x', max:30 },
+  { id:'u1_rod_multi', name:'Rod Multiplier', per:'+0.04x', max:20 },
+  { id:'u1_drone_multi', name:'Drone Multiplier', per:'+0.06x', max:20 },
+  { id:'u1_dbl_tick', name:'Double Tick Chance', per:'+0.50%', max:30 },
+  { id:'u1_drone2', name:'Fishing Drone +2', per:'+2 drones', max:30 },
+  { id:'u1_shiny', name:'Shiny Fish Chance', per:'+0.50%', max:25 },
+  { id:'u1_drone_base', name:'Drone Base Power', per:'+0.25', max:30 },
+  { id:'u1_triple', name:'Triple Tick Chance', per:'+0.35%', max:25 },
+];
+
+export const FISH_UPGRADES_T2 = [
+  { id:'u2_boat', name:'Upgrade Tier 2 Boat', per:'+1 T2 boat', max:5 },
+  { id:'u2_shiny_multi', name:'Shiny Multiplier', per:'+0.05x', max:20 },
+  { id:'u2_dock_power', name:'Tier 2 Dock Power', per:'+0.05x', max:20 },
+  { id:'u2_super_shiny', name:'Super Shiny Chance', per:'+1%', max:20 },
+  { id:'u2_poly', name:'Poly Card Multi', per:'+0.08x', max:25 },
+  { id:'u2_cloner', name:'Drone Cloner', per:'+0.05x drones', max:30 },
+];
+
 /** Legendary fish — tribute ranks 0..2 (wiki Fishing#Tributes) */
 export const LEGENDARY_FISH = [
   { id:'rainbow_trout', name:'Rainbow Trout', dock:'lake', card:'Rainbow Floor Multi',

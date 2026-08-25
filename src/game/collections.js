@@ -119,6 +119,10 @@ export function setFishLv(col,bucket,id,lv){ col.fishing||={}; col.fishing[bucke
 export function getFishLv(col,bucket,id){ return ((col.fishing||{})[bucket]||{})[id]|0; }
 export function setDockUnlocked(col,id,on){ col.fishing||={}; col.fishing.docks||={}; col.fishing.docks[id]=!!on; }
 export function isDockUnlocked(col,id){ return !!((col.fishing||{}).docks||{})[id]; }
+export function setResearchUnlock(col,id,on){ col.research||={}; col.research.unlock||={}; col.research.unlock[id]=!!on; }
+export function hasResearchUnlock(col,id){ return !!((col.research||{}).unlock||{})[id]; }
+export function setResearchSpawn(col,id,on){ col.research||={}; col.research.spawn||={}; col.research.spawn[id]=!!on; }
+export function hasResearchSpawn(col,id){ return !!((col.research||{}).spawn||{})[id]; }
 export function setArchLv(col,bucket,id,lv){ col.arch||={}; col.arch[bucket]||={}; col.arch[bucket][id]=Math.max(0,lv|0); }
 export function getArchLv(col,bucket,id){ return ((col.arch||{})[bucket]||{})[id]|0; }
 export function setArchHighestStage(col,n){ col.arch||={}; col.arch.highestStage=Math.max(0,n|0); }

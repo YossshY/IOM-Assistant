@@ -85,7 +85,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .card:hover{transform:translateY(-3px)}
 .card-art{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0;padding:2% 0 0}
 .card .em,.card img.em{display:block;margin:0;font-size:22px;line-height:1}
-.card img.em{width:72%;max-width:none;height:auto;max-height:58%;object-fit:contain;
+.card img.em{width:auto;height:auto;max-width:68%;max-height:52%;object-fit:contain;
   image-rendering:pixelated;image-rendering:crisp-edges;filter:none}
 .card-foot{flex:0 0 auto;margin-top:auto;padding:2px 2px 0;display:flex;flex-direction:column;align-items:center;gap:2px;
   min-height:28%}
@@ -133,21 +133,20 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .statue-meta{margin:8px 0 18px;color:var(--muted);font-size:8px}
 
 /* ---- pets ---- */
-.petrow{display:flex;gap:12px;align-items:center;padding:10px;border-bottom:3px solid var(--line);flex-wrap:wrap}
+.petrow{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:8px 6px;border-bottom:2px solid var(--line)}
 .petrow:last-child{border:0}
-.pet-em{font-size:26px;filter:drop-shadow(2px 2px 0 #00000066)}
-.petrow.locked{opacity:.55}
-.petchip{font:inherit;font-size:7px;background:#241a20;color:var(--muted);border:2px solid var(--line);
-  border-radius:999px;padding:4px 9px;cursor:pointer}
+.pet-em{width:40px;height:40px;object-fit:contain;image-rendering:pixelated}
+.petrow.locked{opacity:.5}
+.petchip{font:inherit;font-size:6.5px;background:#241a20;color:var(--muted);border:2px solid var(--line);
+  border-radius:4px;padding:3px 7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
 .petchip.on{color:#ffe9a8;border-color:#ffd97a;background:#8a6a1c33}
-.pet-unlocks{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
-.pet-info{flex:1;min-width:200px}
-.pet-info b{color:var(--amber);font-size:9px}
-.pet-info p{margin:3px 0 0;color:var(--muted);font-size:8px}
-.lvbtns{display:flex;gap:5px;align-items:center}
-.lvbtns button{width:34px;height:34px;font-size:12px}
-.lvval{min-width:52px;text-align:center;background:#120d16;border:3px solid var(--line);border-radius:5px;padding:7px 4px;color:var(--cyan)}
-
+.pet-unlocks{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.pet-info{min-width:0}
+.pet-info b{color:var(--amber);font-size:8px}
+.pet-info p{margin:2px 0 0;color:var(--muted);font-size:7px;line-height:1.35}
+.lvbtns{display:flex;gap:4px;align-items:center}
+.lvbtns button{width:30px;height:30px;font-size:11px;padding:0}
+.lvval{min-width:48px;text-align:center;background:#120d16;border:2px solid var(--line);border-radius:4px;padding:5px 3px;color:var(--cyan);font-size:8px}
 /* ---- artefacts / prestige (layout jeu) ---- */
 .prestige-hint{color:var(--muted);font-size:8px;margin:0 0 12px;line-height:1.6}
 .prestige-list{display:flex;flex-direction:column;gap:14px}
@@ -254,12 +253,14 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
       <div class="menu-btn" data-go="drones"><span class="ic"><img src="assets/menu/Drones_Button.png" alt=""></span><span class="lb">Drones</span></div>
       <div class="menu-btn" data-go="skills"><span class="ic"><img src="assets/menu/Skill-Tree_Button.png" alt=""></span><span class="lb">Skill-Tree</span></div>
       <div class="menu-btn" data-go="challenges"><span class="ic"><img src="assets/menu/Challenges_Button_Extreme.png" alt=""></span><span class="lb">Challenges</span></div>
+      <div class="menu-btn" data-go="shop"><span class="ic"><img src="assets/menu/Store_Button.png" alt=""></span><span class="lb">Shop</span></div>
       <div class="menu-btn" data-go="cards"><span class="ic"><img src="assets/menu/Cards_Button.png" alt=""></span><span class="lb">Cards</span></div>
       <div class="menu-btn" data-go="pets"><span class="ic"><img src="assets/menu/Pets_Button.png" alt=""></span><span class="lb">Pets</span></div>
       <div class="menu-btn" data-go="construct"><span class="ic"><img src="assets/menu/Construct_Button_Gilded.png" alt=""></span><span class="lb">Construct</span></div>
       <div class="menu-btn" data-go="stars"><span class="ic"><img src="assets/menu/Stargazing_Button.png" alt=""></span><span class="lb">Stargazing</span></div>
       <div class="menu-btn" data-go="fishing"><span class="ic"><img src="assets/menu/Fishing_Button.png" alt=""></span><span class="lb">Fishing</span></div>
       <div class="menu-btn" data-go="archaeology"><span class="ic"><img src="assets/menu/Arch_Button.png" alt=""></span><span class="lb">Archaeology</span></div>
+      <div class="menu-btn dim" data-go="arcanist" title="OB70 — pas encore débloqué"><span class="ic"><img src="assets/menu/Arcanist_Button.png" alt=""></span><span class="lb">Arcanist</span></div>
     </div>
   </div>
   <div class="menu-section"><h2>Miscellaneous</h2>
@@ -364,11 +365,10 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- DRONES -->
 <section id="page-drones" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Upgrades / Suits / Fuel — cores & fuel grades se remplissent depuis l'export.</p>
+    <p class="prestige-hint">Comme le jeu : <b>Upgrades</b> (cores + suits) et <b>Drone Level</b> (grades). Cores & grades se remplissent depuis l'export.</p>
     <div class="tab-row" id="droneTabs">
       <button class="pixbtn on" data-dronetab="upgrades">Upgrades</button>
-      <button class="pixbtn ghost" data-dronetab="suits">Suits</button>
-      <button class="pixbtn ghost" data-dronetab="fuel">Fuel</button>
+      <button class="pixbtn ghost" data-dronetab="levels">Drone Level</button>
     </div>
     <div class="prestige-toolbar"><span class="muted" id="droneHint"></span></div>
     <div class="prestige-list" id="droneGrid"></div>
@@ -383,7 +383,6 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
       <button class="pixbtn on" data-chaltab="regular">Regular</button>
       <button class="pixbtn ghost" data-chaltab="extreme">Extreme</button>
       <button class="pixbtn ghost" data-chaltab="divine">Divine</button>
-      <button class="pixbtn ghost" data-chaltab="shop">Shop</button>
     </div>
     <div class="prestige-toolbar">
       <button class="pixbtn gold" id="btnChalAllDone">TOUT FAIT (onglet)</button>
@@ -394,12 +393,31 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
   </div>
 </section>
 
+<!-- SHOP -->
+<section id="page-shop" class="page hidden">
+  <div class="panel">
+    <p class="prestige-hint">Shop Regular / Extreme / Divine — coins de challenges (pas dans l'export).</p>
+    <div class="prestige-toolbar">
+      <button class="pixbtn gold" id="btnShopMaxAll">TOUT MAXER</button>
+      <button class="pixbtn ghost" id="btnShopClear">TOUT À 0</button>
+      <span class="muted" id="shopHint"></span>
+    </div>
+    <div class="prestige-list" id="shopGrid"></div>
+  </div>
+</section>
+
 <!-- CONSTRUCT -->
 <section id="page-construct" class="page hidden">
-  <div class="panel"><h2>Construct — Statues</h2>
-    <p class="muted">Remplies automatiquement depuis exportstats (statue_N_set1/2/3 = W1/W3/W4). Clic pour corriger.</p>
-    <div id="statueList"></div></div>
-  <div class="panel"><h2>Monuments</h2><div id="monumentList"></div></div>
+  <div class="panel">
+    <p class="prestige-hint">Construct (OB19+) — Research (veines), Statues, Monuments.</p>
+    <div class="tab-row" id="constructTabs">
+      <button class="pixbtn on" data-constructtab="statues">Statues</button>
+      <button class="pixbtn ghost" data-constructtab="research">Research</button>
+      <button class="pixbtn ghost" data-constructtab="monuments">Monuments</button>
+    </div>
+    <div class="prestige-toolbar"><span class="muted" id="constructHint"></span></div>
+    <div id="constructBody"></div>
+  </div>
 </section>
 
 <!-- STARGAZING -->
@@ -424,11 +442,10 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- FISHING -->
 <section id="page-fishing" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Fishing (OB37+) — stats depuis export · docks / notices / enhance / legendaries manuels.</p>
+    <p class="prestige-hint">Fishing (OB37+) — Notices / Upgrades / Enhance / Legendary (comme le jeu).</p>
     <div class="tab-row" id="fishTabs">
-      <button class="pixbtn on" data-fishtab="stats">Stats</button>
-      <button class="pixbtn ghost" data-fishtab="docks">Docks</button>
-      <button class="pixbtn ghost" data-fishtab="notices">Notices</button>
+      <button class="pixbtn on" data-fishtab="notices">Notices</button>
+      <button class="pixbtn ghost" data-fishtab="upgrades">Upgrades</button>
       <button class="pixbtn ghost" data-fishtab="enhance">Enhance</button>
       <button class="pixbtn ghost" data-fishtab="legendary">Legendary</button>
     </div>
@@ -444,12 +461,10 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- ARCHAEOLOGY -->
 <section id="page-archaeology" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Archaeology (OB30+) — skills / upgrades Ascension 0 / idols. Highest stage manuel.</p>
+    <p class="prestige-hint">Archaeology (OB30+) — Upgrades Ascension 0 + Idols. (Skills / Ascension plus tard.)</p>
     <div class="tab-row" id="archTabs">
-      <button class="pixbtn on" data-archtab="skills">Skills</button>
-      <button class="pixbtn ghost" data-archtab="upgrades">Upgrades</button>
+      <button class="pixbtn on" data-archtab="upgrades">Upgrades</button>
       <button class="pixbtn ghost" data-archtab="idols">Idols</button>
-      <button class="pixbtn ghost" data-archtab="stage">Stage</button>
     </div>
     <div class="prestige-toolbar">
       <button class="pixbtn gold" id="btnArchMaxTab">TOUT MAXER (onglet)</button>
@@ -457,6 +472,14 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
       <span class="muted" id="archHint"></span>
     </div>
     <div class="prestige-list" id="archGrid"></div>
+  </div>
+</section>
+
+<!-- ARCANIST (OB70) -->
+<section id="page-arcanist" class="page hidden">
+  <div class="panel">
+    <h2>Arcanist</h2>
+    <p class="muted">Débloqué à Obelisk 70. Menu pas encore rempli — reviens quand tu l’auras ouvert en jeu.</p>
   </div>
 </section>
 

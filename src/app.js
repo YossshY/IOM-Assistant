@@ -9,7 +9,7 @@ import { CARD_STATES, CARD_SETS } from './game/cards.js';
 import { ORE_CARDS, BAR_CARDS, MISC_CARDS, visibleCards } from './game/cardsData.js';
 import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS, starEffectiveMax } from './game/starsData.js';
 // icônes misc réelles : mapping id → fichier téléchargé depuis le wiki
-const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Misc_Blue_Cow.png',goldore:'Misc_Golden_Vein.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:"Misc_Celio's_Hat.png",vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png'};
+const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Blue_Cow.png',goldore:'Misc_Golden_Vein.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:'Misc_Celios_Hat.png',vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png'};
 import { estimateFreebieGemEv, estimateLootbug2xWorth, estimatePickaxeGap } from './game/playerMath.js';
 import { ARTIFACTS, SKILLS, OBELISK_UNLOCKS, artifactEffectiveMax, EXTERNAL_TOOLS } from './game/knowledgeBase.js';
 import { WORKSHOP_UPGRADES, workshopEffectiveMax, formatWorkshopBonus, WORKSHOP_WIKI_REF_CAP } from './game/workshopData.js';
@@ -19,8 +19,10 @@ import { CHALLENGES, CHALLENGE_SHOP } from './game/challengesData.js';
 import {
   FISHING_DOCKS, NOTICE_UPGRADES_T1, NOTICE_UPGRADES_T2,
   ENHANCE_T1, ENHANCE_T2, LEGENDARY_FISH, FISHING_EXPORT_KEYS,
+  FISH_UPGRADES_T1, FISH_UPGRADES_T2,
 } from './game/fishingData.js';
-import { ARCH_SKILLS, ARCH_UPGRADES, ARCH_IDOLS, ARCH_IDOL_MAX } from './game/archaeologyData.js';
+import { ARCH_UPGRADES, ARCH_IDOLS, ARCH_IDOL_MAX } from './game/archaeologyData.js';
+import { RESEARCH_VEINS, MONUMENTS } from './game/constructData.js';
 import * as C from './game/collections.js';
 
 /** Durée du run prestige (raw.time) — pas le lifetime du compte. */
@@ -99,7 +101,7 @@ function doImport(text){
 function renderAll(){
   renderTop();renderDash();renderRoadmap();renderAllStats();renderFishing();renderArchaeology();
   renderCards();renderPets();renderArtifacts();renderWorkshop();
-  renderSkills();renderDrones();renderChallenges();
+  renderSkills();renderDrones();renderChallenges();renderShop();
   renderConstruct();renderStars();renderHistory();
 }
 
@@ -214,11 +216,11 @@ function renderAllStats(){
 }
 
 /* ================= FISHING ================= */
-let fishTab='stats';
+let fishTab='notices';
 /** Emoji ou chemin assets/ → HTML pour .art-ico */
 function artIco(icon, fallback='🔧'){
   if(icon&&String(icon).startsWith('assets/'))
-    return `<img src="${icon}" alt="" loading="lazy" style="width:28px;height:28px;image-rendering:pixelated" onerror="this.replaceWith(document.createTextNode('${fallback}'))">`;
+    return `<img src="${icon}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${fallback}'))">`;
   return icon||fallback;
 }
 function lvRow(icon, title, sub, lv, max, dataAttr, id){
@@ -240,29 +242,6 @@ function renderFishing(){
     b.classList.toggle('ghost', b.dataset.fishtab!==fishTab);
   });
   const hint=$('#fishHint');
-  const s=state.parsed?.stats||{};
-  if(fishTab==='stats'){
-    if(hint) hint.textContent='Clés fishing_* de l\'export';
-    const keys=FISHING_EXPORT_KEYS.filter(k=>s[k]!=null);
-    box.innerHTML=keys.length
-      ? keys.map(k=>`<div class="statline"><span>${k}</span><b>${fmtNum(s[k])}</b></div>`).join('')
-      : '<p class="muted">Importe un exportstats pour voir rod power, ticks, shiny, drones…</p>';
-    return;
-  }
-  if(fishTab==='docks'){
-    if(hint) hint.textContent='11 docks — coche débloqué';
-    box.innerHTML=FISHING_DOCKS.map(d=>{
-      const on=C.isDockUnlocked(state.col,d.id) || (d.tier===1 && d.id==='lake');
-      return `<div class="art-row">
-        <div class="art-ico">🎣</div>
-        <div class="art-desc"><b>${d.name}</b> — ${d.ticks} ticks · T${d.tier}</div>
-        <div class="art-actions">
-          <button class="pixbtn ${on?'on':''}" data-dock="${d.id}">${on?'UNLOCK':'—'}</button>
-        </div>
-      </div>`;
-    }).join('');
-    return;
-  }
   if(fishTab==='notices'){
     if(hint) hint.textContent='Notice upgrades T1 + T2 (tokens)';
     box.innerHTML='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Tier 1 Notices</div></div>'
@@ -270,6 +249,21 @@ function renderFishing(){
       +'</div><div class="tier-block t2" style="margin-top:12px"><div class="tier-head"><div class="th-l">Tier 2 Notices</div></div>'
       +NOTICE_UPGRADES_T2.map(u=>lvRow('📋',u.name,u.per,C.getFishLv(state.col,'notice',u.id),u.max,'fn2',u.id)).join('')
       +'</div>';
+    return;
+  }
+  if(fishTab==='upgrades'){
+    if(hint) hint.textContent='Fishing Upgrades (fish) + docks';
+    let html='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Tier 1 Upgrades</div></div>'
+      +FISH_UPGRADES_T1.map(u=>lvRow('🐟',u.name,u.per,C.getFishLv(state.col,'upgrades',u.id),u.max,'fu1',u.id)).join('')
+      +'</div><div class="tier-block t2" style="margin-top:12px"><div class="tier-head"><div class="th-l">Tier 2 Upgrades</div></div>'
+      +FISH_UPGRADES_T2.map(u=>lvRow('🐟',u.name,u.per,C.getFishLv(state.col,'upgrades',u.id),u.max,'fu2',u.id)).join('')
+      +'</div><div class="tier-block t3" style="margin-top:12px"><div class="tier-head"><div class="th-l">Docks</div></div>';
+    html+=FISHING_DOCKS.map(d=>{
+      const on=C.isDockUnlocked(state.col,d.id) || (d.tier===1 && d.id==='lake');
+      return `<div class="art-row"><div class="art-ico">🎣</div><div class="art-desc"><b>${d.name}</b> — ${d.ticks} ticks · T${d.tier}</div>
+        <div class="art-actions"><button class="pixbtn ${on?'on':''}" data-dock="${d.id}">${on?'UNLOCK':'—'}</button></div></div>`;
+    }).join('')+'</div>';
+    box.innerHTML=html;
     return;
   }
   if(fishTab==='enhance'){
@@ -296,6 +290,10 @@ document.addEventListener('click',e=>{
   if(n1){ const u=NOTICE_UPGRADES_T1.find(x=>x.id===n1.dataset.fn1); C.setFishLv(state.col,'notice',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'notice',u.id)+ +n1.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
   const n2=e.target.closest('[data-fn2]');
   if(n2){ const u=NOTICE_UPGRADES_T2.find(x=>x.id===n2.dataset.fn2); C.setFishLv(state.col,'notice',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'notice',u.id)+ +n2.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
+  const u1=e.target.closest('[data-fu1]');
+  if(u1){ const u=FISH_UPGRADES_T1.find(x=>x.id===u1.dataset.fu1); C.setFishLv(state.col,'upgrades',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'upgrades',u.id)+ +u1.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
+  const u2=e.target.closest('[data-fu2]');
+  if(u2){ const u=FISH_UPGRADES_T2.find(x=>x.id===u2.dataset.fu2); C.setFishLv(state.col,'upgrades',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'upgrades',u.id)+ +u2.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
   const e1=e.target.closest('[data-fe1]');
   if(e1){ const u=ENHANCE_T1.find(x=>x.id===e1.dataset.fe1); C.setFishLv(state.col,'enhance',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'enhance',u.id)+ +e1.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
   const e2=e.target.closest('[data-fe2]');
@@ -304,22 +302,22 @@ document.addEventListener('click',e=>{
   if(lg){ C.setFishLv(state.col,'legendary',lg.dataset.fleg,Math.min(2,Math.max(0,C.getFishLv(state.col,'legendary',lg.dataset.fleg)+ +lg.dataset.d))); C.saveCollections(state.col); renderFishing(); }
 });
 $('#btnFishMaxTab')?.addEventListener('click',()=>{
-  if(fishTab==='docks') for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,true);
-  else if(fishTab==='notices'){ for(const u of NOTICE_UPGRADES_T1) C.setFishLv(state.col,'notice',u.id,u.max); for(const u of NOTICE_UPGRADES_T2) C.setFishLv(state.col,'notice',u.id,u.max); }
+  if(fishTab==='notices'){ for(const u of NOTICE_UPGRADES_T1) C.setFishLv(state.col,'notice',u.id,u.max); for(const u of NOTICE_UPGRADES_T2) C.setFishLv(state.col,'notice',u.id,u.max); }
+  else if(fishTab==='upgrades'){ for(const u of FISH_UPGRADES_T1) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const u of FISH_UPGRADES_T2) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,true); }
   else if(fishTab==='enhance'){ for(const u of ENHANCE_T1) C.setFishLv(state.col,'enhance',u.id,u.max); for(const u of ENHANCE_T2) C.setFishLv(state.col,'enhance',u.id,u.max); }
   else if(fishTab==='legendary') for(const f of LEGENDARY_FISH) C.setFishLv(state.col,'legendary',f.id,2);
   C.saveCollections(state.col);renderFishing();
 });
 $('#btnFishClearTab')?.addEventListener('click',()=>{
-  if(fishTab==='docks') for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,false);
-  else if(fishTab==='notices'){ for(const u of [...NOTICE_UPGRADES_T1,...NOTICE_UPGRADES_T2]) C.setFishLv(state.col,'notice',u.id,0); }
+  if(fishTab==='notices'){ for(const u of [...NOTICE_UPGRADES_T1,...NOTICE_UPGRADES_T2]) C.setFishLv(state.col,'notice',u.id,0); }
+  else if(fishTab==='upgrades'){ for(const u of [...FISH_UPGRADES_T1,...FISH_UPGRADES_T2]) C.setFishLv(state.col,'upgrades',u.id,0); for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,false); }
   else if(fishTab==='enhance'){ for(const u of [...ENHANCE_T1,...ENHANCE_T2]) C.setFishLv(state.col,'enhance',u.id,0); }
   else if(fishTab==='legendary') for(const f of LEGENDARY_FISH) C.setFishLv(state.col,'legendary',f.id,0);
   C.saveCollections(state.col);renderFishing();
 });
 
 /* ================= ARCHAEOLOGY ================= */
-let archTab='skills';
+let archTab='upgrades';
 function renderArchaeology(){
   const box=$('#archGrid'); if(!box) return;
   document.querySelectorAll('[data-archtab]').forEach(b=>{
@@ -327,64 +325,34 @@ function renderArchaeology(){
     b.classList.toggle('ghost', b.dataset.archtab!==archTab);
   });
   const hint=$('#archHint');
-  if(archTab==='skills'){
-    if(hint) hint.textContent='5 skills — points alloués (manuel)';
-    box.innerHTML=ARCH_SKILLS.map(sk=>{
-      const lv=C.getArchLv(state.col,'skills',sk.id);
-      return lvRow('⚔',sk.name,sk.effect,lv,100,'askill',sk.id);
-    }).join('');
-    return;
-  }
   if(archTab==='upgrades'){
     if(hint) hint.textContent='Ascension 0 upgrades';
     box.innerHTML=ARCH_UPGRADES.map(u=>lvRow('🦴',u.name,u.per,C.getArchLv(state.col,'upgrades',u.id),u.max,'aupg',u.id)).join('');
     return;
   }
-  if(archTab==='idols'){
-    if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · niveau 0–${ARCH_IDOL_MAX}`;
-    box.innerHTML=ARCH_IDOLS.map(idol=>{
-      const lv=Math.min(ARCH_IDOL_MAX, C.getArchLv(state.col,'idols',idol.id));
-      const icon=`assets/cards/${idol.name}_Idol.png`;
-      return lvRow(icon,idol.name,idol.note||'',lv,ARCH_IDOL_MAX,'aidol',idol.id);
-    }).join('');
-    return;
-  }
-  const stage=C.getArchHighestStage(state.col);
-  if(hint) hint.textContent='Highest stage (Block Bonker / Founder bank)';
-  box.innerHTML=`<div class="art-row">
-    <div class="art-ico">🏔</div>
-    <div class="art-desc"><b>Highest Stage</b> — progression Archaeology</div>
-    <div class="art-stats"><span class="lv">${stage}</span></div>
-    <div class="art-actions">
-      <button class="pixbtn ghost" data-astage="-1">−</button>
-      <button class="pixbtn" data-astage="1">+</button>
-      <button class="pixbtn gold" data-astage="10">+10</button>
-    </div>
-  </div>`;
+  if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · niveau 0–${ARCH_IDOL_MAX}`;
+  box.innerHTML=ARCH_IDOLS.map(idol=>{
+    const lv=Math.min(ARCH_IDOL_MAX, C.getArchLv(state.col,'idols',idol.id));
+    const icon=`assets/cards/${idol.name}_Idol.png`;
+    return lvRow(icon,idol.name,idol.note||'',lv,ARCH_IDOL_MAX,'aidol',idol.id);
+  }).join('');
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-archtab]');
   if(t){ archTab=t.dataset.archtab; renderArchaeology(); return; }
-  const sk=e.target.closest('[data-askill]');
-  if(sk){ C.setArchLv(state.col,'skills',sk.dataset.askill,Math.min(100,Math.max(0,C.getArchLv(state.col,'skills',sk.dataset.askill)+ +sk.dataset.d))); C.saveCollections(state.col); renderArchaeology(); return; }
   const up=e.target.closest('[data-aupg]');
   if(up){ const u=ARCH_UPGRADES.find(x=>x.id===up.dataset.aupg); C.setArchLv(state.col,'upgrades',u.id,Math.min(u.max,Math.max(0,C.getArchLv(state.col,'upgrades',u.id)+ +up.dataset.d))); C.saveCollections(state.col); renderArchaeology(); return; }
   const id=e.target.closest('[data-aidol]');
-  if(id){ C.setArchLv(state.col,'idols',id.dataset.aidol,Math.min(ARCH_IDOL_MAX,Math.max(0,C.getArchLv(state.col,'idols',id.dataset.aidol)+ +id.dataset.d))); C.saveCollections(state.col); renderArchaeology(); return; }
-  const st=e.target.closest('[data-astage]');
-  if(st){ C.setArchHighestStage(state.col, C.getArchHighestStage(state.col)+ +st.dataset.astage); C.saveCollections(state.col); renderArchaeology(); }
+  if(id){ C.setArchLv(state.col,'idols',id.dataset.aidol,Math.min(ARCH_IDOL_MAX,Math.max(0,C.getArchLv(state.col,'idols',id.dataset.aidol)+ +id.dataset.d))); C.saveCollections(state.col); renderArchaeology(); }
 });
 $('#btnArchMaxTab')?.addEventListener('click',()=>{
-  if(archTab==='skills') for(const s of ARCH_SKILLS) C.setArchLv(state.col,'skills',s.id,100);
-  else if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,u.max);
+  if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,u.max);
   else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,ARCH_IDOL_MAX);
   C.saveCollections(state.col);renderArchaeology();
 });
 $('#btnArchClearTab')?.addEventListener('click',()=>{
-  if(archTab==='skills') for(const s of ARCH_SKILLS) C.setArchLv(state.col,'skills',s.id,0);
-  else if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,0);
+  if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,0);
   else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,0);
-  else C.setArchHighestStage(state.col,0);
   C.saveCollections(state.col);renderArchaeology();
 });
 
@@ -433,6 +401,10 @@ function cardIconSrc(c){
   const miscKey=(c.id||'').replace(/^misc_/,'');
   if(MISC_ICONS[miscKey]) return 'assets/cards/'+MISC_ICONS[miscKey];
   if(MISC_ICONS[c.id]) return 'assets/cards/'+MISC_ICONS[c.id];
+  if(c.name){
+    const slug=String(c.name).replace(/['']/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_|_$/g,'');
+    return 'assets/cards/'+slug+'.png';
+  }
   return c.icon||'🃏';
 }
 function cardTile(id,img,name,st,effect,worldTag,mod,unlocked=true){
@@ -487,7 +459,7 @@ function renderPets(){
     const qRank=C.getPetQuestRank(state.col,p.id);
     const questOn=qRank>0 || owned['quest_'+p.id];
     return `<div class="petrow ${locked?'locked':''}">
-      <img class="pet-em" src="${p.iconDefault}" alt="" loading="lazy" style="width:44px;height:44px;image-rendering:pixelated"
+      <img class="pet-em" src="${p.iconDefault}" alt="" loading="lazy"
         onerror="this.style.display='none'">
       <div class="pet-info">
         <b>${p.name}</b> <span class="muted">· unlock ${p.unlockTotal} · ${p.price} 💎 · max ${p.maxLevel}</span>
@@ -740,7 +712,8 @@ function renderDrones(){
   });
   if(droneTab==='upgrades'){
     if(hint) hint.textContent=`drone_count ${stats.drone_count??'—'} · suit cap ${cap}`;
-    box.innerHTML=DRONE_CORE_UPGRADES.map(u=>{
+    let html='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Core Upgrades</div></div>';
+    html+=DRONE_CORE_UPGRADES.map(u=>{
       const max=u.maxBase;
       const lv=Math.min(max, C.getDroneCore(state.col,u.id));
       const tot=u.unlock?(lv?'Unlocked':'—'):`${u.perLevel*lv}${u.unit}`;
@@ -755,16 +728,15 @@ function renderDrones(){
         </div>
       </div>`;
     }).join('');
-  } else if(droneTab==='suits'){
-    if(hint) hint.textContent=`Suit upgrade cap ${cap} (export drone_suit_cap)`;
-    box.innerHTML=DRONE_SUITS.map(s=>{
+    html+='</div><div class="tier-block t2" style="margin-top:12px"><div class="tier-head"><div class="th-l">Suit Upgrades</div></div>';
+    html+=DRONE_SUITS.map(s=>{
       const lv=Math.min(cap, C.getDroneSuitLv(state.col,s.id));
       const maxed=lv>=cap;
       const bonus=s.perLevel*lv;
       const tot=s.unit==='s'?`${bonus}s`:`${bonus>=0?'+':''}${bonus}${s.unit}`;
       return `<div class="art-row">
         <div class="art-ico">${artIco(s.icon,'🤖')}</div>
-        <div class="art-desc"><b>${s.name} Suit</b> — ${s.ability}<br><span class="muted">${s.upgrade} → ${tot}</span></div>
+        <div class="art-desc"><b>${s.name}</b> — ${s.ability}<br><span class="muted">${s.upgrade} → ${tot}</span></div>
         <div class="art-stats"><span class="lv">${lv}/${cap}</span></div>
         <div class="art-actions">
           <button class="pixbtn ghost" data-dsuit="${s.id}" data-d="-1">−</button>
@@ -772,9 +744,10 @@ function renderDrones(){
             <button class="pixbtn gold" data-dsuitmax="${s.id}">Max</button>`}
         </div>
       </div>`;
-    }).join('');
+    }).join('')+'</div>';
+    box.innerHTML=html;
   } else {
-    if(hint) hint.textContent='Fuel grades depuis export (*_fuel_grade)';
+    if(hint) hint.textContent='Drone Level = fuel grades (*_fuel_grade export)';
     box.innerHTML=DRONE_FUEL.map(f=>{
       const lv=Math.min(f.maxGrade, C.getDroneFuel(state.col,f.id));
       const maxed=lv>=f.maxGrade;
@@ -844,30 +817,6 @@ function renderChallenges(){
     </div>`;
   }
   const hint=$('#chalHint');
-  if(chalTab==='shop'){
-    if(hint) hint.textContent='Shop Regular / Extreme / Divine (coins)';
-    let html='';
-    for(const tier of ['regular','extreme','divine']){
-      const label=tier[0].toUpperCase()+tier.slice(1);
-      html+=`<div class="tier-block t${tier==='regular'?1:tier==='extreme'?2:4}"><div class="tier-head"><div class="th-l">${label} Shop</div></div>`;
-      for(const u of CHALLENGE_SHOP[tier]){
-        const lv=Math.min(u.max, C.getChallengeShop(state.col,u.id));
-        const maxed=lv>=u.max;
-        html+=`<div class="art-row">
-          <div class="art-ico">🏅</div>
-          <div class="art-desc">${u.name} — ${u.per}</div>
-          <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
-          <div class="art-actions">
-            <button class="pixbtn ghost" data-cshop="${u.id}" data-d="-1">−</button>
-            ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-cshop="${u.id}" data-d="1">+</button>`}
-          </div>
-        </div>`;
-      }
-      html+='</div>';
-    }
-    box.innerHTML=html;
-    return;
-  }
   const list=CHALLENGES[chalTab]||[];
   const done=list.filter(c=>C.isChallengeDone(state.col,c.id)).length;
   if(hint) hint.textContent=`${done}/${list.length} done · +10 coins each`;
@@ -891,13 +840,6 @@ document.addEventListener('click',e=>{
     C.setChallengeDone(state.col,c.dataset.chal,!C.isChallengeDone(state.col,c.dataset.chal));
     C.saveCollections(state.col);renderChallenges(); return;
   }
-  const s=e.target.closest('[data-cshop]');
-  if(s){
-    const all=[...CHALLENGE_SHOP.regular,...CHALLENGE_SHOP.extreme,...CHALLENGE_SHOP.divine];
-    const u=all.find(x=>x.id===s.dataset.cshop);
-    C.setChallengeShop(state.col,u.id,Math.min(u.max,Math.max(0,C.getChallengeShop(state.col,u.id)+ +s.dataset.d)));
-    C.saveCollections(state.col);renderChallenges(); return;
-  }
   const op=e.target.closest('[data-ovp]');
   if(op){
     const ov=C.getChallengeOverlay(state.col)||{ id:'div_7', progress:7, goal:15 };
@@ -913,29 +855,63 @@ document.addEventListener('click',e=>{
   }
 });
 $('#btnChalAllDone')?.addEventListener('click',()=>{
-  if(chalTab==='shop'){
-    for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,u.max);
-  } else {
-    for(const c of (CHALLENGES[chalTab]||[])) C.setChallengeDone(state.col,c.id,true);
-  }
+  for(const c of (CHALLENGES[chalTab]||[])) C.setChallengeDone(state.col,c.id,true);
   C.saveCollections(state.col);renderChallenges();
 });
 $('#btnChalClear')?.addEventListener('click',()=>{
-  if(chalTab==='shop'){
-    for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,0);
-  } else {
-    for(const c of (CHALLENGES[chalTab]||[])) C.setChallengeDone(state.col,c.id,false);
-  }
+  for(const c of (CHALLENGES[chalTab]||[])) C.setChallengeDone(state.col,c.id,false);
   C.saveCollections(state.col);renderChallenges();
 });
 
-/* ================= STATUES / MONUMENTS =================
-   27 statues façon jeu : grille 3x3 par monde, clic pour évoluer
-   construite → gildée → platinisée. Icônes réelles du wiki.
-   W2 n'a pas de statues (wiki Construct). */
+/* ================= SHOP ================= */
+function renderShop(){
+  const box=$('#shopGrid'); if(!box) return;
+  const hint=$('#shopHint');
+  if(hint) hint.textContent='Niveaux manuels (Regular / Extreme / Divine coins)';
+  let html='';
+  for(const tier of ['regular','extreme','divine']){
+    const label=tier[0].toUpperCase()+tier.slice(1);
+    html+=`<div class="tier-block t${tier==='regular'?1:tier==='extreme'?2:4}"><div class="tier-head"><div class="th-l">${label} Shop</div></div>`;
+    for(const u of CHALLENGE_SHOP[tier]){
+      const lv=Math.min(u.max, C.getChallengeShop(state.col,u.id));
+      const maxed=lv>=u.max;
+      html+=`<div class="art-row">
+        <div class="art-ico">🏅</div>
+        <div class="art-desc">${u.name} — ${u.per}</div>
+        <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-cshop="${u.id}" data-d="-1">−</button>
+          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-cshop="${u.id}" data-d="1">+</button>`}
+        </div>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  box.innerHTML=html;
+}
+document.addEventListener('click',e=>{
+  const s=e.target.closest('[data-cshop]');
+  if(s){
+    const all=[...CHALLENGE_SHOP.regular,...CHALLENGE_SHOP.extreme,...CHALLENGE_SHOP.divine];
+    const u=all.find(x=>x.id===s.dataset.cshop);
+    C.setChallengeShop(state.col,u.id,Math.min(u.max,Math.max(0,C.getChallengeShop(state.col,u.id)+ +s.dataset.d)));
+    C.saveCollections(state.col);renderShop();
+  }
+});
+$('#btnShopMaxAll')?.addEventListener('click',()=>{
+  for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,u.max);
+  C.saveCollections(state.col);renderShop();
+});
+$('#btnShopClear')?.addEventListener('click',()=>{
+  for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,0);
+  C.saveCollections(state.col);renderShop();
+});
+
+/* ================= STATUES / RESEARCH / MONUMENTS ================= */
 import { STATUES, STATUE_STATES, visibleStatues, gatingInfo } from './game/statuesData.js';
 
-function renderConstruct(){
+let constructTab='statues';
+function renderConstructStatuesHtml(){
   const maxW=maxWorldUnlocked();
   let h='';
   for(const w of [1,3,4]){
@@ -962,15 +938,47 @@ function renderConstruct(){
     h+=`<p class="statue-meta">${built}/${list.length} construites · ${gld}/${list.length} gildées · `+
        (g.canPlatinize?'✓ platinisation possible':g.canGild?'⚠ toutes construites avant de gilder':'⚠ continue à construire')+'</p>';
   }
-  $('#statueList').innerHTML=h;
-
-  $('#monumentList').innerHTML=[2,3,4].map(w=>{
-    const on=((state.col.monuments||{})[w]);
-    return `<div class="skillrow"><span class="nm">Monument Monde ${w}${w===4?' <span class="muted">(1M gemmes + 1q veines Industrial/Warfront/Neon)</span>':''}</span>
-     <button class="pixbtn ${on?'on':''}" data-mon="${w}">${on?'CONSTRUIT':'À CONSTRUIRE'}</button></div>`;
-  }).join('');
+  return h;
+}
+function renderConstruct(){
+  const body=$('#constructBody'); if(!body) return;
+  document.querySelectorAll('[data-constructtab]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.constructtab===constructTab);
+    b.classList.toggle('ghost', b.dataset.constructtab!==constructTab);
+  });
+  const hint=$('#constructHint');
+  if(constructTab==='statues'){
+    if(hint) hint.textContent='Statues depuis export — clic pour corriger';
+    body.innerHTML=renderConstructStatuesHtml();
+    return;
+  }
+  if(constructTab==='research'){
+    if(hint) hint.textContent='Vein unlocks + Spawn Rate 2×';
+    let html='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Vein Unlocks</div></div>';
+    html+=RESEARCH_VEINS.map(v=>{
+      const on=C.hasResearchUnlock(state.col,v.id);
+      return `<div class="art-row"><div class="art-ico">${artIco(v.icon,'⛏')}</div><div class="art-desc"><b>${v.name}</b></div>
+        <div class="art-actions"><button class="pixbtn ${on?'on':''}" data-resu="${v.id}">${on?'UNLOCK':'—'}</button></div></div>`;
+    }).join('')+'</div>';
+    html+='<div class="tier-block t2" style="margin-top:12px"><div class="tier-head"><div class="th-l">Vein Spawn Rate 2×</div></div>';
+    html+=RESEARCH_VEINS.map(v=>{
+      const on=C.hasResearchSpawn(state.col,v.id);
+      return `<div class="art-row"><div class="art-ico">${artIco(v.icon,'⛏')}</div><div class="art-desc"><b>${v.name} Spawn</b></div>
+        <div class="art-actions"><button class="pixbtn ${on?'on':''}" data-ress="${v.id}">${on?'2×':'—'}</button></div></div>`;
+    }).join('')+'</div>';
+    body.innerHTML=html;
+    return;
+  }
+  if(hint) hint.textContent='Monuments débloquent W2 / W3 / W4';
+  body.innerHTML=`<div class="prestige-list">${MONUMENTS.map(m=>{
+    const on=((state.col.monuments||{})[m.world]);
+    return `<div class="art-row"><div class="art-ico">🏛</div><div class="art-desc"><b>Monument Monde ${m.world}</b> — ${m.cost}</div>
+      <div class="art-actions"><button class="pixbtn ${on?'on':''}" data-mon="${m.world}">${on?'CONSTRUIT':'À CONSTRUIRE'}</button></div></div>`;
+  }).join('')}</div>`;
 }
 document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-constructtab]');
+  if(t){ constructTab=t.dataset.constructtab; renderConstruct(); return; }
   const s=e.target.closest('[data-statue]');
   if(s){
     C.cycleStatue(state.col,+s.dataset.statue);
@@ -978,6 +986,10 @@ document.addEventListener('click',e=>{
   }
   const m=e.target.closest('[data-mon]');
   if(m){state.col.monuments||={};state.col.monuments[m.dataset.mon]=!state.col.monuments[m.dataset.mon];C.saveCollections(state.col);renderConstruct();renderCards();renderRoadmap();}
+  const ru=e.target.closest('[data-resu]');
+  if(ru){ C.setResearchUnlock(state.col,ru.dataset.resu,!C.hasResearchUnlock(state.col,ru.dataset.resu)); C.saveCollections(state.col); renderConstruct(); return; }
+  const rs=e.target.closest('[data-ress]');
+  if(rs){ C.setResearchSpawn(state.col,rs.dataset.ress,!C.hasResearchSpawn(state.col,rs.dataset.ress)); C.saveCollections(state.col); renderConstruct(); }
 });
 document.addEventListener('contextmenu',e=>{
   const s=e.target.closest('[data-statue]');
@@ -1029,7 +1041,7 @@ function renderStars(){
       const lv=Math.min(u.max, C.getStarUpgrade(state.col,u.id));
       const maxed=lv>=u.max;
       return `<div class="art-row">
-        <div class="art-ico">🔭</div>
+        <div class="art-ico">${artIco('assets/stargazing/Telescope.png','🔭')}</div>
         <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
         <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
         <div class="art-actions">
@@ -1044,7 +1056,7 @@ function renderStars(){
       const lv=Math.min(u.max, C.getSuperStarUpgrade(state.col,u.id));
       const maxed=lv>=u.max;
       return `<div class="art-row">
-        <div class="art-ico">✨</div>
+        <div class="art-ico">${artIco('assets/stargazing/Super_Star.png','✨')}</div>
         <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
         <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
         <div class="art-actions">
@@ -1058,7 +1070,7 @@ function renderStars(){
     box.innerHTML=BLACK_HOLE_BLESSINGS.map(b=>{
       const on=C.hasBlackHoleBlessing(state.col,b.id);
       return `<div class="art-row">
-        <div class="art-ico">🕳️</div>
+        <div class="art-ico">${artIco('assets/stargazing/BlackHole.png','🕳️')}</div>
         <div class="art-desc">${b.name}</div>
         <div class="art-actions">
           <button class="pixbtn ${on?'on':''}" data-bh="${b.id}">${on?'ACTIF':'—'}</button>
@@ -1137,5 +1149,5 @@ function renderHistory(){
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
   }
 })();
-renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();
 show('export');

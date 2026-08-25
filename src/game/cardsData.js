@@ -117,13 +117,13 @@ export const BOMB_CARDS = [
   C('bombs','exp','Exp Bomb',1,'Exp_Bomb.png'),
   C('bombs','mega','MEGABOMB',1,'MEGABOMB.png'),
   C('bombs','infinity','Infinity Bomb',1,'Infinity_Bomb.png'),
-  C('bombs','transmuter','Transmuter Bomb',1,null),
+  C('bombs','transmuter','Transmuter Bomb',1,'Transmuter_Bomb.png'),
   C('bombs','gem','Gem Bomb',1,'Gem_Bomb.png'),
   C('bombs','cherry','Cherry Bomb',1,'Cherry_Bomb.png'),
   C('bombs','battery','Battery Bomb',1,'Battery_Bomb.png'),
   C('bombs','d20','D20 Bomb',1,'D20_Bomb.png'),
   C('bombs','founders','Founders Bomb',1,'Founders_Bomb.png'),
-  C('bombs','veinmorpher','Veinmorpher Bomb',2,null),
+  C('bombs','veinmorpher','Veinmorpher Bomb',2,'Veinmorpher_Bomb.png'),
 ];
 
 /* Vein cards — Construct / Stargazing costs */
