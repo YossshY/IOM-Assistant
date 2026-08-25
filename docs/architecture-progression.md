@@ -431,4 +431,44 @@ Tests : `node src/game/progress/progress.test.mjs` (fixtures `fx.*` uniquement).
 - `have` sur `Acquire` / `Reach` est le stock **actuel**, pas un solde projeté après les `Do` frères (pas de simulation de dépense le long du plan).
 - `blocked` s’exprime par `Node.blockedIf` (condition connue vraie).
 - Une stat absente de `PlayerView.stats` est une feuille `unknown` (donnée joueur manquante), distincte d’une ressource absente (traitée comme 0).
-- L’étape B (fragments wiki / Skill Tree parents) n’est **pas** commencée.
+- L’étape B (fragment Skill Tree parents) : voir §9.
+
+---
+
+## 9. Étape B (implémentée) — parents Skill Tree
+
+Fragment additif `src/game/progress/fragments/`, **non branché** à `app.js`.
+
+### Sources
+
+| Source | Rôle | Certitude |
+|---|---|---|
+| `SKILL_NODES` (`skillsData.js`) | ids, nom, `cost` niv.1, `unlockOb` | certaine (catalogue existant, non modifié) |
+| `SKILL_TREE_ROWS` | positions 4 colonnes L·LC·RC·R | certaine (layout wiki déjà utilisé par l’UI) |
+| Wikitexte Skill-Tree + `{{SkillTreeArrow}}` / barres `\|` | topologie parent → enfant | certaine comme **dessin** ; lue comme prérequis d’achat (sémantique d’arbre) |
+| Intro wiki « unlocked at Obelisk Level 4 » | `stat(ob, 4)` sur la racine `lucky_strikes` | certaine |
+| Producteurs de SP / progresseurs d’OB | absents | **unknown** (`UnknownStep`) — non inventés |
+
+### Mapping
+
+- Catalogue `poly_while` → nœud moteur `skill.poly_while`
+- Parents dérivés des connecteurs, pas recopiés à la main dans l’UI
+- `unlock` = `stat(ob, unlockOb)` (si présent) **et** `node(skill.parent)` (AND)
+- `cost` = premier palier SP du catalogue (niveaux 2+ : pas de nœuds séparés)
+
+### Règles de lecture des flèches (Module:SkillTreeArrow)
+
+- `\|` colonne C → enfant C ← skill déjà en C (ou racine unique)
+- `left, upleft, upright, right` → L et LC ← LC ; RC et R ← RC (les skills L/R de la rangée précédente sans barre vers le bas sont des feuilles)
+- `upright` en S + `right` en S+1 → les deux enfants ← skill en S
+- `left, both, right` → enfants ← colonne `both` (LC)
+
+Contrainte de cohérence testée : OB du parent ≤ OB de l’enfant.
+
+Exemple réel : `veinmorpher` ← `gasoline` ← … ← `lucky_strikes` ; `poly_while` ← `tons_dmg` ← `whos_asking` ← `veinmorpher`.
+
+### Hors étape B
+
+- Docks / Fishing, Poly-Infernal cartes, monuments, producteurs SP
+- Branchement UI
+

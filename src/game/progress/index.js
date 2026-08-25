@@ -10,3 +10,15 @@ export {
 export { compileGraph, getNode } from './compile.js';
 export { evaluateCondition, evaluateNode, playerView } from './evaluate.js';
 export { plan, planNode, satisfy, walkPlan } from './plan.js';
+export {
+  buildProgressGraph,
+  buildSkillTreeNodes,
+  skillNodeId,
+  catalogSkillId,
+  skillTreeParentMap,
+  deriveSkillTreeParents,
+  SKILL_TREE_CONNECTORS,
+  STAT_OB,
+  RESOURCE_SP,
+  SKILL_TREE_UNLOCK_OB,
+} from './fragments/index.js';
