@@ -160,27 +160,27 @@ export const STAR_CARDS = [
 /* Fish cards — commons + legendaries (heads/icons wiki) */
 /* Legendary fish cards — effets wiki (pas le template Fish Gain) */
 export const LEGENDARY_FISH_CARDS = [
-  { id:'fish_rainbow_trout', name:'Rainbow Trout', cat:'fish', world:3, icon:'assets/cards/Lake_Legendary_Fish_Head.png',
+  { id:'fish_rainbow_trout', name:'Rainbow Trout', cat:'legendary_fish', world:3, icon:'assets/cards/Lake_Legendary_Fish_Head.png',
     effect:['Rainbow Floor Multi +25%','+50%','+100%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_dunes_eelworm', name:"Dune's Eelworm", cat:'fish', world:3, icon:'assets/cards/Desert_Legendary_Fish_Head.png',
+  { id:'fish_dunes_eelworm', name:"Dune's Eelworm", cat:'legendary_fish', world:3, icon:'assets/cards/Desert_Legendary_Fish_Head.png',
     effect:['Golden Portal Multi +40%','+80%','+140%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_glacial_shellstealer', name:'Glacial Shellstealer', cat:'fish', world:3, icon:null,
+  { id:'fish_glacial_shellstealer', name:'Glacial Shellstealer', cat:'legendary_fish', world:3, icon:null,
     effect:['Rainbow Vein Multi +30%','+60%','+100%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_megalodon', name:'Megalodon', cat:'fish', world:3, icon:'assets/cards/Ocean_Legendary_Fish_Head.png',
+  { id:'fish_megalodon', name:'Megalodon', cat:'legendary_fish', world:3, icon:'assets/cards/Ocean_Legendary_Fish_Head.png',
     effect:['Star Supernova Multi +35%','+70%','+125%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_radioactive_slug', name:'Radioactive Slug', cat:'fish', world:3, icon:'assets/cards/Nuclear_Legendary_Fish_Head.png',
+  { id:'fish_radioactive_slug', name:'Radioactive Slug', cat:'legendary_fish', world:3, icon:'assets/cards/Nuclear_Legendary_Fish_Head.png',
     effect:['Bomb Damage/Exp Gain +300%','+500%','+1100%','+0.20x/+0.001x'], legendary:true, damageLever:true },
-  { id:'fish_cthulhu', name:'Cthulhu', cat:'fish', world:3, icon:'assets/cards/Abyss_Legendary_Fish_Head.png',
+  { id:'fish_cthulhu', name:'Cthulhu', cat:'legendary_fish', world:3, icon:'assets/cards/Abyss_Legendary_Fish_Head.png',
     effect:['Divine Relics Cap +1','+2','+4','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_glimmering_geoduck', name:'Glimmering Geoduck', cat:'fish', world:3, icon:'assets/cards/Cave_Legendary_Fish_Head.png',
+  { id:'fish_glimmering_geoduck', name:'Glimmering Geoduck', cat:'legendary_fish', world:3, icon:'assets/cards/Cave_Legendary_Fish_Head.png',
     effect:['Banked Freebie Cap +14%','+28%','+52%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_laviathan', name:'Laviathan', cat:'fish', world:3, icon:'assets/cards/Volcano_Legendary_Fish_Head.png',
+  { id:'fish_laviathan', name:'Laviathan', cat:'legendary_fish', world:3, icon:'assets/cards/Volcano_Legendary_Fish_Head.png',
     effect:['Bar Output Multiplier +40%','+80%','+140%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_storm_serpent', name:'Storm Serpent', cat:'fish', world:3, icon:'assets/cards/Sky_Legendary_Fish_Head.png',
+  { id:'fish_storm_serpent', name:'Storm Serpent', cat:'legendary_fish', world:3, icon:'assets/cards/Sky_Legendary_Fish_Head.png',
     effect:['Super Stonks Multiplier +14%','+28%','+56%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_melting_gibbous', name:'Melting Gibbous', cat:'fish', world:4, icon:'assets/cards/Solaris_Legendary_Fish_Head.png',
+  { id:'fish_melting_gibbous', name:'Melting Gibbous', cat:'legendary_fish', world:4, icon:'assets/cards/Solaris_Legendary_Fish_Head.png',
     effect:['Gems From Freebie +10%','+20%','+30%','+0.20x/+0.001x'], legendary:true },
-  { id:'fish_blackened_basker', name:'Blackened Basker', cat:'fish', world:4, icon:'assets/cards/Galaxy_Legendary_Fish_Head.png',
+  { id:'fish_blackened_basker', name:'Blackened Basker', cat:'legendary_fish', world:4, icon:'assets/cards/Galaxy_Legendary_Fish_Head.png',
     effect:['Super Stonks Chance +0.15%','+0.30%','+0.60%','+0.20x/+0.001x'], legendary:true },
 ];
 
@@ -197,7 +197,6 @@ export const FISH_CARDS = [
   C('fish','frost_spear','Frostdrip Spearfish',3,'Frostdrip_Spearfish.png'),
   C('fish','frost_crab','Frostshell Crab',3,'Frostshell_Crab.png'),
   C('fish','scarab','Scarabshoe Crab',3,'Scarabshoe_Crab.png'),
-  ...LEGENDARY_FISH_CARDS,
 ];
 
 export const DRONE_CARDS = [
@@ -234,8 +233,9 @@ export const PET_CARDS = [
 ];
 
 export const ALL_CARDS = [
-  ...ORE_CARDS, ...BAR_CARDS, ...BOMB_CARDS, ...VEIN_CARDS,
-  ...STAR_CARDS, ...FISH_CARDS, ...DRONE_CARDS, ...PET_CARDS, ...MISC_CARDS,
+  ...ORE_CARDS, ...BAR_CARDS, ...BOMB_CARDS, ...MISC_CARDS,
+  ...DRONE_CARDS, ...PET_CARDS, ...VEIN_CARDS, ...STAR_CARDS,
+  ...FISH_CARDS, ...LEGENDARY_FISH_CARDS,
 ];
 
 /* Déblocage par monde : une carte est visible si world <= maxWorld débloqué

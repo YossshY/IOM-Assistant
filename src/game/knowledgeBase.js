@@ -341,4 +341,35 @@ export const EXTERNAL_TOOLS = {
     name: 'Ultimate Gem Calculator 2.2',
     url: 'https://docs.google.com/spreadsheets/d/1XscDMDkk59Btu1fQld09GQGmGpWxxNIszSFR1ujj_wE/edit?usp=sharing',
   },
+  /** ObeliskFarm (arisboeuf) — calculateurs/simus ; licence « personal use », on lie, on ne copie pas le code. */
+  obeliskFarm: {
+    name: 'ObeliskFarm',
+    url: 'https://arisboeuf.github.io/ObeliskFarm/',
+    note: 'Toolkit communautaire (Gem EV, Arch MC, Fishing, Stargazing, Event…). Saisie manuelle — complémentaire au coach exportstats.',
+  },
+  obeliskFarmGemEv: {
+    name: 'ObeliskFarm · Gem EV',
+    url: 'https://arisboeuf.github.io/ObeliskFarm/',
+    module: 'Gem EV Calculator',
+  },
+  obeliskFarmFishing: {
+    name: 'ObeliskFarm · Fishing',
+    url: 'https://arisboeuf.github.io/ObeliskFarm/',
+    module: 'Fishing',
+  },
+  obeliskFarmArch: {
+    name: 'ObeliskFarm · Archaeology',
+    url: 'https://arisboeuf.github.io/ObeliskFarm/',
+    module: 'Archaeology Simulator',
+  },
+  obeliskFarmStars: {
+    name: 'ObeliskFarm · Stargazing',
+    url: 'https://arisboeuf.github.io/ObeliskFarm/',
+    module: 'Stargazing',
+  },
+  obeliskFarmOvernight: {
+    name: 'ObeliskFarm · Overnight Gains',
+    url: 'https://arisboeuf.github.io/ObeliskFarm/',
+    module: 'Overnight Gains',
+  },
 };

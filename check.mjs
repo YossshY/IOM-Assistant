@@ -7,6 +7,7 @@ import { parseExportStats, deriveProfile } from './src/game/statsParser.js';
 import { generateRecommendations } from './src/game/recommendationEngine.js';
 import { OBELISK, ARTIFACTS, artifactEffectiveMax } from './src/game/knowledgeBase.js';
 import { workshopEffectiveMax, WORKSHOP_UPGRADES } from './src/game/workshopData.js';
+import { estimateFreebieGemEv, estimatePickaxeGap } from './src/game/playerMath.js';
 
 const raw = readFileSync('./samples/exportstats-v2.2.6.json', 'utf8');
 const parsed = parseExportStats(raw);
@@ -43,6 +44,14 @@ const recsSlug = generateRecommendations(parsed.stats, profile, {
   cards: { fish_radioactive_slug: 2 },
 });
 assert(/Polychromer Radioactive Slug/i.test(recsSlug[0]?.title || ''), `expected poly slug first, got: ${recsSlug[0]?.title}`);
+
+const freebie = estimateFreebieGemEv(parsed.stats);
+assert(freebie.gemsPerHour > 0, 'freebie EV should be positive');
+const gap = estimatePickaxeGap(parsed.stats, profile);
+assert(gap?.blocked === true, 'sample should be blocked on OB65');
+assert(gap.needMulti > 1, 'need multi > 1');
+assert(gap.noticeLevelsNeeded > 0, 'notice levels estimate');
+console.log('Freebie ~', freebie.gemsPerHour, 'g/h · need ×', gap.needMulti, '· notice ~', gap.noticeLevelsNeeded);
 
 const caps = {
   artifact: parsed.stats.artifact_cap_increase,

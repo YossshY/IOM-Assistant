@@ -7,6 +7,7 @@ import { OBELISK, ARTIFACTS, SKILLS, DRONES, SOURCES, EXTERNAL_TOOLS, artifactEf
 import { getArtifactLevel, hasSkill, getStatueState, getCaps, getCardState, getFishLv } from './collections.js';
 import { LEGENDARY_FISH_CARDS } from './cardsData.js';
 import { LEGENDARY_FISH, NOTICE_UPGRADES_T1 } from './fishingData.js';
+import { estimateFreebieGemEv, estimateLootbug2xWorth, estimatePickaxeGap } from './playerMath.js';
 
 export const CONFIDENCE = {
   confirmed:    { icon:'🟢', label:'Confirmé',          hint:'Données du joueur + base de connaissances suffisantes.' },
@@ -56,6 +57,9 @@ export function generateRecommendations(stats, profile, col = {}) {
       source: EXTERNAL_TOOLS.obeliskFight.url,
     });
   }
+
+  /* R2b : gems / lootbug depuis export (estimateurs maison) */
+  pushGemLevers(recs, stats, ob);
 
   /* R3 : artefacts — si renseignés */
   const anyArt = ARTIFACTS.some(a => getArtifactLevel(col, a.id) > 0);
@@ -180,6 +184,7 @@ export function generateRecommendations(stats, profile, col = {}) {
  */
 function pushArmorUnlockLevers(recs, col, stats, profile, gapRatio, fishes, armorRed) {
   const gapHint = gapRatio < 1 ? ` (tu es à ${(gapRatio * 100).toFixed(1)}% de l'armure OB suivante)` : '';
+  const pickGap = estimatePickaxeGap(stats, profile);
   const w3Built = countWorldStatues(col, profile, 3, 1);
   const fishingTouched = fishingCollectionsTouched(col);
 
@@ -192,6 +197,18 @@ function pushArmorUnlockLevers(recs, col, stats, profile, gapRatio, fishes, armo
       confidence: 'confirmed',
       progress: w3Built / 9,
       source: SOURCES.wiki_gems,
+    });
+  }
+
+  /* Chiffre concret : multi pioche manquant */
+  if (pickGap?.blocked) {
+    recs.push({
+      priority: 2, category: 'math',
+      title: `Combler ×${pickGap.needMulti} de pioche (OB${pickGap.obNext})`,
+      reason: pickGap.note + ` Estimateur wiki armor + export pickaxe_damage.`,
+      confidence: 'confirmed',
+      progress: pickGap.gapRatio,
+      source: SOURCES.wiki_obelisk,
     });
   }
 
@@ -228,7 +245,6 @@ function pushArmorUnlockLevers(recs, col, stats, profile, gapRatio, fishes, armo
   const slugTribute = getFishLv(col, 'legendary', 'radioactive_slug');
   if (slugFish && slugTribute < 1 && (slugSt >= 1 || fishingTouched)) {
     recs.push({
-      /* Poly card d'abord si gilded ; tribute dès que poly (ou gilded) noté */
       priority: slugSt >= 3 ? 1 : 2,
       category: 'fishing',
       title: 'Tribute 1 Radioactive Slug',
@@ -253,11 +269,19 @@ function pushArmorUnlockLevers(recs, col, stats, profile, gapRatio, fishes, armo
   const noticeNoted = Object.prototype.hasOwnProperty.call(noticeBucket, 'n1_pick_bomb');
   const noticeLv = noticeNoted ? (noticeBucket.n1_pick_bomb | 0) : 0;
   if (noticePick && noticeLv < noticePick.max) {
+    const needMore = pickGap?.blocked
+      ? Math.max(0, (pickGap.noticeLevelsNeeded || 0) - noticeLv)
+      : 0;
     if (noticeNoted) {
+      const target = needMore > 0
+        ? Math.min(noticePick.max, noticeLv + needMore)
+        : Math.min(noticePick.max, noticeLv + 1);
       recs.push({
         priority: 1, category: 'fishing',
-        title: `Notice Pickaxe & Bomb Damage → ${Math.min(noticePick.max, noticeLv + 1)}/${noticePick.max}`,
-        reason: `${noticePick.per} / niveau — multi pioche + bombes. Gem Guide OB60–65 + Notices wiki. Priorise ça pour l'armure OB.${gapHint}`,
+        title: needMore > 0
+          ? `Notice Pickaxe & Bomb → ${target}/${noticePick.max} (~${needMore} niv. pour l'armure)`
+          : `Notice Pickaxe & Bomb Damage → ${Math.min(noticePick.max, noticeLv + 1)}/${noticePick.max}`,
+        reason: `${noticePick.per} / niveau — multi pioche + bombes. ${needMore > 0 ? `Estimateur : ~${pickGap.noticeLevelsNeeded} niv. depuis 0 pour ×${pickGap.needMulti}.` : ''} Gem Guide OB60–65.${gapHint}`,
         confidence: 'confirmed',
         progress: noticeLv / noticePick.max,
         source: SOURCES.wiki_fishing,
@@ -266,7 +290,7 @@ function pushArmorUnlockLevers(recs, col, stats, profile, gapRatio, fishes, armo
       recs.push({
         priority: 2, category: 'fishing',
         title: 'Noter Notice « Pickaxe & Bomb Damage »',
-        reason: `Tu fishes (rod power export > 0). Ce notice est ${noticePick.per}/niv jusqu'à ${noticePick.max} — levier pioche direct vs armure OB. Menu Fishing → Notices.`,
+        reason: `Tu fishes (rod power export > 0). Ce notice est ${noticePick.per}/niv jusqu'à ${noticePick.max}${pickGap?.blocked ? ` — estimateur : ~${pickGap.noticeLevelsNeeded} niv. pour combler ×${pickGap.needMulti}` : ''}. Menu Fishing → Notices.`,
         confidence: 'insufficient',
         source: SOURCES.wiki_fishing,
       });
@@ -295,18 +319,57 @@ function pushArmorUnlockLevers(recs, col, stats, profile, gapRatio, fishes, armo
   recs.push({
     priority: 5, category: 'tools',
     title: 'Mesurer l\'impact (Pickaxe Calculator)',
-    reason: `Avant de dump des gemmes : ${EXTERNAL_TOOLS.pickaxeDamage.name} pour voir ce qui bouge vraiment la pioche. Pour les gems fishing : ${EXTERNAL_TOOLS.fishingGems.name}.`,
+    reason: `Avant de dump des gemmes : ${EXTERNAL_TOOLS.pickaxeDamage.name} pour voir ce qui bouge vraiment la pioche.`,
     confidence: 'confirmed',
     source: EXTERNAL_TOOLS.pickaxeDamage.url,
+  });
+
+  recs.push({
+    priority: 5, category: 'tools',
+    title: 'Gem EV détaillé (ObeliskFarm)',
+    reason: `Notre estimateur freebies est sur le dashboard. Pour Founder / bombs / overnight : module Gem EV de ${EXTERNAL_TOOLS.obeliskFarm.name}.`,
+    confidence: 'confirmed',
+    source: EXTERNAL_TOOLS.obeliskFarm.url,
   });
 
   if (fishes) {
     recs.push({
       priority: 5, category: 'tools',
-      title: 'Optimiser gems Fishing',
-      reason: `${EXTERNAL_TOOLS.fishingGems.name} — meilleur ROI gem par upgrade fishing (Enhance / docks). Guide : Gem Spending OB60–65.`,
+      title: 'Optimiser Fishing (sheet + ObeliskFarm)',
+      reason: `${EXTERNAL_TOOLS.fishingGems.name} (ROI gems) · module Fishing dans ${EXTERNAL_TOOLS.obeliskFarm.name}. Guide Gem Spending OB60–65.`,
       confidence: 'confirmed',
-      source: EXTERNAL_TOOLS.fishingGems.url,
+      source: EXTERNAL_TOOLS.obeliskFarmFishing.url,
+    });
+  }
+}
+
+function pushGemLevers(recs, stats, ob) {
+  if ((stats.freebie_cooldown_seconds ?? 0) <= 0) return;
+  const freebie = estimateFreebieGemEv(stats);
+  const loot = estimateLootbug2xWorth(stats, freebie);
+  recs.push({
+    priority: 4, category: 'gems',
+    title: `~${freebie.gemsPerHour} gems/h freebies (approx.)`,
+    reason: `${freebie.claimsPerHour} claims/h · refresh ×${freebie.refreshMulti} · ${freebie.gemsPerClaim} gems/claim. ${freebie.note}`,
+    confidence: 'probable',
+    source: SOURCES.wiki_gems,
+  });
+  if (loot.worth) {
+    recs.push({
+      priority: 3, category: 'lootbug',
+      title: 'Acheter Lootbug 2× Game Speed',
+      reason: loot.note,
+      confidence: 'probable',
+      source: SOURCES.wiki_gems,
+    });
+  }
+  if (ob >= 30) {
+    recs.push({
+      priority: 6, category: 'tools',
+      title: 'Sim Arch / Overnight si tu farm',
+      reason: `Modules Archaeology + Overnight Gains sur ${EXTERNAL_TOOLS.obeliskFarm.name} — on ne réécrit pas le Monte Carlo, on guide vers l'outil.`,
+      confidence: 'probable',
+      source: EXTERNAL_TOOLS.obeliskFarmArch.url,
     });
   }
 }

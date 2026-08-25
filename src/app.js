@@ -10,7 +10,8 @@ import { ORE_CARDS, BAR_CARDS, MISC_CARDS, visibleCards } from './game/cardsData
 import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS, starEffectiveMax } from './game/starsData.js';
 // icônes misc réelles : mapping id → fichier téléchargé depuis le wiki
 const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Misc_Blue_Cow.png',goldore:'Misc_Golden_Vein.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:"Misc_Celio's_Hat.png",vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png'};
-import { ARTIFACTS, SKILLS, OBELISK_UNLOCKS, artifactEffectiveMax } from './game/knowledgeBase.js';
+import { estimateFreebieGemEv, estimateLootbug2xWorth, estimatePickaxeGap } from './game/playerMath.js';
+import { ARTIFACTS, SKILLS, OBELISK_UNLOCKS, artifactEffectiveMax, EXTERNAL_TOOLS } from './game/knowledgeBase.js';
 import { WORKSHOP_UPGRADES, workshopEffectiveMax, formatWorkshopBonus, WORKSHOP_WIKI_REF_CAP } from './game/workshopData.js';
 import { skillMaxLevels, SKILL_TREE_ROWS } from './game/skillsData.js';
 import { DRONE_CORE_UPGRADES, DRONE_SUITS, DRONE_FUEL, coreLevelFromExport, suitCapFromExport } from './game/dronesData.js';
@@ -122,7 +123,7 @@ function renderTop(){
 /* ---------- dashboard ---------- */
 function renderDash(){
   const g=$('#dashProfile');
-  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';return;}
+  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();return;}
   const p=state.profile;
   const nextA=p.nextObeliskArmor;
   g.innerHTML=[
@@ -136,6 +137,49 @@ function renderDash(){
     ['Cards possédées',C.cardCounts(state.col).owned],
     ['Pets débloqués',Object.values(state.col.pets||{}).filter(v=>v>0).length],
   ].map(c=>`<div class="cell"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');
+  renderDashTools();
+  renderDashMath();
+}
+/** Estimateurs wiki/export — guider sans réécrire tout ObeliskFarm. */
+function renderDashMath(){
+  const box=$('#dashMath');
+  if(!box)return;
+  if(!state.parsed){box.innerHTML='<p class="muted">Importe un exportstats pour les estimateurs.</p>';return;}
+  const s=state.parsed.stats;
+  const freebie=estimateFreebieGemEv(s);
+  const loot=estimateLootbug2xWorth(s, freebie);
+  const gap=estimatePickaxeGap(s, state.profile);
+  let h=`<div class="math-grid">
+    <div class="math-card"><b>~${freebie.gemsPerHour} gems/h</b><span>Freebies (approx.)</span>
+      <small>${freebie.claimsPerHour}/h · refresh ×${freebie.refreshMulti} · ${freebie.gemsPerClaim} gems/claim · 🟡</small></div>
+    <div class="math-card"><b>Lootbug 2× ${loot.worth?'OUI':'non'}</b><span>+${loot.extraGems} gems vs coût ${loot.cost}</span>
+      <small>${loot.note} · 🟡</small></div>`;
+  if(gap){
+    h+=`<div class="math-card"><b>${gap.blocked?`×${gap.needMulti} pioche`:'OK armure'}</b><span>OB${gap.obNext}</span>
+      <small>${gap.note}</small></div>`;
+  }
+  h+=`</div><p class="muted" style="margin-top:8px">Estimateurs maison (wiki + export). Détail bombs/Founder → <a href="${EXTERNAL_TOOLS.obeliskFarm.url}" target="_blank" rel="noopener">ObeliskFarm</a>.</p>`;
+  box.innerHTML=h;
+}
+function renderDashTools(){
+  const box=$('#dashTools');
+  if(!box)return;
+  const tools=[
+    EXTERNAL_TOOLS.obeliskFarm,
+    EXTERNAL_TOOLS.obeliskFarmGemEv,
+    EXTERNAL_TOOLS.obeliskFarmFishing,
+    EXTERNAL_TOOLS.obeliskFarmArch,
+    EXTERNAL_TOOLS.obeliskFarmStars,
+    EXTERNAL_TOOLS.obeliskFarmOvernight,
+    EXTERNAL_TOOLS.pickaxeDamage,
+    EXTERNAL_TOOLS.fishingGems,
+    EXTERNAL_TOOLS.obeliskFight,
+    EXTERNAL_TOOLS.starOb60,
+  ];
+  box.innerHTML=tools.map(t=>{
+    const sub=t.module?` · ouvre puis choisis « ${t.module} »`:(t.note?` — ${t.note}`:'');
+    return `<a class="tool-link" href="${t.url}" target="_blank" rel="noopener">${t.name}${sub?`<small>${sub}</small>`:''}</a>`;
+  }).join('');
 }
 
 /* ---------- roadmap ---------- */
@@ -355,12 +399,11 @@ function renderCards(){
   const box=$('#cardSets');
   const maxW=maxWorldUnlocked();
   const cards=visibleCards(maxW);
-  let h=`<p class="muted">Monde max détecté : <b>${maxW}</b> — les cartes des mondes supérieurs sont masquées (coche tes Monuments dans Construct ou importe un exportstats pour les révéler).</p>`;
+  let h=`<p class="muted">Monde max détecté : <b>${maxW}</b> — les cartes des mondes supérieurs sont masquées (coche tes Monuments dans Construct ou importe un exportstats pour les révéler). Ordre = <a href="https://shminer.miraheze.org/wiki/Cards/Card_Effects" target="_blank" rel="noopener">wiki Card Effects</a>.</p>`;
 
   for(const set of CARD_SETS){
     const setCards=cards.filter(c=>c.cat===set.id);
     if(!setCards.length)continue;
-    // boutons bulk par famille
     h+=`<h3 style="display:flex;align-items:center;gap:10px">${set.icon} ${set.name} <span class="muted">(${setCards.length})</span>
       <span style="display:inline-flex;gap:6px;margin-left:auto">
         <button class="pixbtn gold" data-bulkset="${set.id}" data-v="2" style="font-size:7px;padding:5px 8px">Tout Gilded</button>
@@ -369,22 +412,21 @@ function renderCards(){
       </span></h3><div class="cardgrid">`;
     for(const c of setCards){
       const st=C.getCardState(state.col,c.id);
-      h+=cardTile(c.id,c.icon||'🃏',c.name,st,c.effect,c.world?`W${c.world}`:null,c.mod,st>0);
+      h+=cardTile(c.id,cardIconSrc(c),c.name,st,c.effect,c.world?`W${c.world}`:null,c.mod,st>0);
     }
     h+='</div>';
   }
-  // Misc : individuelles avec icônes wiki
-  const misc=cards.filter(c=>c.cat==='misc');
-  h+=`<h3>🃏 Misc Cards <span class="muted">(${misc.length})</span></h3><div class="cardgrid">`;
-  for(const c of misc){
-    const st=C.getCardState(state.col,c.id);
-    const icon=MISC_ICONS[c.id]?('assets/cards/'+MISC_ICONS[c.id]):'🃏';
-    h+=cardTile(c.id,icon,c.name,st,c.effect,c.world?`W${c.world}`:null,null,st>0);
-  }
-  h+='</div>';
   box.innerHTML=h;
   const cc=C.cardCounts(state.col), total=cards.length;
   $('#cardCounts').textContent=`${cc.owned}/${total} possédées · ${cc.gilded} gilded · ${cc.poly} poly · ${cc.infernal} infernal`;
+}
+/** Résout l'icône : path assets, ou MISC_ICONS (id misc_xxx → xxx). */
+function cardIconSrc(c){
+  if(c.icon&&String(c.icon).startsWith('assets/')) return c.icon;
+  const miscKey=(c.id||'').replace(/^misc_/,'');
+  if(MISC_ICONS[miscKey]) return 'assets/cards/'+MISC_ICONS[miscKey];
+  if(MISC_ICONS[c.id]) return 'assets/cards/'+MISC_ICONS[c.id];
+  return c.icon||'🃏';
 }
 function cardTile(id,img,name,st,effect,worldTag,mod,unlocked=true){
   // fond = dos de carte officiel selon l'état (0 → standard grisé)
@@ -1084,5 +1126,5 @@ function renderHistory(){
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
   }
 })();
-renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();
 show('export');

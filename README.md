@@ -44,4 +44,6 @@ Prestige = artefacts (comme dans le jeu). Construct = statues auto-remplies depu
 
 ## Crédits
 - Données et icônes : [Idle Obelisk Miner Wiki](https://shminer.miraheze.org) (CC BY-NC-SA 4.0)
+- Calculateurs communautaires (liens, pas de copie de code) : [ObeliskFarm](https://arisboeuf.github.io/ObeliskFarm/) par arisboeuf — licence « personal use », on pointe vers l’outil plutôt que de réimplémenter ses simulateurs
+- Sheets Discord listés sur [External Resources](https://shminer.miraheze.org/wiki/External_Resources)
 - Jeu : [Idle Obelisk Miner](https://apps.apple.com/us/app/idle-obelisk-miner/id6448125670) par Checkbox Entertainment

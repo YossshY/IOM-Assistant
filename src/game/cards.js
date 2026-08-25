@@ -14,18 +14,19 @@ export const CARD_STATES = [
   { v:4, name:'Infernal',     cls:'st4' },
 ];
 
-/* Catégories avec une carte par ressource (une ligne = tout le set,
-   l'état s'applique à chaque carte du set) */
+/* Ordre wiki Cards/Card Effects (tabber) */
 export const CARD_SETS = [
   { id:'ores',  name:'Ore Cards',   icon:'⛏', effect:['Gain 1.50x','2x','4x-21.23x','+0.12x/+0.02x'] },
   { id:'bars',  name:'Bar Cards',   icon:'🧱', effect:['Gain 1.50x','2x','4x-19x','+0.12x/+0.02x'] },
   { id:'bombs', name:'Bomb Cards',  icon:'💣', effect:['Recharge: 50% 2x bombes','2x','3x','N/A'] },
-  { id:'veins', name:'Vein Cards',  icon:'💠', effect:['Gain 1.50x','2x','4x-12.27x','+0.15x/+0.01x'] },
-  { id:'stars', name:'Star Cards',  icon:'⭐', effect:['Gain 1.50x','2x','4x-7.13x','+0.20x/+0.01x'] },
-  { id:'fish',  name:'Fish Cards',  icon:'🐟', effect:['Gain 1.50x','2x','4x-9.2x','+0.08x/+0.005x'] },
+  { id:'misc',  name:'Misc Cards',  icon:'🃏', effect:['Varié','—','—','+0.02x'] },
   { id:'drones',name:'Drone Cards', icon:'🛸', effect:['Per drone','—','—','+0.02x/+0.0x'] },
   { id:'pets',  name:'Pet Cards',   icon:'🐾', effect:['Per pet','—','—','+0.02x/+0.0x'] },
+  { id:'veins', name:'Vein Cards',  icon:'💠', effect:['Gain 1.50x','2x','4x-12.27x','+0.15x/+0.01x'] },
+  { id:'stars', name:'Star Cards',  icon:'⭐', effect:['Gain 1.50x','2x','4x-7.13x','+0.20x/+0.01x'] },
   { id:'arch',  name:'Archaeology', icon:'🦴', effect:['Per block','—','—','+0.02x/+0.0x'] },
+  { id:'fish',  name:'Fish Cards',  icon:'🐟', effect:['Gain 1.50x','2x','4x-9.2x','+0.08x/+0.005x'] },
+  { id:'legendary_fish', name:'Legendary Fish', icon:'🐋', effect:['Varié','—','—','+0.20x/+0.001x'] },
   { id:'essence',name:'Essence',    icon:'🟣', effect:['Arcanist','—','—','+0.02x/+0.0x'] },
   { id:'runes', name:'Runes',       icon:'🔮', effect:['Arcanist','—','—','+0.02x/+0.0x'] },
   { id:'spells',name:'Spells',      icon:'✨', effect:['Arcanist','—','—','+0.02x/+0.0x'] },
