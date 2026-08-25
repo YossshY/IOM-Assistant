@@ -229,6 +229,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
       <div class="menu-btn" data-go="construct"><span class="ic"><img src="assets/menu/Construct_Button_Gilded.png" alt=""></span><span class="lb">Construct</span></div>
       <div class="menu-btn" data-go="stars"><span class="ic"><img src="assets/menu/Stargazing_Button.png" alt=""></span><span class="lb">Stargazing</span></div>
       <div class="menu-btn" data-go="fishing"><span class="ic"><img src="assets/menu/Fishing_Button.png" alt=""></span><span class="lb">Fishing</span></div>
+      <div class="menu-btn" data-go="archaeology"><span class="ic"><img src="assets/menu/Arch_Button.png" alt=""></span><span class="lb">Archaeology</span></div>
     </div>
   </div>
   <div class="menu-section"><h2>Miscellaneous</h2>
@@ -387,7 +388,41 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 
 <!-- FISHING -->
 <section id="page-fishing" class="page hidden">
-  <div class="panel"><h2>Fishing — tes stats importées</h2><div id="fishingStats"></div></div>
+  <div class="panel">
+    <p class="prestige-hint">Fishing (OB37+) — stats depuis export · docks / notices / enhance / legendaries manuels.</p>
+    <div class="tab-row" id="fishTabs">
+      <button class="pixbtn on" data-fishtab="stats">Stats</button>
+      <button class="pixbtn ghost" data-fishtab="docks">Docks</button>
+      <button class="pixbtn ghost" data-fishtab="notices">Notices</button>
+      <button class="pixbtn ghost" data-fishtab="enhance">Enhance</button>
+      <button class="pixbtn ghost" data-fishtab="legendary">Legendary</button>
+    </div>
+    <div class="prestige-toolbar">
+      <button class="pixbtn gold" id="btnFishMaxTab">TOUT MAXER (onglet)</button>
+      <button class="pixbtn ghost" id="btnFishClearTab">TOUT À 0</button>
+      <span class="muted" id="fishHint"></span>
+    </div>
+    <div class="prestige-list" id="fishingStats"></div>
+  </div>
+</section>
+
+<!-- ARCHAEOLOGY -->
+<section id="page-archaeology" class="page hidden">
+  <div class="panel">
+    <p class="prestige-hint">Archaeology (OB30+) — skills / upgrades Ascension 0 / idols. Highest stage manuel.</p>
+    <div class="tab-row" id="archTabs">
+      <button class="pixbtn on" data-archtab="skills">Skills</button>
+      <button class="pixbtn ghost" data-archtab="upgrades">Upgrades</button>
+      <button class="pixbtn ghost" data-archtab="idols">Idols</button>
+      <button class="pixbtn ghost" data-archtab="stage">Stage</button>
+    </div>
+    <div class="prestige-toolbar">
+      <button class="pixbtn gold" id="btnArchMaxTab">TOUT MAXER (onglet)</button>
+      <button class="pixbtn ghost" id="btnArchClearTab">TOUT À 0</button>
+      <span class="muted" id="archHint"></span>
+    </div>
+    <div class="prestige-list" id="archGrid"></div>
+  </div>
 </section>
 
 <!-- HISTORIQUE -->

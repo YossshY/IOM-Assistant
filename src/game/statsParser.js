@@ -39,7 +39,7 @@ export function parseExportStats(rawText) {
     versionKnown,
     isNewerThanKB: versionKnown ? false : compareVersions(version, LATEST_KNOWN_VERSION) > 0,
     importedAt: new Date().toISOString(),
-    playtimeSeconds: raw.time ?? null,
+    playtimeSeconds: raw.time ?? null, // secondes du run courant (reset au prestige) — PAS le lifetime
     rawVersionFields: Object.keys(raw).filter(k => k !== 'stats'),
     stats,
     unknownKeys,
@@ -116,7 +116,10 @@ export function deriveProfile(parsed) {
     armorReduction: armorRed,
     nextObeliskArmor: nextArmor,
     canDamageNext: pick != null && nextArmor != null ? pick > nextArmor : null,
-    playtimeHours: parsed.playtimeSeconds != null ? +(parsed.playtimeSeconds / 3600).toFixed(1) : null,
+    /** Durée du prestige / run actuel (raw.time en secondes). Pas le temps de compte. */
+    runSeconds: parsed.playtimeSeconds ?? null,
+    runHours: parsed.playtimeSeconds != null ? +(parsed.playtimeSeconds / 3600).toFixed(1) : null,
+    playtimeHours: parsed.playtimeSeconds != null ? +(parsed.playtimeSeconds / 3600).toFixed(1) : null, // alias legacy
     statueStates,
     monuments: worlds.monuments,
     maxWorld: worlds.maxWorld,

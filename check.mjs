@@ -32,8 +32,17 @@ const recs = generateRecommendations(parsed.stats, profile, {
 });
 const titles = recs.map(r => r.title);
 assert(titles.some(t => /Monument World 4/i.test(t)), 'should recommend W4 monument');
-assert(titles.some(t => /armure|Obelisk 65/i.test(t)), 'should flag OB65 armor wall');
+assert(titles.some(t => /Contexte : écart OB65|Radioactive Slug|Legendary Fish/i.test(t)), 'should give armor context or card lever, not just beat OB');
+assert(!titles.some(t => /^Briser l'armure/i.test(t)), 'should NOT top-line "Briser l\'armure" as the goal');
 assert(!titles.some(t => /Fueler le drone|Alimenter le drone/i.test(t)), 'no false drone fuel alert');
+
+/* Avec Slug gilded → poly doit être #1 (ou prio 1) */
+const recsSlug = generateRecommendations(parsed.stats, profile, {
+  statueStates: profile.statueStates,
+  monuments: profile.monuments,
+  cards: { fish_radioactive_slug: 2 },
+});
+assert(/Polychromer Radioactive Slug/i.test(recsSlug[0]?.title || ''), `expected poly slug first, got: ${recsSlug[0]?.title}`);
 
 const caps = {
   artifact: parsed.stats.artifact_cap_increase,

@@ -107,6 +107,16 @@ export function hasBlackHoleBlessing(col,id){ return !!(col.blackHole||{})[id]; 
 export function setPetQuestRank(col,id,lv){ col.petQuestRanks||={}; col.petQuestRanks[id]=Math.max(0,Math.min(10,lv|0)); }
 export function getPetQuestRank(col,id){ return (col.petQuestRanks||{})[id]|0; }
 
+/** fishing / archaeology levels */
+export function setFishLv(col,bucket,id,lv){ col.fishing||={}; col.fishing[bucket]||={}; col.fishing[bucket][id]=Math.max(0,lv|0); }
+export function getFishLv(col,bucket,id){ return ((col.fishing||{})[bucket]||{})[id]|0; }
+export function setDockUnlocked(col,id,on){ col.fishing||={}; col.fishing.docks||={}; col.fishing.docks[id]=!!on; }
+export function isDockUnlocked(col,id){ return !!((col.fishing||{}).docks||{})[id]; }
+export function setArchLv(col,bucket,id,lv){ col.arch||={}; col.arch[bucket]||={}; col.arch[bucket][id]=Math.max(0,lv|0); }
+export function getArchLv(col,bucket,id){ return ((col.arch||{})[bucket]||{})[id]|0; }
+export function setArchHighestStage(col,n){ col.arch||={}; col.arch.highestStage=Math.max(0,n|0); }
+export function getArchHighestStage(col){ return (col.arch||{}).highestStage|0; }
+
 /** compteurs utiles au moteur de reco */
 export function cardCounts(col){
   let owned=0,gilded=0,poly=0,infernal=0;

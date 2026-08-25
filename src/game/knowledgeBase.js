@@ -312,7 +312,33 @@ export const SOURCES = {
   wiki_obelisk:  'https://shminer.miraheze.org/wiki/Obelisk',
   wiki_construct:'https://shminer.miraheze.org/wiki/Construct',
   wiki_skilltree:'https://shminer.miraheze.org/wiki/Skill-Tree',
+  wiki_fishing: 'https://shminer.miraheze.org/wiki/Fishing',
+  wiki_cards: 'https://shminer.miraheze.org/wiki/Cards',
   wiki_progression: 'https://shminer.miraheze.org/wiki/Guides/Progression_Guide',
   wiki_gems: 'https://shminer.miraheze.org/wiki/Guides/Gem_Spending_Guide',
   wiki_external: 'https://shminer.miraheze.org/wiki/External_Resources',
+};
+
+/** Calculateurs Discord / wiki External_Resources — pour les recos « comment mesurer ». */
+export const EXTERNAL_TOOLS = {
+  pickaxeDamage: {
+    name: 'Pickaxe Damage Calculator',
+    url: 'https://docs.google.com/spreadsheets/d/1IHgJtGmvgRwF7UzIqPF9aM2S4dzNOREdHF_XyhXS39M/edit?usp=sharing',
+  },
+  fishingGems: {
+    name: 'Fishing Gem Spending Calculator',
+    url: 'https://docs.google.com/spreadsheets/d/18_K3KlY_ewqjb26oirX8qVdWVPhGBC-qVrUdKQ1KedE/edit?usp=sharing',
+  },
+  obeliskFight: {
+    name: 'Obelisk Fight Calc',
+    url: 'https://docs.google.com/spreadsheets/d/1GughZm85kNggKfgluRk36ZpkQYHLVFd1Ox9OysdIONY/edit?usp=sharing',
+  },
+  starOb60: {
+    name: 'Star Gain Checklist OB60+',
+    url: 'https://docs.google.com/spreadsheets/d/1SeNOHMbM8lmy6pCNPn2N_B5RBnxwHaIow0t5nca7v8w/edit?gid=0#gid=0',
+  },
+  ultimateGems: {
+    name: 'Ultimate Gem Calculator 2.2',
+    url: 'https://docs.google.com/spreadsheets/d/1XscDMDkk59Btu1fQld09GQGmGpWxxNIszSFR1ujj_wE/edit?usp=sharing',
+  },
 };

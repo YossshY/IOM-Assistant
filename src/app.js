@@ -15,7 +15,25 @@ import { WORKSHOP_UPGRADES, workshopEffectiveMax, formatWorkshopBonus, WORKSHOP_
 import { skillMaxLevels, SKILL_TREE_ROWS } from './game/skillsData.js';
 import { DRONE_CORE_UPGRADES, DRONE_SUITS, DRONE_FUEL, coreLevelFromExport, suitCapFromExport } from './game/dronesData.js';
 import { CHALLENGES, CHALLENGE_SHOP } from './game/challengesData.js';
+import {
+  FISHING_DOCKS, NOTICE_UPGRADES_T1, NOTICE_UPGRADES_T2,
+  ENHANCE_T1, ENHANCE_T2, LEGENDARY_FISH, FISHING_EXPORT_KEYS,
+} from './game/fishingData.js';
+import { ARCH_SKILLS, ARCH_UPGRADES, ARCH_IDOLS, ARCH_IDOL_MAX } from './game/archaeologyData.js';
 import * as C from './game/collections.js';
+
+/** Durée du run prestige (raw.time) — pas le lifetime du compte. */
+function fmtRunDuration(sec){
+  if(sec==null||!isFinite(sec)) return 'inconnu';
+  const h=sec/3600;
+  if(h<48) return `${h.toFixed(1)} h (prestige actuel)`;
+  return `${(h/24).toFixed(1)} j (prestige actuel)`;
+}
+function fmtSource(src){
+  if(!src) return '—';
+  if(/^https?:\/\//i.test(src)) return `<a href="${src}" target="_blank" rel="noopener">lien ↗</a>`;
+  return String(src);
+}
 
 /** Max affiché : T4 = maxBase + caps persistés (ex. 32+20=52). */
 function artifactMax(a){
@@ -78,7 +96,7 @@ function doImport(text){
 }
 
 function renderAll(){
-  renderTop();renderDash();renderRoadmap();renderAllStats();renderFishing();
+  renderTop();renderDash();renderRoadmap();renderAllStats();renderFishing();renderArchaeology();
   renderCards();renderPets();renderArtifacts();renderWorkshop();
   renderSkills();renderDrones();renderChallenges();
   renderConstruct();renderStars();renderHistory();
@@ -110,7 +128,7 @@ function renderDash(){
   g.innerHTML=[
     ['Version',p.version],['Obelisk Level',p.obeliskLevel??'?'],['Cap XP',p.xpLevelCap??'?'],
     ['Monde max',p.maxWorld??'?'],
-    ['Temps de jeu',p.playtimeHours!=null?p.playtimeHours+' h':'inconnu'],
+    ['Temps du run',fmtRunDuration(p.runSeconds)],
     ['Pickaxe Damage',fmtNum(p.pickaxeDamage)],
     ['Armure OB+1 (eff.)',nextA!=null?fmtNum(nextA):'—'],
     ['Passe OB+1',p.canDamageNext===true?'Oui':p.canDamageNext===false?'Non':'?'],
@@ -132,7 +150,7 @@ function renderRoadmap(){
       <span class="conf" title="${cf.hint}">${cf.icon} ${cf.label}</span>
       <p>${r.reason}</p>
       ${r.progress!=null?`<div class="bar"><i style="width:${Math.min(100,r.progress*100)}%"></i></div>`:''}
-      <p style="opacity:.6">Source : ${r.source}</p></div></div>`;
+      <p style="opacity:.6">Source : ${fmtSource(r.source)}</p></div></div>`;
   }
   for(const r of recs.filter(r=>r.priority===0))
     h+=`<p class="blocked">${CONFIDENCE.insufficient.icon} ${r.title} — ${r.reason}</p>`;
@@ -151,13 +169,173 @@ function renderAllStats(){
     `<div class="statline"><span>${k}</span><b>${typeof v==='number'?fmtNum(v):v}</b></div>`).join('');
 }
 
-function renderFishing(){
-  const box=$('#fishingStats');
-  const s=state.parsed?.stats||{};
-  const keys=Object.keys(s).filter(k=>k.startsWith('fishing_'));
-  box.innerHTML=keys.length?keys.map(k=>`<div class="statline"><span>${k}</span><b>${fmtNum(s[k])}</b></div>`).join('')
-    :'<p class="muted">Importe un exportstats — les clés fishing_* s\'afficheront ici automatiquement.</p>';
+/* ================= FISHING ================= */
+let fishTab='stats';
+function lvRow(icon, title, sub, lv, max, dataAttr, id){
+  const maxed=lv>=max && max>0;
+  return `<div class="art-row">
+    <div class="art-ico">${icon}</div>
+    <div class="art-desc"><b>${title}</b>${sub?` — ${sub}`:''}</div>
+    <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
+    <div class="art-actions">
+      <button class="pixbtn ghost" data-${dataAttr}="${id}" data-d="-1">−</button>
+      ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-${dataAttr}="${id}" data-d="1">+</button>`}
+    </div>
+  </div>`;
 }
+function renderFishing(){
+  const box=$('#fishingStats'); if(!box) return;
+  document.querySelectorAll('[data-fishtab]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.fishtab===fishTab);
+    b.classList.toggle('ghost', b.dataset.fishtab!==fishTab);
+  });
+  const hint=$('#fishHint');
+  const s=state.parsed?.stats||{};
+  if(fishTab==='stats'){
+    if(hint) hint.textContent='Clés fishing_* de l\'export';
+    const keys=FISHING_EXPORT_KEYS.filter(k=>s[k]!=null);
+    box.innerHTML=keys.length
+      ? keys.map(k=>`<div class="statline"><span>${k}</span><b>${fmtNum(s[k])}</b></div>`).join('')
+      : '<p class="muted">Importe un exportstats pour voir rod power, ticks, shiny, drones…</p>';
+    return;
+  }
+  if(fishTab==='docks'){
+    if(hint) hint.textContent='11 docks — coche débloqué';
+    box.innerHTML=FISHING_DOCKS.map(d=>{
+      const on=C.isDockUnlocked(state.col,d.id) || (d.tier===1 && d.id==='lake');
+      return `<div class="art-row">
+        <div class="art-ico">🎣</div>
+        <div class="art-desc"><b>${d.name}</b> — ${d.ticks} ticks · T${d.tier}</div>
+        <div class="art-actions">
+          <button class="pixbtn ${on?'on':''}" data-dock="${d.id}">${on?'UNLOCK':'—'}</button>
+        </div>
+      </div>`;
+    }).join('');
+    return;
+  }
+  if(fishTab==='notices'){
+    if(hint) hint.textContent='Notice upgrades T1 + T2 (tokens)';
+    box.innerHTML='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Tier 1 Notices</div></div>'
+      +NOTICE_UPGRADES_T1.map(u=>lvRow('📋',u.name,u.per,C.getFishLv(state.col,'notice',u.id),u.max,'fn1',u.id)).join('')
+      +'</div><div class="tier-block t2" style="margin-top:12px"><div class="tier-head"><div class="th-l">Tier 2 Notices</div></div>'
+      +NOTICE_UPGRADES_T2.map(u=>lvRow('📋',u.name,u.per,C.getFishLv(state.col,'notice',u.id),u.max,'fn2',u.id)).join('')
+      +'</div>';
+    return;
+  }
+  if(fishTab==='enhance'){
+    if(hint) hint.textContent='Enhance gem sink T1/T2';
+    box.innerHTML='<div class="tier-block t3"><div class="tier-head"><div class="th-l">Tier 1 Enhance</div></div>'
+      +ENHANCE_T1.map(u=>lvRow('💎',u.name,u.per,C.getFishLv(state.col,'enhance',u.id),u.max,'fe1',u.id)).join('')
+      +'</div><div class="tier-block t4" style="margin-top:12px"><div class="tier-head"><div class="th-l">Tier 2 Enhance</div></div>'
+      +ENHANCE_T2.map(u=>lvRow('💎',u.name,u.per,C.getFishLv(state.col,'enhance',u.id),u.max,'fe2',u.id)).join('')
+      +'</div>';
+    return;
+  }
+  if(hint) hint.textContent='Legendary fish — tribute ranks 0–2';
+  box.innerHTML=LEGENDARY_FISH.map(f=>{
+    const lv=Math.min(2, C.getFishLv(state.col,'legendary',f.id));
+    return lvRow('🐟',f.name,`${f.dock} · ${f.card}`,lv,2,'fleg',f.id);
+  }).join('');
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-fishtab]');
+  if(t){ fishTab=t.dataset.fishtab; renderFishing(); return; }
+  const d=e.target.closest('[data-dock]');
+  if(d){ C.setDockUnlocked(state.col,d.dataset.dock,!C.isDockUnlocked(state.col,d.dataset.dock)); C.saveCollections(state.col); renderFishing(); return; }
+  const n1=e.target.closest('[data-fn1]');
+  if(n1){ const u=NOTICE_UPGRADES_T1.find(x=>x.id===n1.dataset.fn1); C.setFishLv(state.col,'notice',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'notice',u.id)+ +n1.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
+  const n2=e.target.closest('[data-fn2]');
+  if(n2){ const u=NOTICE_UPGRADES_T2.find(x=>x.id===n2.dataset.fn2); C.setFishLv(state.col,'notice',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'notice',u.id)+ +n2.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
+  const e1=e.target.closest('[data-fe1]');
+  if(e1){ const u=ENHANCE_T1.find(x=>x.id===e1.dataset.fe1); C.setFishLv(state.col,'enhance',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'enhance',u.id)+ +e1.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
+  const e2=e.target.closest('[data-fe2]');
+  if(e2){ const u=ENHANCE_T2.find(x=>x.id===e2.dataset.fe2); C.setFishLv(state.col,'enhance',u.id,Math.min(u.max,Math.max(0,C.getFishLv(state.col,'enhance',u.id)+ +e2.dataset.d))); C.saveCollections(state.col); renderFishing(); return; }
+  const lg=e.target.closest('[data-fleg]');
+  if(lg){ C.setFishLv(state.col,'legendary',lg.dataset.fleg,Math.min(2,Math.max(0,C.getFishLv(state.col,'legendary',lg.dataset.fleg)+ +lg.dataset.d))); C.saveCollections(state.col); renderFishing(); }
+});
+$('#btnFishMaxTab')?.addEventListener('click',()=>{
+  if(fishTab==='docks') for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,true);
+  else if(fishTab==='notices'){ for(const u of NOTICE_UPGRADES_T1) C.setFishLv(state.col,'notice',u.id,u.max); for(const u of NOTICE_UPGRADES_T2) C.setFishLv(state.col,'notice',u.id,u.max); }
+  else if(fishTab==='enhance'){ for(const u of ENHANCE_T1) C.setFishLv(state.col,'enhance',u.id,u.max); for(const u of ENHANCE_T2) C.setFishLv(state.col,'enhance',u.id,u.max); }
+  else if(fishTab==='legendary') for(const f of LEGENDARY_FISH) C.setFishLv(state.col,'legendary',f.id,2);
+  C.saveCollections(state.col);renderFishing();
+});
+$('#btnFishClearTab')?.addEventListener('click',()=>{
+  if(fishTab==='docks') for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,false);
+  else if(fishTab==='notices'){ for(const u of [...NOTICE_UPGRADES_T1,...NOTICE_UPGRADES_T2]) C.setFishLv(state.col,'notice',u.id,0); }
+  else if(fishTab==='enhance'){ for(const u of [...ENHANCE_T1,...ENHANCE_T2]) C.setFishLv(state.col,'enhance',u.id,0); }
+  else if(fishTab==='legendary') for(const f of LEGENDARY_FISH) C.setFishLv(state.col,'legendary',f.id,0);
+  C.saveCollections(state.col);renderFishing();
+});
+
+/* ================= ARCHAEOLOGY ================= */
+let archTab='skills';
+function renderArchaeology(){
+  const box=$('#archGrid'); if(!box) return;
+  document.querySelectorAll('[data-archtab]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.archtab===archTab);
+    b.classList.toggle('ghost', b.dataset.archtab!==archTab);
+  });
+  const hint=$('#archHint');
+  if(archTab==='skills'){
+    if(hint) hint.textContent='5 skills — points alloués (manuel)';
+    box.innerHTML=ARCH_SKILLS.map(sk=>{
+      const lv=C.getArchLv(state.col,'skills',sk.id);
+      return lvRow('⚔',sk.name,sk.effect,lv,100,'askill',sk.id);
+    }).join('');
+    return;
+  }
+  if(archTab==='upgrades'){
+    if(hint) hint.textContent='Ascension 0 upgrades';
+    box.innerHTML=ARCH_UPGRADES.map(u=>lvRow('🦴',u.name,u.per,C.getArchLv(state.col,'upgrades',u.id),u.max,'aupg',u.id)).join('');
+    return;
+  }
+  if(archTab==='idols'){
+    if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · niveau 0–${ARCH_IDOL_MAX}`;
+    box.innerHTML=ARCH_IDOLS.map(idol=>{
+      const lv=Math.min(ARCH_IDOL_MAX, C.getArchLv(state.col,'idols',idol.id));
+      return lvRow('🗿',idol.name,idol.note||'',lv,ARCH_IDOL_MAX,'aidol',idol.id);
+    }).join('');
+    return;
+  }
+  const stage=C.getArchHighestStage(state.col);
+  if(hint) hint.textContent='Highest stage (Block Bonker / Founder bank)';
+  box.innerHTML=`<div class="art-row">
+    <div class="art-ico">🏔</div>
+    <div class="art-desc"><b>Highest Stage</b> — progression Archaeology</div>
+    <div class="art-stats"><span class="lv">${stage}</span></div>
+    <div class="art-actions">
+      <button class="pixbtn ghost" data-astage="-1">−</button>
+      <button class="pixbtn" data-astage="1">+</button>
+      <button class="pixbtn gold" data-astage="10">+10</button>
+    </div>
+  </div>`;
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-archtab]');
+  if(t){ archTab=t.dataset.archtab; renderArchaeology(); return; }
+  const sk=e.target.closest('[data-askill]');
+  if(sk){ C.setArchLv(state.col,'skills',sk.dataset.askill,Math.min(100,Math.max(0,C.getArchLv(state.col,'skills',sk.dataset.askill)+ +sk.dataset.d))); C.saveCollections(state.col); renderArchaeology(); return; }
+  const up=e.target.closest('[data-aupg]');
+  if(up){ const u=ARCH_UPGRADES.find(x=>x.id===up.dataset.aupg); C.setArchLv(state.col,'upgrades',u.id,Math.min(u.max,Math.max(0,C.getArchLv(state.col,'upgrades',u.id)+ +up.dataset.d))); C.saveCollections(state.col); renderArchaeology(); return; }
+  const id=e.target.closest('[data-aidol]');
+  if(id){ C.setArchLv(state.col,'idols',id.dataset.aidol,Math.min(ARCH_IDOL_MAX,Math.max(0,C.getArchLv(state.col,'idols',id.dataset.aidol)+ +id.dataset.d))); C.saveCollections(state.col); renderArchaeology(); return; }
+  const st=e.target.closest('[data-astage]');
+  if(st){ C.setArchHighestStage(state.col, C.getArchHighestStage(state.col)+ +st.dataset.astage); C.saveCollections(state.col); renderArchaeology(); }
+});
+$('#btnArchMaxTab')?.addEventListener('click',()=>{
+  if(archTab==='skills') for(const s of ARCH_SKILLS) C.setArchLv(state.col,'skills',s.id,100);
+  else if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,u.max);
+  else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,ARCH_IDOL_MAX);
+  C.saveCollections(state.col);renderArchaeology();
+});
+$('#btnArchClearTab')?.addEventListener('click',()=>{
+  if(archTab==='skills') for(const s of ARCH_SKILLS) C.setArchLv(state.col,'skills',s.id,0);
+  else if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,0);
+  else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,0);
+  else C.setArchHighestStage(state.col,0);
+  C.saveCollections(state.col);renderArchaeology();
+});
 
 /* ================= CARDS =================
    Toutes les cartes individuelles, groupées par catégorie.
@@ -906,5 +1084,5 @@ function renderHistory(){
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
   }
 })();
-renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderConstruct();renderStars();renderHistory();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();
 show('export');
