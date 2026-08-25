@@ -119,13 +119,38 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .lvbtns button{width:34px;height:34px;font-size:12px}
 .lvval{min-width:52px;text-align:center;background:#120d16;border:3px solid var(--line);border-radius:5px;padding:7px 4px;color:var(--cyan)}
 
-/* ---- artefacts / skills / stars ---- */
-.artgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+/* ---- artefacts / prestige (layout jeu) ---- */
+.prestige-hint{color:var(--muted);font-size:8px;margin:0 0 12px;line-height:1.6}
+.prestige-list{display:flex;flex-direction:column;gap:14px}
+.tier-block{border:3px solid #555;border-radius:6px;overflow:hidden;background:#1a1a1a}
+.tier-block.t1{border-color:#6a7580;background:#2a3038}
+.tier-block.t2{border-color:#c45a6a;background:#4a1e28}
+.tier-block.t3{border-color:#4caf6a;background:#1e3a28}
+.tier-block.t4{border-color:#4ab0c0;background:#1a3a42}
+.tier-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;flex-wrap:wrap}
+.tier-block.t1 .tier-head{background:#3a4450}
+.tier-block.t2 .tier-head{background:#6a2834}
+.tier-block.t3 .tier-head{background:#2a5a38}
+.tier-block.t4 .tier-head{background:#2a6a78}
+.tier-head .th-l{font-size:8px;line-height:1.7;color:#fff;text-shadow:1px 1px 0 #000}
+.tier-head .th-r{display:flex;align-items:center;gap:8px}
+.art-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:2px solid #00000055;flex-wrap:wrap}
+.art-ico{width:36px;height:36px;flex-shrink:0;display:grid;place-items:center;font-size:18px;
+  background:#120d16;border:2px solid #00000088;border-radius:4px}
+.art-desc{flex:1;min-width:140px;background:#120d16;border:2px solid #00000066;border-radius:4px;padding:8px 10px;
+  font-size:8px;color:#fff;line-height:1.5}
+.art-stats{min-width:72px;text-align:center;background:#120d16;border:2px solid #00000066;border-radius:4px;padding:6px 8px}
+.art-stats .lv{display:block;color:#fff;font-size:8px}
+.art-stats .tot{display:block;color:#9fefb0;font-size:7px;margin-top:3px}
+.art-actions{display:flex;gap:5px;align-items:center}
+.art-actions button{min-width:36px;height:36px;padding:0 8px}
+.btn-maxed{font:inherit;font-size:8px;background:#2ead51;color:#fff;border:3px solid #7dff9a;
+  border-radius:5px;padding:8px 12px;min-width:72px;box-shadow:0 3px 0 #00000066;cursor:default}
+.btn-max-tier{font:inherit;font-size:7px;background:#2ead51;color:#fff;border:2px solid #7dff9a;
+  border-radius:4px;padding:6px 10px;cursor:pointer}
+.prestige-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.artgrid{display:none} /* legacy */
 .art{background:#2a1a20;border:3px solid var(--line);border-radius:6px;padding:10px}
-.art b{color:var(--cyan);font-size:8px;display:block;margin-bottom:6px}
-.art small{color:var(--muted);font-size:7px;display:block;margin-bottom:6px}
-.art .row{display:flex;gap:6px;align-items:center}
-.art input{width:64px}
 .skillrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
 .skillrow:last-child{border:0}
 .skillrow .nm{flex:1;min-width:160px}
@@ -228,12 +253,16 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
   <p class="muted">Total niveaux requis pour débloquer le suivant. Skins : -15 à -30% de coût de level up + bonus (ex : Not A Duck = armure Obelisk -10%).</p></div>
 </section>
 
-<!-- PRESTIGE (= artefacts, comme dans le jeu) -->
+<!-- PRESTIGE (= artefacts, layout jeu) -->
 <section id="page-prestige" class="page hidden">
   <div class="panel">
-    <h2>Prestige — Artefacts</h2>
-    <p class="muted">Comme dans le jeu : les artefacts se notent ici. L'export donne les caps, pas les niveaux — renseigne-les pour le coach.</p>
-    <div class="artgrid" id="artGrid"></div>
+    <p class="prestige-hint">Higher Level Cap = the more PP you can gain per run!</p>
+    <div class="prestige-toolbar">
+      <button class="pixbtn gold" id="btnArtMaxAll">TOUT MAXER</button>
+      <button class="pixbtn ghost" id="btnArtClear">TOUT À 0</button>
+      <span class="muted" id="artCapHint"></span>
+    </div>
+    <div class="prestige-list" id="artGrid"></div>
   </div>
 </section>
 

@@ -2,7 +2,7 @@
    recommendationEngine.js — Moteur de recommandations
    Lit stats d'export + collections locales. Pas de conseil inventé.
    ============================================================ */
-import { OBELISK, ARTIFACTS, SKILLS, DRONES, SOURCES } from './knowledgeBase.js';
+import { OBELISK, ARTIFACTS, SKILLS, DRONES, SOURCES, artifactEffectiveMax } from './knowledgeBase.js';
 import { getArtifactLevel, hasSkill, getStatueState } from './collections.js';
 
 export const CONFIDENCE = {
@@ -75,8 +75,9 @@ export function generateRecommendations(stats, profile, col = {}) {
       source: SOURCES.wiki_prestige,
     });
   } else {
-    const capStatue = capOf('statue_dmg') + (stats.artifact_tier4_cap_increase ?? 0);
-    const capArmor = capOf('armorred') + (stats.artifact_cap_increase ?? 0);
+    const capStatue = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'statue_dmg'), stats);
+    const capArmor = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'armorred'), stats);
+    const capPick3 = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'pick_t3'), stats);
     if (aStatue > 0 && aStatue < capStatue) {
       recs.push({
         priority: 3, category: 'artifacts',
@@ -97,11 +98,11 @@ export function generateRecommendations(stats, profile, col = {}) {
         source: SOURCES.wiki_prestige,
       });
     }
-    if (aPick3 > 0 && aPick3 < capOf('pick_t3') + (stats.artifact_cap_increase ?? 0)) {
+    if (aPick3 > 0 && aPick3 < capPick3) {
       recs.push({
         priority: 5, category: 'artifacts',
         title: 'Pickaxe Damage T3',
-        reason: `Niveau ${aPick3}. Utile si tu pousses encore des Obelisks.`,
+        reason: `Niveau ${aPick3}/${capPick3}. Utile si tu pousses encore des Obelisks.`,
         confidence: 'probable',
         source: SOURCES.wiki_prestige,
       });
@@ -212,10 +213,6 @@ function countWorldStatues(col, profile, world, minState) {
   return n;
 }
 
-function capOf(id) {
-  const a = ARTIFACTS.find(x => x.id === id);
-  return a ? a.maxBase : Infinity;
-}
 function fmt(n) {
   if (!isFinite(n)) return '—';
   const u = ['', 'k', 'm', 'b', 't', 'q', 'qi', 'sx', 'sp', 'oc', 'no', 'dc', 'udc', 'ddc'];

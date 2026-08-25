@@ -43,20 +43,47 @@ export const PRESTIGE = {
   minLevelToPrestige: 20,
 };
 
-/* ---------- Artefacts par tier (wiki "Prestige/Costs") — liste partielle OK pour coach ---------- */
+/* ---------- Artefacts (wiki Prestige/Costs + UI jeu v2.2.6)
+   maxBase = max wiki AVANT cap increase.
+   T4 : max affiché = maxBase + artifact_tier4_cap_increase (export).
+   perStatue : bonus/niv = perLevel × somme des états statues (plat=3). */
 export const ARTIFACTS = [
-  { id:'pick_t1',  tier:1, name:'Pickaxe Damage',              bonus:'+10%/niv', maxBase:32 },
-  { id:'xp_t1',    tier:1, name:'Experience Gain Multiplier',  bonus:'+10%/niv', maxBase:27 },
-  { id:'pickcost', tier:1, name:'Pickaxe Cost',                bonus:'-3 bars',  maxBase:12 },
-  { id:'bomb_t1',  tier:1, name:'Bomb Damage',                 bonus:'+30%/niv', maxBase:32 },
-  { id:'pp_t2',    tier:2, name:'Prestige Point Gain Multiplier', bonus:'+5%/niv', maxBase:17, unlockOb:8 },
-  { id:'floorreq', tier:2, name:'Floor Clear Requirement',     bonus:'-5%/niv',  maxBase:17, unlockOb:8 },
-  { id:'pick_t3',  tier:3, name:'Pickaxe Damage',              bonus:'+60%/niv', maxBase:32, unlockOb:14 },
-  { id:'bomb_t3',  tier:3, name:'Bomb Damage',                 bonus:'+80%/niv', maxBase:32, unlockOb:14 },
-  { id:'armorred', tier:3, name:'Obelisk Armor Reduction',     bonus:'-2%/niv',  maxBase:17, unlockOb:14 },
-  { id:'statue_dmg',tier:4,name:'Pickaxe Damage per Statue Owned', bonus:'+10%/niv', maxBase:52, unlockOb:19 },
-  { id:'barout',   tier:4, name:'Bar Output Multiplier',       bonus:'+0.40%/niv', maxBase:37, unlockOb:19 },
+  /* Tier 1 */
+  { id:'pick_t1',     tier:1, name:'Pickaxe Damage',           icon:'⛏', perLevel:10,   unit:'%',     maxBase:32 },
+  { id:'pickcost',    tier:1, name:'Pickaxe Cost',             icon:'📉', perLevel:-3,   unit:' Bars', maxBase:12 },
+  { id:'xp_t1',       tier:1, name:'Experience Gain',          icon:'⭐', perLevel:10,   unit:'%',     maxBase:27 },
+  { id:'freecraft',   tier:1, name:'Free Craft Chance',        icon:'🔧', perLevel:2,    unit:'%',     maxBase:17 },
+  { id:'triplecraft', tier:1, name:'Triple Craft Chance',      icon:'3️⃣', perLevel:2,    unit:'%',     maxBase:17 },
+  { id:'radius',      tier:1, name:'Pickaxe Radius',           icon:'⭕', perLevel:12,   unit:'%',     maxBase:12 },
+  { id:'oresell',     tier:1, name:'Ore Sell Price',           icon:'💰', perLevel:12,   unit:'%',     maxBase:17 },
+  { id:'itemdur',     tier:1, name:'Item Duration',            icon:'🍗', perLevel:6,    unit:'%',     maxBase:17 },
+  { id:'bomb_t1',     tier:1, name:'Bomb Damage',              icon:'💣', perLevel:30,   unit:'%',     maxBase:32 },
+  { id:'obcd',        tier:1, name:'Obelisk Cooldown',         icon:'⏱️', perLevel:-3,   unit:'%',     maxBase:17 },
+  /* Tier 2 — OB8 */
+  { id:'pick_t2',     tier:2, name:'Pickaxe Damage',           icon:'⛏', perLevel:25,   unit:'%',     maxBase:32, unlockOb:8 },
+  { id:'bomb_t2',     tier:2, name:'Bomb Damage',              icon:'💣', perLevel:50,   unit:'%',     maxBase:32, unlockOb:8 },
+  { id:'pp_t2',       tier:2, name:'Prestige Point Gain',      icon:'💎', perLevel:5,    unit:'%',     maxBase:17, unlockOb:8 },
+  { id:'superscrit',  tier:2, name:'Pickaxe Super Crit Chance',icon:'✨', perLevel:1,    unit:'%',     maxBase:17, unlockOb:8 },
+  { id:'floorreq',    tier:2, name:'Floor Clear Requirement',  icon:'🚪', perLevel:-5,   unit:'%',     maxBase:17, unlockOb:8 },
+  /* Tier 3 — OB14 */
+  { id:'pick_t3',     tier:3, name:'Pickaxe Damage',           icon:'⛏', perLevel:60,   unit:'%',     maxBase:32, unlockOb:14 },
+  { id:'bomb_t3',     tier:3, name:'Bomb Damage',              icon:'💣', perLevel:80,   unit:'%',     maxBase:32, unlockOb:14 },
+  { id:'bombscrit',   tier:3, name:'Bomb Super Crit Chance',   icon:'💥', perLevel:2,    unit:'%',     maxBase:17, unlockOb:14 },
+  { id:'armorred',    tier:3, name:'Obelisk Armor',            icon:'🛡️', perLevel:-2,   unit:'%',     maxBase:17, unlockOb:14 },
+  { id:'bombcap',     tier:3, name:'Bomb Capacity',            icon:'🎒', perLevel:3,    unit:'',      maxBase:17, unlockOb:14 },
+  /* Tier 4 — OB19 ; maxBase = avant tier4_cap_increase */
+  { id:'statue_dmg',  tier:4, name:'Pickaxe Damage',           icon:'🗿', perLevel:10,   unit:'%',     maxBase:32, unlockOb:19, perStatue:true },
+  { id:'statue_bomb', tier:4, name:'Bomb Damage',              icon:'🗿', perLevel:15,   unit:'%',     maxBase:32, unlockOb:19, perStatue:true },
+  { id:'omega_crit',  tier:4, name:'Pickaxe Omega Crit Chance',icon:'⚡', perLevel:1,    unit:'%',     maxBase:17, unlockOb:19 },
+  { id:'barout',      tier:4, name:'Bar Output Multiplier',    icon:'🧱', perLevel:0.4,  unit:'%',     maxBase:17, unlockOb:19 },
+  { id:'veinspawn',   tier:4, name:'Vein Spawn Rate',          icon:'💠', perLevel:4,    unit:'%',     maxBase:17, unlockOb:19 },
 ];
+
+/** Max effectif selon caps export (T4 + artifact_tier4_cap_increase). */
+export function artifactEffectiveMax(a, stats = {}) {
+  if (a.tier === 4) return a.maxBase + (stats.artifact_tier4_cap_increase || 0);
+  return a.maxBase;
+}
 
 /* ---------- Skill Tree — S-Tier wiki + quelques clés ---------- */
 export const SKILLS = [

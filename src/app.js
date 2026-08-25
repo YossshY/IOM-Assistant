@@ -12,6 +12,33 @@ const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Comb
 import { ARTIFACTS, SKILLS, OBELISK_UNLOCKS } from './game/knowledgeBase.js';
 import * as C from './game/collections.js';
 
+/** Max affiché : T4 = maxBase + artifact_tier4_cap_increase (comme screenshots 32+20=52). */
+function artifactMax(a){
+  const s=state.parsed?.stats||{};
+  if(a.tier===4) return a.maxBase + (s.artifact_tier4_cap_increase||0);
+  return a.maxBase;
+}
+/** Somme des états statues (plat=3) — pour bonus « per statue owned ». */
+function statuePower(){
+  let n=0;
+  for(let i=1;i<=27;i++) n+=C.getStatueState(state.col,i)||0;
+  return n;
+}
+function formatArtBonus(a, lv){
+  const sp=a.perStatue?statuePower():1;
+  const per=a.perLevel*(a.perStatue?sp:1);
+  const tot=per*lv;
+  const fmt=v=>{
+    if(a.unit===' Bars') return (v>=0?'+':'')+v+' Bars';
+    if(a.unit==='') return (v>=0?'+':'')+Math.round(v);
+    const d=Math.abs(a.perLevel)%1!==0?2: (Math.abs(tot)%1!==0?2:0);
+    return (v>=0?'+':'')+Number(v.toFixed(d))+a.unit;
+  };
+  let desc=`${a.name} ${a.perLevel>=0?'+':''}${a.perLevel}${a.unit}`;
+  if(a.perStatue) desc=`${a.name} +${a.perLevel}% Per Statue Owned (${per}%)`;
+  return { desc, total: fmt(tot), perLabel: desc };
+}
+
 const $ = s => document.querySelector(s);
 let state = { parsed:null, profile:{}, history:[], col:C.loadCollections() };
 
@@ -237,27 +264,81 @@ document.addEventListener('click',e=>{
   C.saveCollections(state.col);renderPets();
 });
 
-/* ================= ARTEFACTS ================= */
+/* ================= PRESTIGE / ARTEFACTS (layout jeu) ================= */
 function renderArtifacts(){
-  $('#artGrid').innerHTML=ARTIFACTS.map(a=>{
-    const lv=C.getArtifactLevel(state.col,a.id);
-    return `<div class="art"><b>${a.name}</b><small>Tier ${a.tier} · ${a.bonus} · cap ${a.maxBase}${a.unlockOb?' · OB '+a.unlockOb:''}</small>
-      <div class="row"><button class="pixbtn ghost" data-art="${a.id}" data-d="-1">−</button>
-      <input type="number" min="0" max="${a.maxBase}" value="${lv}" data-artin="${a.id}">
-      <button class="pixbtn" data-art="${a.id}" data-d="1">+</button></div></div>`;
-  }).join('');
+  const box=$('#artGrid');
+  const s=state.parsed?.stats||{};
+  const hint=$('#artCapHint');
+  if(hint) hint.textContent=`Caps export : +${s.artifact_cap_increase??0} · T4 +${s.artifact_tier4_cap_increase??0}`;
+
+  let html='';
+  for(const tier of [1,2,3,4]){
+    const list=ARTIFACTS.filter(a=>a.tier===tier);
+    const maxes=list.map(a=>artifactMax(a));
+    const lvs=list.map(a=>Math.min(artifactMax(a), C.getArtifactLevel(state.col,a.id)));
+    const owned=lvs.filter(v=>v>0).length;
+    const sumLv=lvs.reduce((a,b)=>a+b,0);
+    const sumMax=maxes.reduce((a,b)=>a+b,0);
+    const tierMaxed=sumLv>=sumMax && sumMax>0;
+    html+=`<div class="tier-block t${tier}">
+      <div class="tier-head">
+        <div class="th-l">Tier ${tier} Artifacts: ${owned}/${list.length}<br>Tier ${tier} Levels: ${sumLv}/${sumMax}</div>
+        <div class="th-r">
+          ${tierMaxed
+            ? `<span class="btn-maxed">Maxed</span>`
+            : `<button class="btn-max-tier" data-arttier="${tier}">Max tier</button>`}
+        </div>
+      </div>`;
+    for(const a of list){
+      const max=artifactMax(a);
+      const lv=Math.min(max, C.getArtifactLevel(state.col,a.id));
+      const {desc,total}=formatArtBonus(a,lv);
+      const maxed=lv>=max;
+      html+=`<div class="art-row">
+        <div class="art-ico">${a.icon||'🏺'}</div>
+        <div class="art-desc">${desc}</div>
+        <div class="art-stats"><span class="lv">${lv}/${max}</span><span class="tot">${total}</span></div>
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-art="${a.id}" data-d="-1" title="-1">−</button>
+          ${maxed
+            ? `<span class="btn-maxed">Maxed</span>`
+            : `<button class="pixbtn" data-art="${a.id}" data-d="1">+</button>
+               <button class="pixbtn gold" data-artmax="${a.id}">Max</button>`}
+        </div>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  box.innerHTML=html;
+}
+function setArtLevel(id,lv){
+  const a=ARTIFACTS.find(x=>x.id===id); if(!a)return;
+  C.setArtifactLevel(state.col,id,Math.min(artifactMax(a),Math.max(0,lv|0)));
+  C.saveCollections(state.col);renderArtifacts();renderRoadmap();
 }
 document.addEventListener('click',e=>{
-  const b=e.target.closest('[data-art]');if(!b)return;
-  const a=ARTIFACTS.find(x=>x.id===b.dataset.art);
-  C.setArtifactLevel(state.col,b.dataset.art,Math.min(a.maxBase,Math.max(0,C.getArtifactLevel(state.col,b.dataset.art)+ +b.dataset.d)));
+  const b=e.target.closest('[data-art]');
+  if(b){
+    const a=ARTIFACTS.find(x=>x.id===b.dataset.art);
+    setArtLevel(a.id, C.getArtifactLevel(state.col,a.id)+ +b.dataset.d);
+    return;
+  }
+  const m=e.target.closest('[data-artmax]');
+  if(m){ setArtLevel(m.dataset.artmax, artifactMax(ARTIFACTS.find(x=>x.id===m.dataset.artmax))); return; }
+  const t=e.target.closest('[data-arttier]');
+  if(t){
+    const tier=+t.dataset.arttier;
+    for(const a of ARTIFACTS.filter(x=>x.tier===tier)) C.setArtifactLevel(state.col,a.id,artifactMax(a));
+    C.saveCollections(state.col);renderArtifacts();renderRoadmap();
+  }
+});
+$('#btnArtMaxAll')?.addEventListener('click',()=>{
+  for(const a of ARTIFACTS) C.setArtifactLevel(state.col,a.id,artifactMax(a));
   C.saveCollections(state.col);renderArtifacts();renderRoadmap();
 });
-document.addEventListener('input',e=>{
-  const i=e.target.closest('[data-artin]');if(!i)return;
-  const a=ARTIFACTS.find(x=>x.id===i.dataset.artin);
-  C.setArtifactLevel(state.col,i.dataset.artin,Math.min(a.maxBase,Math.max(0,+i.value||0)));
-  C.saveCollections(state.col);renderRoadmap();
+$('#btnArtClear')?.addEventListener('click',()=>{
+  for(const a of ARTIFACTS) C.setArtifactLevel(state.col,a.id,0);
+  C.saveCollections(state.col);renderArtifacts();renderRoadmap();
 });
 
 /* ================= SKILLS ================= */
