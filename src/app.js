@@ -108,7 +108,11 @@ let state = { parsed:null, profile:{}, history:[], col:C.loadCollections() };
 /* ---------- navigation : menu principal + onglets ---------- */
 function show(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
-  $('#page-'+page).classList.remove('hidden');
+  const el=$('#page-'+page);
+  if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.menu-btn[data-go]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.go===page && !b.classList.contains('dim'));
+  });
   window.scrollTo({top:0});
 }
 document.querySelectorAll('.menu-btn').forEach(b=>b.addEventListener('click',()=>{
