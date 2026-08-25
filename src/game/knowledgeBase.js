@@ -79,21 +79,18 @@ export const ARTIFACTS = [
   { id:'veinspawn',   tier:4, name:'Vein Spawn Rate',          icon:'💠', perLevel:4,    unit:'%',     maxBase:17, unlockOb:19 },
 ];
 
-/** Max effectif selon caps export (T4 + artifact_tier4_cap_increase). */
-export function artifactEffectiveMax(a, stats = {}) {
-  if (a.tier === 4) return a.maxBase + (stats.artifact_tier4_cap_increase || 0);
+/** Max effectif selon caps export persistés ou stats brutes. */
+export function artifactEffectiveMax(a, stats = {}, caps = null) {
+  const t4 = caps?.artifactT4 ?? stats.artifact_tier4_cap_increase ?? 0;
+  if (a.tier === 4) return a.maxBase + (+t4 || 0);
   return a.maxBase;
 }
 
-/* ---------- Skill Tree — S-Tier wiki + quelques clés ---------- */
-export const SKILLS = [
-  { id:'gem_bomb',   name:'Gem Bomb',                  cost:5,  sTier:true },
-  { id:'auto_bomber',name:'Auto-Bomber',               cost:10, sTier:true },
-  { id:'free_price', name:"Free? That's a great price",cost:12, sTier:true },
-  { id:'stonks',     name:'Stonks',                    cost:22, sTier:true },
-  { id:'easy_prog',  name:'Easy Progressor',           cost:3 },
-  { id:'auto_prestige',name:'Take It Back Now Yall',   cost:65 },
-];
+/* ---------- Skill Tree — liste complète dans skillsData.js ---------- */
+export { SKILL_NODES as SKILLS } from './skillsData.js';
+import { SKILL_NODES } from './skillsData.js';
+/** alias reco (S-Tier) */
+export const SKILLS_STIER = SKILL_NODES.filter(s => s.sTier);
 
 export const OBELISK_UNLOCKS = [
   { ob:1,  feature:'Workshop' },        { ob:2,  feature:'Drones' },

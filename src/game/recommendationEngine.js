@@ -3,7 +3,7 @@
    Lit stats d'export + collections locales. Pas de conseil inventé.
    ============================================================ */
 import { OBELISK, ARTIFACTS, SKILLS, DRONES, SOURCES, artifactEffectiveMax } from './knowledgeBase.js';
-import { getArtifactLevel, hasSkill, getStatueState } from './collections.js';
+import { getArtifactLevel, hasSkill, getStatueState, getCaps } from './collections.js';
 
 export const CONFIDENCE = {
   confirmed:    { icon:'🟢', label:'Confirmé',          hint:'Données du joueur + base de connaissances suffisantes.' },
@@ -75,9 +75,10 @@ export function generateRecommendations(stats, profile, col = {}) {
       source: SOURCES.wiki_prestige,
     });
   } else {
-    const capStatue = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'statue_dmg'), stats);
-    const capArmor = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'armorred'), stats);
-    const capPick3 = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'pick_t3'), stats);
+    const caps = getCaps(col);
+    const capStatue = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'statue_dmg'), stats, caps);
+    const capArmor = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'armorred'), stats, caps);
+    const capPick3 = artifactEffectiveMax(ARTIFACTS.find(x => x.id === 'pick_t3'), stats, caps);
     if (aStatue > 0 && aStatue < capStatue) {
       recs.push({
         priority: 3, category: 'artifacts',

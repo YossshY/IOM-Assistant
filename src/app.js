@@ -9,14 +9,19 @@ import { CARD_STATES, CARD_SETS, PETS, STARS } from './game/cards.js';
 import { ORE_CARDS, BAR_CARDS, MISC_CARDS, visibleCards } from './game/cardsData.js';
 // icônes misc réelles : mapping id → fichier téléchargé depuis le wiki
 const MISC_ICONS={superstar:'Misc_Super_Star.png',novagiant:'Misc_Novagiant_Combo.png',minername:'Misc_Miner_Name.png',lootbug:'Misc_Lootbug.png',goldbug:'Golden_Lootbug_Chance.png',prestige:'Misc_Prestige.png',freebie:'Misc_Freebie.png',stonks:'Misc_Stonks.png',superstonks:'Super_Stonks.png',ultrastonks:'Misc_Ultra_Stonks.png',contract:'Misc_Contract.png',void:'Misc_Void.png',goldvoid:'Misc_Golden_Void.png',rainbowvoid:'Rainbow_Void_Portal.png',galacvoid:'Galactic_Void_Portal.png',world1:'Misc_World_1.png',world2:'Misc_World_2.png',world3:'Misc_World_3.png',world4:'Misc_World_4.png',alex:'Misc_Alex.png',bluecow:'Misc_Blue_Cow.png',goldore:'Misc_Golden_Vein.png',sushi:'Misc_Sushi.png',archabil:'Misc_Arch_Ability.png',goldvein:'Misc_Golden_Vein.png',rainbowvein:'Misc_Rainbow_Vein.png',gleamvein:'Misc_Gleaming_Vein.png',fuel:'Misc_Fuel.png',rod:'Misc_Fishing_Rod.png',code:'Misc_Code.png',frozenara:'Misc_FrozenAra.png',celio:"Misc_Celio's_Hat.png",vydn:'Misc_Vydn.png',lute:'Misc_Lute.png',julk:'Misc_Julk.png',pizza:'Misc_Yummy_Pizza.png',lootfrog:'Lootfrogs_Caught.png',goldfrog:'Golden_Lootfrogs_Caught.png',bigfrog:'Misc_Big_Lootfrog.png',massfrog:'Misc_Massive_Lootfrog.png',floor73:'Misc_Floor_73.png'};
-import { ARTIFACTS, SKILLS, OBELISK_UNLOCKS } from './game/knowledgeBase.js';
+import { ARTIFACTS, SKILLS, OBELISK_UNLOCKS, artifactEffectiveMax } from './game/knowledgeBase.js';
+import { WORKSHOP_UPGRADES, workshopEffectiveMax, formatWorkshopBonus, WORKSHOP_WIKI_REF_CAP } from './game/workshopData.js';
+import { skillMaxLevels } from './game/skillsData.js';
+import { DRONE_CORE_UPGRADES, DRONE_SUITS, DRONE_FUEL, coreLevelFromExport, suitCapFromExport } from './game/dronesData.js';
+import { CHALLENGES, CHALLENGE_SHOP } from './game/challengesData.js';
 import * as C from './game/collections.js';
 
-/** Max affiché : T4 = maxBase + artifact_tier4_cap_increase (comme screenshots 32+20=52). */
+/** Max affiché : T4 = maxBase + caps persistés (ex. 32+20=52). */
 function artifactMax(a){
-  const s=state.parsed?.stats||{};
-  if(a.tier===4) return a.maxBase + (s.artifact_tier4_cap_increase||0);
-  return a.maxBase;
+  return artifactEffectiveMax(a, state.parsed?.stats||{}, C.getCaps(state.col));
+}
+function workshopMax(u){
+  return workshopEffectiveMax(u, C.getCaps(state.col));
 }
 /** Somme des états statues (plat=3) — pour bonus « per statue owned ». */
 function statuePower(){
@@ -61,6 +66,8 @@ function doImport(text){
   state.parsed=parsed;
   state.profile={...deriveProfile(parsed),answers:state.profile.answers||{}};
   state.col=C.applyExportProgress(state.col,state.profile);
+  state.col=C.applyExportCaps(state.col,parsed.stats);
+  applyDronesFromExport(parsed.stats);
   C.saveCollections(state.col);
   state.history=saveImport(parsed);
   el.innerHTML=`✅ ${parsed.version} — ${parsed.statCount} stats`+(parsed.unknownKeys.length?` · <span class="warn">${parsed.unknownKeys.length} inconnues</span>`:'')+` · OB ${state.profile.obeliskLevel??'?'} · W${state.profile.maxWorld??'?'}`;
@@ -71,7 +78,19 @@ function doImport(text){
 
 function renderAll(){
   renderTop();renderDash();renderRoadmap();renderAllStats();renderFishing();
-  renderCards();renderPets();renderArtifacts();renderSkills();renderConstruct();renderStars();renderHistory();
+  renderCards();renderPets();renderArtifacts();renderWorkshop();
+  renderSkills();renderDrones();renderChallenges();
+  renderConstruct();renderStars();renderHistory();
+}
+
+function applyDronesFromExport(stats){
+  C.applyExportDrones(state.col, stats);
+  for(const u of DRONE_CORE_UPGRADES){
+    C.setDroneCore(state.col, u.id, coreLevelFromExport(u, stats));
+  }
+  for(const f of DRONE_FUEL){
+    C.setDroneFuel(state.col, f.id, Math.min(f.maxGrade, +(stats[f.gradeKey]||0)|0));
+  }
 }
 
 function renderTop(){
@@ -267,9 +286,9 @@ document.addEventListener('click',e=>{
 /* ================= PRESTIGE / ARTEFACTS (layout jeu) ================= */
 function renderArtifacts(){
   const box=$('#artGrid');
-  const s=state.parsed?.stats||{};
+  const caps=C.getCaps(state.col);
   const hint=$('#artCapHint');
-  if(hint) hint.textContent=`Caps export : +${s.artifact_cap_increase??0} · T4 +${s.artifact_tier4_cap_increase??0}`;
+  if(hint) hint.textContent=`Caps export : +${caps.artifact} · T4 +${caps.artifactT4}`+(caps.artifactT4?` → max ${32+caps.artifactT4}/${17+caps.artifactT4}`:'');
 
   let html='';
   for(const tier of [1,2,3,4]){
@@ -341,16 +360,305 @@ $('#btnArtClear')?.addEventListener('click',()=>{
   C.saveCollections(state.col);renderArtifacts();renderRoadmap();
 });
 
-/* ================= SKILLS ================= */
-function renderSkills(){
-  $('#skillList').innerHTML=SKILLS.map(s=>
-    `<div class="skillrow"><span class="nm">${s.name}</span>
-      ${s.sTier?'<span class="tag">S-TIER</span>':''}
-      <button class="pixbtn ${C.hasSkill(state.col,s.id)?'on':''}" data-skill="${s.id}">${C.hasSkill(state.col,s.id)?'POSSEDÉE':'ACHETER'}</button></div>`).join('');
+/* ================= WORKSHOP ================= */
+function renderWorkshop(){
+  const box=$('#wsGrid'); if(!box) return;
+  const caps=C.getCaps(state.col);
+  const hint=$('#wsCapHint');
+  if(hint) hint.textContent=`bomb_workshop_cap_increase : +${caps.workshop}`+(caps.workshop?` (max ≈ wiki − ${WORKSHOP_WIKI_REF_CAP-caps.workshop})`:' — importe un export');
+
+  let html='<div class="tier-block t1"><div class="tier-head"><div class="th-l">Workshop Upgrades</div></div>';
+  for(const u of WORKSHOP_UPGRADES){
+    const max=workshopMax(u);
+    const lv=Math.min(max, C.getWorkshopLevel(state.col,u.id));
+    const bonus=formatWorkshopBonus(u,lv);
+    const maxed=lv>=max;
+    const lock=u.world4?' <span class="muted">(W4)</span>':'';
+    html+=`<div class="art-row">
+      <div class="art-ico">${u.icon||'🔧'}</div>
+      <div class="art-desc">${u.name}${lock}${bonus!=='—'&&!u.unlock?` — ${bonus}`:u.unlock&&lv?` — Unlocked`:''}</div>
+      <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
+      <div class="art-actions">
+        <button class="pixbtn ghost" data-ws="${u.id}" data-d="-1">−</button>
+        ${maxed
+          ? `<span class="btn-maxed">Maxed</span>`
+          : `<button class="pixbtn" data-ws="${u.id}" data-d="1">+</button>
+             <button class="pixbtn gold" data-wsmax="${u.id}">Max</button>`}
+      </div>
+    </div>`;
+  }
+  html+='</div>';
+  box.innerHTML=html;
+}
+function setWsLevel(id,lv){
+  const u=WORKSHOP_UPGRADES.find(x=>x.id===id); if(!u)return;
+  C.setWorkshopLevel(state.col,id,Math.min(workshopMax(u),Math.max(0,lv|0)));
+  C.saveCollections(state.col);renderWorkshop();
 }
 document.addEventListener('click',e=>{
-  const b=e.target.closest('[data-skill]');if(!b)return;
-  C.toggleSkill(state.col,b.dataset.skill);C.saveCollections(state.col);renderSkills();renderRoadmap();
+  const b=e.target.closest('[data-ws]');
+  if(b){ setWsLevel(b.dataset.ws, C.getWorkshopLevel(state.col,b.dataset.ws)+ +b.dataset.d); return; }
+  const m=e.target.closest('[data-wsmax]');
+  if(m){ setWsLevel(m.dataset.wsmax, workshopMax(WORKSHOP_UPGRADES.find(x=>x.id===m.dataset.wsmax))); }
+});
+$('#btnWsMaxAll')?.addEventListener('click',()=>{
+  for(const u of WORKSHOP_UPGRADES) C.setWorkshopLevel(state.col,u.id,workshopMax(u));
+  C.saveCollections(state.col);renderWorkshop();
+});
+$('#btnWsClear')?.addEventListener('click',()=>{
+  for(const u of WORKSHOP_UPGRADES) C.setWorkshopLevel(state.col,u.id,0);
+  C.saveCollections(state.col);renderWorkshop();
+});
+
+/* ================= SKILLS ================= */
+let selectedSkill=null;
+function renderSkills(){
+  const box=$('#skillList'); if(!box) return;
+  const owned=SKILLS.filter(s=>C.getSkillLevel(state.col,s.id)>0).length;
+  const hint=$('#skillHint');
+  if(hint) hint.textContent=`${owned}/${SKILLS.length} skills · ${SKILLS.filter(s=>s.sTier&&C.getSkillLevel(state.col,s.id)>0).length}/4 S-Tier`;
+  box.innerHTML=SKILLS.map(s=>{
+    const max=skillMaxLevels(s);
+    const lv=Math.min(max, C.getSkillLevel(state.col,s.id));
+    const maxed=lv>=max;
+    const sel=selectedSkill===s.id?' style="outline:2px solid var(--amber)"':'';
+    return `<div class="art-row" data-skillsel="${s.id}"${sel}>
+      <div class="art-ico">${s.sTier?'⭐':'🌳'}</div>
+      <div class="art-desc">${s.name}${s.sTier?' <span class="tag">S-TIER</span>':''}${s.unlockOb?` <span class="muted">OB${s.unlockOb}</span>`:''}</div>
+      <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
+      <div class="art-actions">
+        <button class="pixbtn ghost" data-skill="${s.id}" data-d="-1">−</button>
+        ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-skill="${s.id}" data-d="1">+</button>`}
+      </div>
+    </div>`;
+  }).join('');
+  const d=$('#skillDetail');
+  const sk=SKILLS.find(x=>x.id===selectedSkill)||SKILLS[0];
+  if(d&&sk){
+    const cost=Array.isArray(sk.cost)?sk.cost.join(' / '):sk.cost;
+    d.innerHTML=`<b style="color:var(--amber)">${sk.name}</b><br>${sk.effect||''}<br><span class="muted">Cost: ${cost} SP · Level ${C.getSkillLevel(state.col,sk.id)}/${skillMaxLevels(sk)}</span>`;
+  }
+}
+function setSkillLv(id,lv){
+  const s=SKILLS.find(x=>x.id===id); if(!s)return;
+  C.setSkillLevel(state.col,id,Math.min(skillMaxLevels(s),Math.max(0,lv|0)));
+  C.saveCollections(state.col);renderSkills();renderRoadmap();
+}
+document.addEventListener('click',e=>{
+  const sel=e.target.closest('[data-skillsel]');
+  if(sel&&!e.target.closest('[data-skill]')){ selectedSkill=sel.dataset.skillsel; renderSkills(); return; }
+  const b=e.target.closest('[data-skill]');
+  if(b){ selectedSkill=b.dataset.skill; setSkillLv(b.dataset.skill, C.getSkillLevel(state.col,b.dataset.skill)+ +b.dataset.d); }
+});
+$('#btnSkillMaxS')?.addEventListener('click',()=>{
+  for(const s of SKILLS.filter(x=>x.sTier)) C.setSkillLevel(state.col,s.id,skillMaxLevels(s));
+  C.saveCollections(state.col);renderSkills();renderRoadmap();
+});
+$('#btnSkillClear')?.addEventListener('click',()=>{
+  for(const s of SKILLS) C.setSkillLevel(state.col,s.id,0);
+  C.saveCollections(state.col);renderSkills();renderRoadmap();
+});
+
+/* ================= DRONES ================= */
+let droneTab='upgrades';
+function renderDrones(){
+  const box=$('#droneGrid'); if(!box) return;
+  const stats=state.parsed?.stats||{};
+  const cap=suitCapFromExport(stats, C.getCaps(state.col));
+  const hint=$('#droneHint');
+  document.querySelectorAll('[data-dronetab]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.dronetab===droneTab);
+    b.classList.toggle('ghost', b.dataset.dronetab!==droneTab);
+  });
+  if(droneTab==='upgrades'){
+    if(hint) hint.textContent=`drone_count ${stats.drone_count??'—'} · suit cap ${cap}`;
+    box.innerHTML=DRONE_CORE_UPGRADES.map(u=>{
+      const max=u.maxBase;
+      const lv=Math.min(max, C.getDroneCore(state.col,u.id));
+      const tot=u.unlock?(lv?'Unlocked':'—'):`${u.perLevel*lv}${u.unit}`;
+      const maxed=lv>=max;
+      return `<div class="art-row">
+        <div class="art-ico">🛸</div>
+        <div class="art-desc">${u.name}${tot&&!u.unlock?` — ${tot.startsWith('-')?tot:'+'+tot}`:u.unlock&&lv?' — Unlocked':''}</div>
+        <div class="art-stats"><span class="lv">${lv}/${max}</span></div>
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-dcore="${u.id}" data-d="-1">−</button>
+          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-dcore="${u.id}" data-d="1">+</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  } else if(droneTab==='suits'){
+    if(hint) hint.textContent=`Suit upgrade cap ${cap} (export drone_suit_cap)`;
+    box.innerHTML=DRONE_SUITS.map(s=>{
+      const lv=Math.min(cap, C.getDroneSuitLv(state.col,s.id));
+      const maxed=lv>=cap;
+      const bonus=s.perLevel*lv;
+      const tot=s.unit==='s'?`${bonus}s`:`${bonus>=0?'+':''}${bonus}${s.unit}`;
+      return `<div class="art-row">
+        <div class="art-ico">🤖</div>
+        <div class="art-desc"><b>${s.name} Suit</b> — ${s.ability}<br><span class="muted">${s.upgrade} → ${tot}</span></div>
+        <div class="art-stats"><span class="lv">${lv}/${cap}</span></div>
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-dsuit="${s.id}" data-d="-1">−</button>
+          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-dsuit="${s.id}" data-d="1">+</button>
+            <button class="pixbtn gold" data-dsuitmax="${s.id}">Max</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    if(hint) hint.textContent='Fuel grades depuis export (*_fuel_grade)';
+    box.innerHTML=DRONE_FUEL.map(f=>{
+      const lv=Math.min(f.maxGrade, C.getDroneFuel(state.col,f.id));
+      const maxed=lv>=f.maxGrade;
+      return `<div class="art-row">
+        <div class="art-ico">⛽</div>
+        <div class="art-desc"><b>${f.name}</b> — ${f.buff}</div>
+        <div class="art-stats"><span class="lv">${lv}/${f.maxGrade}</span></div>
+        <div class="art-actions">
+          <button class="pixbtn ghost" data-dfuel="${f.id}" data-d="-1">−</button>
+          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-dfuel="${f.id}" data-d="1">+</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-dronetab]');
+  if(t){ droneTab=t.dataset.dronetab; renderDrones(); return; }
+  const c=e.target.closest('[data-dcore]');
+  if(c){
+    const u=DRONE_CORE_UPGRADES.find(x=>x.id===c.dataset.dcore);
+    C.setDroneCore(state.col,u.id,Math.min(u.maxBase,Math.max(0,C.getDroneCore(state.col,u.id)+ +c.dataset.d)));
+    C.saveCollections(state.col);renderDrones(); return;
+  }
+  const s=e.target.closest('[data-dsuit]');
+  if(s){
+    const cap=suitCapFromExport(state.parsed?.stats||{}, C.getCaps(state.col));
+    C.setDroneSuitLv(state.col,s.dataset.dsuit,Math.min(cap,Math.max(0,C.getDroneSuitLv(state.col,s.dataset.dsuit)+ +s.dataset.d)));
+    C.saveCollections(state.col);renderDrones(); return;
+  }
+  const sm=e.target.closest('[data-dsuitmax]');
+  if(sm){
+    const cap=suitCapFromExport(state.parsed?.stats||{}, C.getCaps(state.col));
+    C.setDroneSuitLv(state.col,sm.dataset.dsuitmax,cap);
+    C.saveCollections(state.col);renderDrones(); return;
+  }
+  const f=e.target.closest('[data-dfuel]');
+  if(f){
+    const row=DRONE_FUEL.find(x=>x.id===f.dataset.dfuel);
+    C.setDroneFuel(state.col,row.id,Math.min(row.maxGrade,Math.max(0,C.getDroneFuel(state.col,row.id)+ +f.dataset.d)));
+    C.saveCollections(state.col);renderDrones();
+  }
+});
+
+/* ================= CHALLENGES ================= */
+let chalTab='regular';
+function renderChallenges(){
+  const box=$('#chalGrid'); if(!box) return;
+  document.querySelectorAll('[data-chaltab]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.chaltab===chalTab);
+    b.classList.toggle('ghost', b.dataset.chaltab!==chalTab);
+  });
+  const overlay=$('#chalOverlay');
+  const ov=C.getChallengeOverlay(state.col) || { id:'div_7', progress:7, goal:15 };
+  const ovCh=CHALLENGES.divine.find(c=>c.id===ov.id) || CHALLENGES.divine.find(c=>c.n===7);
+  if(overlay&&ovCh){
+    overlay.innerHTML=`<div class="chal-card">
+      <b>Overlay — Divine Challenge ${ovCh.n}</b>
+      ${ovCh.text}<br>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <span>Progress</span>
+        <button class="pixbtn ghost" data-ovp="-1">−</button>
+        <span class="lvval" style="min-width:64px">${ov.progress||0}/${ov.goal||ovCh.goal||'?'} </span>
+        <button class="pixbtn" data-ovp="1">+</button>
+        <span class="muted">Reward: 10 Divine Coins</span>
+      </div>
+    </div>`;
+  }
+  const hint=$('#chalHint');
+  if(chalTab==='shop'){
+    if(hint) hint.textContent='Shop Regular / Extreme / Divine (coins)';
+    let html='';
+    for(const tier of ['regular','extreme','divine']){
+      const label=tier[0].toUpperCase()+tier.slice(1);
+      html+=`<div class="tier-block t${tier==='regular'?1:tier==='extreme'?2:4}"><div class="tier-head"><div class="th-l">${label} Shop</div></div>`;
+      for(const u of CHALLENGE_SHOP[tier]){
+        const lv=Math.min(u.max, C.getChallengeShop(state.col,u.id));
+        const maxed=lv>=u.max;
+        html+=`<div class="art-row">
+          <div class="art-ico">🏅</div>
+          <div class="art-desc">${u.name} — ${u.per}</div>
+          <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
+          <div class="art-actions">
+            <button class="pixbtn ghost" data-cshop="${u.id}" data-d="-1">−</button>
+            ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-cshop="${u.id}" data-d="1">+</button>`}
+          </div>
+        </div>`;
+      }
+      html+='</div>';
+    }
+    box.innerHTML=html;
+    return;
+  }
+  const list=CHALLENGES[chalTab]||[];
+  const done=list.filter(c=>C.isChallengeDone(state.col,c.id)).length;
+  if(hint) hint.textContent=`${done}/${list.length} done · +10 coins each`;
+  box.innerHTML=list.map(c=>{
+    const ok=C.isChallengeDone(state.col,c.id);
+    return `<div class="art-row">
+      <div class="art-ico">${ok?'✅':'⬜'}</div>
+      <div class="art-desc"><b>#${c.n}</b> ${c.text}</div>
+      <div class="art-actions">
+        <button class="pixbtn ${ok?'on':''}" data-chal="${c.id}">${ok?'FAIT':'TODO'}</button>
+        ${c.n===7&&chalTab==='divine'?`<button class="pixbtn ghost" data-ovset="${c.id}">Overlay</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-chaltab]');
+  if(t){ chalTab=t.dataset.chaltab; renderChallenges(); return; }
+  const c=e.target.closest('[data-chal]');
+  if(c){
+    C.setChallengeDone(state.col,c.dataset.chal,!C.isChallengeDone(state.col,c.dataset.chal));
+    C.saveCollections(state.col);renderChallenges(); return;
+  }
+  const s=e.target.closest('[data-cshop]');
+  if(s){
+    const all=[...CHALLENGE_SHOP.regular,...CHALLENGE_SHOP.extreme,...CHALLENGE_SHOP.divine];
+    const u=all.find(x=>x.id===s.dataset.cshop);
+    C.setChallengeShop(state.col,u.id,Math.min(u.max,Math.max(0,C.getChallengeShop(state.col,u.id)+ +s.dataset.d)));
+    C.saveCollections(state.col);renderChallenges(); return;
+  }
+  const op=e.target.closest('[data-ovp]');
+  if(op){
+    const ov=C.getChallengeOverlay(state.col)||{ id:'div_7', progress:7, goal:15 };
+    ov.progress=Math.max(0, Math.min(ov.goal||15, (ov.progress||0)+ +op.dataset.ovp));
+    C.setChallengeOverlay(state.col, ov);
+    C.saveCollections(state.col);renderChallenges(); return;
+  }
+  const os=e.target.closest('[data-ovset]');
+  if(os){
+    const ch=CHALLENGES.divine.find(x=>x.id===os.dataset.ovset);
+    C.setChallengeOverlay(state.col,{ id:ch.id, progress:0, goal:ch.goal||15 });
+    C.saveCollections(state.col);renderChallenges();
+  }
+});
+$('#btnChalAllDone')?.addEventListener('click',()=>{
+  if(chalTab==='shop'){
+    for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,u.max);
+  } else {
+    for(const c of (CHALLENGES[chalTab]||[])) C.setChallengeDone(state.col,c.id,true);
+  }
+  C.saveCollections(state.col);renderChallenges();
+});
+$('#btnChalClear')?.addEventListener('click',()=>{
+  if(chalTab==='shop'){
+    for(const tier of Object.values(CHALLENGE_SHOP)) for(const u of tier) C.setChallengeShop(state.col,u.id,0);
+  } else {
+    for(const c of (CHALLENGES[chalTab]||[])) C.setChallengeDone(state.col,c.id,false);
+  }
+  C.saveCollections(state.col);renderChallenges();
 });
 
 /* ================= STATUES / MONUMENTS =================
@@ -441,5 +749,15 @@ function renderHistory(){
 }
 
 /* ---------- init ---------- */
-renderCards();renderPets();renderArtifacts();renderSkills();renderConstruct();renderStars();renderHistory();
+(function hydrateCapsFromHistory(){
+  const caps=C.getCaps(state.col);
+  const h=loadHistory();
+  if(!(caps.artifactT4||caps.workshop) && h[0]?.stats){
+    C.applyExportCaps(state.col,h[0].stats); C.saveCollections(state.col);
+  }
+  if(h[0]?.stats && !Object.keys(state.col.droneCore||{}).length){
+    applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
+  }
+})();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderConstruct();renderStars();renderHistory();
 show('export');

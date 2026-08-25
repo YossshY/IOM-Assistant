@@ -36,9 +36,41 @@ export function getPetLevel(col,id){ return (col.pets||{})[id]||0; }
 export function setArtifactLevel(col,id,lv){ col.artifacts||={}; col.artifacts[id]=Math.max(0,lv|0); }
 export function getArtifactLevel(col,id){ return (col.artifacts||{})[id]||0; }
 
-/** skills : possédée ou non */
-export function toggleSkill(col,id){ col.skills||={}; col.skills[id]=!col.skills[id]; }
-export function hasSkill(col,id){ return !!(col.skills||{})[id]; }
+/** skills : niveau 0..max (bool legacy → 1) */
+export function setSkillLevel(col,id,lv){ col.skills||={}; col.skills[id]=Math.max(0,lv|0); }
+export function getSkillLevel(col,id){
+  const v=(col.skills||{})[id];
+  if(v===true) return 1;
+  return v|0;
+}
+export function toggleSkill(col,id){
+  col.skills||={};
+  col.skills[id]=getSkillLevel(col,id)>0?0:1;
+}
+export function hasSkill(col,id){ return getSkillLevel(col,id)>0; }
+
+/** drones */
+export function setDroneCore(col,id,lv){ col.droneCore||={}; col.droneCore[id]=Math.max(0,lv|0); }
+export function getDroneCore(col,id){ return (col.droneCore||{})[id]|0; }
+export function setDroneSuitLv(col,id,lv){ col.droneSuits||={}; col.droneSuits[id]=Math.max(0,lv|0); }
+export function getDroneSuitLv(col,id){ return (col.droneSuits||{})[id]|0; }
+export function setDroneFuel(col,id,lv){ col.droneFuel||={}; col.droneFuel[id]=Math.max(0,lv|0); }
+export function getDroneFuel(col,id){ return (col.droneFuel||{})[id]|0; }
+
+/** Applique niveaux drones depuis export (cores + fuel grades). */
+export function applyExportDrones(col, stats = {}){
+  col.caps = { ...(col.caps||{}), droneSuit: +(stats.drone_suit_cap||0) || (col.caps?.droneSuit||0) };
+  // cores filled by caller with dronesData helpers if needed
+  return col;
+}
+
+/** challenges */
+export function setChallengeDone(col,id,done){ col.challenges||={}; col.challenges[id]=!!done; }
+export function isChallengeDone(col,id){ return !!(col.challenges||{})[id]; }
+export function setChallengeShop(col,id,lv){ col.challengeShop||={}; col.challengeShop[id]=Math.max(0,lv|0); }
+export function getChallengeShop(col,id){ return (col.challengeShop||{})[id]|0; }
+export function setChallengeOverlay(col, data){ col.challengeOverlay=data||null; }
+export function getChallengeOverlay(col){ return col.challengeOverlay||null; }
 
 /** statues : état 0=absente,1=construite,2=gildée,3=platinisée (clé = numéro wiki) */
 export function cycleStatue(col,num){ col.statueStates||={}; col.statueStates[num]=((col.statueStates[num]||0)+1)%4; return col.statueStates[num]; }
@@ -71,3 +103,21 @@ export function applyExportProgress(col, profile){
   col.monuments = { ...(col.monuments || {}), ...(profile.monuments || {}) };
   return col;
 }
+
+/** Caps export persistés (T4 artefacts, workshop) — survivent au reload. */
+export function applyExportCaps(col, stats = {}){
+  col.caps = {
+    artifact: +(stats.artifact_cap_increase || 0),
+    artifactT4: +(stats.artifact_tier4_cap_increase || 0),
+    workshop: +(stats.bomb_workshop_cap_increase || 0),
+  };
+  return col;
+}
+
+export function getCaps(col){
+  return col.caps || { artifact:0, artifactT4:0, workshop:0 };
+}
+
+/** workshop levels */
+export function setWorkshopLevel(col,id,lv){ col.workshop||={}; col.workshop[id]=Math.max(0,lv|0); }
+export function getWorkshopLevel(col,id){ return (col.workshop||{})[id]||0; }

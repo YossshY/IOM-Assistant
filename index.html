@@ -149,6 +149,11 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .btn-max-tier{font:inherit;font-size:7px;background:#2ead51;color:#fff;border:2px solid #7dff9a;
   border-radius:4px;padding:6px 10px;cursor:pointer}
 .prestige-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tab-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.skill-detail{margin-top:14px;padding:12px;background:#120d16;border:3px solid var(--line);border-radius:6px;min-height:48px;font-size:8px;line-height:1.6;color:#fff}
+.chal-overlay{margin-bottom:12px}
+.chal-card{background:#2a1a28;border:3px solid #8a4a9a;border-radius:6px;padding:12px;margin-bottom:10px}
+.chal-card b{color:#e9b0ff;display:block;margin-bottom:6px}
 .artgrid{display:none} /* legacy */
 .art{background:#2a1a20;border:3px solid var(--line);border-radius:6px;padding:10px}
 .skillrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
@@ -191,9 +196,12 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
   <div class="menu-section"><h2>Permanent</h2>
     <div class="menu-grid">
       <div class="menu-btn" data-go="prestige"><span class="ic"><img src="assets/menu/Prestige_Button.png" alt=""></span><span class="lb">Prestige</span></div>
+      <div class="menu-btn" data-go="workshop"><span class="ic"><img src="assets/menu/Workshop_Button.png" alt=""></span><span class="lb">Workshop</span></div>
+      <div class="menu-btn" data-go="drones"><span class="ic"><img src="assets/menu/Drones_Button.png" alt=""></span><span class="lb">Drones</span></div>
+      <div class="menu-btn" data-go="skills"><span class="ic"><img src="assets/menu/Skill-Tree_Button.png" alt=""></span><span class="lb">Skill-Tree</span></div>
+      <div class="menu-btn" data-go="challenges"><span class="ic"><img src="assets/menu/Challenges_Button_Extreme.png" alt=""></span><span class="lb">Challenges</span></div>
       <div class="menu-btn" data-go="cards"><span class="ic"><img src="assets/menu/Cards_Button.png" alt=""></span><span class="lb">Cards</span></div>
       <div class="menu-btn" data-go="pets"><span class="ic"><img src="assets/menu/Pets_Button.png" alt=""></span><span class="lb">Pets</span></div>
-      <div class="menu-btn" data-go="skills"><span class="ic"><img src="assets/menu/Skill-Tree_Button.png" alt=""></span><span class="lb">Skill-Tree</span></div>
       <div class="menu-btn" data-go="construct"><span class="ic"><img src="assets/menu/Construct_Button_Gilded.png" alt=""></span><span class="lb">Construct</span></div>
       <div class="menu-btn" data-go="stars"><span class="ic"><img src="assets/menu/Stargazing_Button.png" alt=""></span><span class="lb">Stargazing</span></div>
       <div class="menu-btn" data-go="fishing"><span class="ic"><img src="assets/menu/Fishing_Button.png" alt=""></span><span class="lb">Fishing</span></div>
@@ -266,9 +274,64 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
   </div>
 </section>
 
+<!-- WORKSHOP (= anvil, niveaux manuels — absents de l'export) -->
+<section id="page-workshop" class="page hidden">
+  <div class="panel">
+    <p class="prestige-hint">Les niveaux Workshop ne sont pas dans exportstats — note-les ici (max calibré sur tes screens + bomb_workshop_cap_increase).</p>
+    <div class="prestige-toolbar">
+      <button class="pixbtn gold" id="btnWsMaxAll">TOUT MAXER</button>
+      <button class="pixbtn ghost" id="btnWsClear">TOUT À 0</button>
+      <span class="muted" id="wsCapHint"></span>
+    </div>
+    <div class="prestige-list" id="wsGrid"></div>
+  </div>
+</section>
+
 <!-- SKILLS -->
 <section id="page-skills" class="page hidden">
-  <div class="panel"><h2>Skill-Tree — compétences possédées</h2><div id="skillList"></div></div>
+  <div class="panel">
+    <p class="prestige-hint">Wiki Skill-Tree v2.2.6 — clique pour noter les niveaux (S-Tier en or). Pas dans l'export.</p>
+    <div class="prestige-toolbar">
+      <button class="pixbtn gold" id="btnSkillMaxS">MAX S-TIER</button>
+      <button class="pixbtn ghost" id="btnSkillClear">TOUT À 0</button>
+      <span class="muted" id="skillHint"></span>
+    </div>
+    <div class="prestige-list" id="skillList"></div>
+    <div class="skill-detail" id="skillDetail"></div>
+  </div>
+</section>
+
+<!-- DRONES -->
+<section id="page-drones" class="page hidden">
+  <div class="panel">
+    <p class="prestige-hint">Upgrades / Suits / Fuel — cores & fuel grades se remplissent depuis l'export.</p>
+    <div class="tab-row" id="droneTabs">
+      <button class="pixbtn on" data-dronetab="upgrades">Upgrades</button>
+      <button class="pixbtn ghost" data-dronetab="suits">Suits</button>
+      <button class="pixbtn ghost" data-dronetab="fuel">Fuel</button>
+    </div>
+    <div class="prestige-toolbar"><span class="muted" id="droneHint"></span></div>
+    <div class="prestige-list" id="droneGrid"></div>
+  </div>
+</section>
+
+<!-- CHALLENGES -->
+<section id="page-challenges" class="page hidden">
+  <div class="panel">
+    <div class="chal-overlay" id="chalOverlay"></div>
+    <div class="tab-row" id="chalTabs">
+      <button class="pixbtn on" data-chaltab="regular">Regular</button>
+      <button class="pixbtn ghost" data-chaltab="extreme">Extreme</button>
+      <button class="pixbtn ghost" data-chaltab="divine">Divine</button>
+      <button class="pixbtn ghost" data-chaltab="shop">Shop</button>
+    </div>
+    <div class="prestige-toolbar">
+      <button class="pixbtn gold" id="btnChalAllDone">TOUT FAIT (onglet)</button>
+      <button class="pixbtn ghost" id="btnChalClear">RESET ONGLET</button>
+      <span class="muted" id="chalHint"></span>
+    </div>
+    <div class="prestige-list" id="chalGrid"></div>
+  </div>
 </section>
 
 <!-- CONSTRUCT -->

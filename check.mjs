@@ -5,7 +5,8 @@
 import { readFileSync } from 'fs';
 import { parseExportStats, deriveProfile } from './src/game/statsParser.js';
 import { generateRecommendations } from './src/game/recommendationEngine.js';
-import { OBELISK } from './src/game/knowledgeBase.js';
+import { OBELISK, ARTIFACTS, artifactEffectiveMax } from './src/game/knowledgeBase.js';
+import { workshopEffectiveMax, WORKSHOP_UPGRADES } from './src/game/workshopData.js';
 
 const raw = readFileSync('./samples/exportstats-v2.2.6.json', 'utf8');
 const parsed = parseExportStats(raw);
@@ -33,6 +34,18 @@ const titles = recs.map(r => r.title);
 assert(titles.some(t => /Monument World 4/i.test(t)), 'should recommend W4 monument');
 assert(titles.some(t => /armure|Obelisk 65/i.test(t)), 'should flag OB65 armor wall');
 assert(!titles.some(t => /Fueler le drone|Alimenter le drone/i.test(t)), 'no false drone fuel alert');
+
+const caps = {
+  artifact: parsed.stats.artifact_cap_increase,
+  artifactT4: parsed.stats.artifact_tier4_cap_increase,
+  workshop: parsed.stats.bomb_workshop_cap_increase,
+};
+assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'statue_dmg'), parsed.stats, caps) === 52, 'T4 pick max 52');
+assert(artifactEffectiveMax(ARTIFACTS.find(a => a.id === 'omega_crit'), parsed.stats, caps) === 37, 'T4 omega max 37');
+const ham = WORKSHOP_UPGRADES.find(u => u.id === 'hamburger');
+assert(workshopEffectiveMax(ham, caps) === 42, `hamburger max expected 42 got ${workshopEffectiveMax(ham, caps)}`);
+const chain = WORKSHOP_UPGRADES.find(u => u.id === 'basic_chain_dmg');
+assert(workshopEffectiveMax(chain, caps) === 25, `chain max expected 25 got ${workshopEffectiveMax(chain, caps)}`);
 
 console.log('OK');
 console.log('OB', profile.obeliskLevel, 'W', profile.maxWorld, 'unknown', parsed.unknownKeys.length);
