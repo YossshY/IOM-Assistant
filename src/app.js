@@ -4,7 +4,7 @@
 import { parseExportStats, deriveProfile } from './game/statsParser.js';
 import { detectMissingInformation } from './game/missingInfo.js';
 import { generateRecommendations, CONFIDENCE } from './game/recommendationEngine.js';
-import { loadHistory, saveImport, diffExports, fmtNum } from './game/history.js';
+import { loadHistory, saveImport, diffExports, fmtNum, fmtStat } from './game/history.js';
 import { CARD_STATES, CARD_SETS } from './game/cards.js';
 import { visibleCards } from './game/cardsData.js';
 import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS } from './game/starsData.js';
@@ -33,6 +33,7 @@ import {
   STORE_SPECIAL, STORE_VALUE_PACKS, STORE_EXPORT_NOTE,
 } from './game/storeData.js';
 import { exportSiteData, importSiteData, resetSiteData } from './game/siteBackup.js';
+import { applyExportArrays, listUnmappedSkillNodes } from './game/exportArrays.js';
 
 /** Durée du run prestige (raw.time) — pas le lifetime du compte. */
 function fmtRunDuration(sec){
@@ -77,6 +78,13 @@ function capCell(lv, current, hard, tip){
 function applyDelta(cur, d, max){
   if(d==='max') return max;
   return Math.min(max, Math.max(0, (cur|0)+(+d||0)));
+}
+/** Plafond affiché : le niveau importé peut dépasser le max formule. */
+function levelCeiling(formula, stored){
+  return Math.max(formula|0, stored|0);
+}
+function applyStoredDelta(cur, d, formula){
+  return applyDelta(cur, d, levelCeiling(formula, cur));
 }
 function lvActionsHtml(dataAttr, id, maxed){
   return `<div class="art-actions">
@@ -185,9 +193,11 @@ function doImport(text){
   state.col=C.applyExportCaps(state.col,parsed.stats);
   applyDronesFromExport(parsed.stats);
   C.applyExportFishing(state.col, parsed.stats);
+  applyExportArrays(state.col, parsed.stats);
   C.saveCollections(state.col);
   state.history=saveImport(parsed);
-  el.innerHTML=`✅ ${parsed.version} — ${parsed.statCount} stats`+(parsed.unknownKeys.length?` · <span class="warn">${parsed.unknownKeys.length} inconnues</span>`:'')+` · OB ${state.profile.obeliskLevel??'?'} · W${state.profile.maxWorld??'?'}`;
+  const menus=parsed.stats.skill_tree_nodes_array?' · menus importés':'';
+  el.innerHTML=`✅ ${parsed.version} — ${parsed.statCount} stats`+(parsed.unknownKeys.length?` · <span class="warn">${parsed.unknownKeys.length} inconnues</span>`:'')+menus+` · OB ${state.profile.obeliskLevel??'?'} · W${state.profile.maxWorld??'?'}`;
   el.className='msg ok';
   renderAll();
   show('dashboard');
@@ -226,6 +236,9 @@ function renderDash(){
   g.innerHTML=[
     ['Version',p.version],['Obelisk Level',p.obeliskLevel??'?'],['Cap XP',p.xpLevelCap??'?'],
     ['Monde max',p.maxWorld??'?'],
+    ['Étage',p.currentFloor??'—'],
+    ['Black Hole',p.blackHoleLevel??'—'],
+    ['Quêtes W4',p.w4QuestProgress??'—'],
     ['Temps du run',fmtRunDuration(p.runSeconds)],
     ['Pickaxe Damage',fmtNum(p.pickaxeDamage)],
     ['Armure OB+1 (eff.)',nextA!=null?fmtNum(nextA):'—'],
@@ -326,7 +339,7 @@ function renderAllStats(){
   if(!state.parsed){box.innerHTML='<p class="muted">—</p>';return;}
   const s=state.parsed.stats;
   box.innerHTML=Object.entries(s).map(([k,v])=>
-    `<div class="statline"><span>${k}</span><b>${typeof v==='number'?fmtNum(v):v}</b></div>`).join('');
+    `<div class="statline"><span>${k}</span><b>${fmtStat(v)}</b></div>`).join('');
 }
 
 /* ================= FISHING ================= */
@@ -355,7 +368,7 @@ function renderFishing(){
   });
   const hint=$('#fishHint');
   if(fishTab==='stats'){
-    if(hint) hint.textContent='Stats fishing de l\'export (niveaux Notices / Enhance restent manuels)';
+    if(hint) hint.textContent='Stats fishing de l\'export. Notices, upgrades et enhance sont remplis à l\'import v2.2.20+.';
     const s=state.parsed?.stats;
     if(!s){ box.innerHTML='<p class="muted">Importe un exportstats pour voir rod power, ticks, shiny…</p>'; return; }
     const labels=STATS_CATALOG.fishing||{};
@@ -371,9 +384,15 @@ function renderFishing(){
     if(hint) hint.textContent=`Notice upgrades T1 + T2 (tokens) · T1 cap +${n1.current} (max +${n1.potential})`;
     if(hint) hint.title=n1.tooltip;
     box.innerHTML='<div class="tier-block t1">'+blockHead('Tier 1 Notices','fish_n1')
-      +NOTICE_UPGRADES_T1.map(u=>lvRow('📋',u.name,u.per,C.getFishLv(state.col,'notice',u.id),noticeT1Max(u,state.col),'fn1',u.id,{hardMax:noticeT1Hard(u,state.col),tip:n1.tooltip})).join('')
+      +NOTICE_UPGRADES_T1.map(u=>{
+        const stored=C.getFishLv(state.col,'notice',u.id);
+        return lvRow('📋',u.name,u.per,stored,levelCeiling(noticeT1Max(u,state.col),stored),'fn1',u.id,{hardMax:noticeT1Hard(u,state.col),tip:n1.tooltip});
+      }).join('')
       +'</div><div class="tier-block t2" style="margin-top:12px">'+blockHead('Tier 2 Notices','fish_n2')
-      +NOTICE_UPGRADES_T2.map(u=>lvRow('📋',u.name,u.per,C.getFishLv(state.col,'notice',u.id),u.max,'fn2',u.id)).join('')
+      +NOTICE_UPGRADES_T2.map(u=>{
+        const stored=C.getFishLv(state.col,'notice',u.id);
+        return lvRow('📋',u.name,u.per,stored,levelCeiling(u.max,stored),'fn2',u.id);
+      }).join('')
       +'</div>';
     return;
   }
@@ -413,17 +432,17 @@ document.addEventListener('click',e=>{
   const d=e.target.closest('[data-dock]');
   if(d){ C.setDockUnlocked(state.col,d.dataset.dock,!C.isDockUnlocked(state.col,d.dataset.dock)); C.saveCollections(state.col); renderFishing(); return; }
   const n1=e.target.closest('[data-fn1]');
-  if(n1){ const u=NOTICE_UPGRADES_T1.find(x=>x.id===n1.dataset.fn1); C.setFishLv(state.col,'notice',u.id,applyDelta(C.getFishLv(state.col,'notice',u.id),n1.dataset.d,noticeT1Max(u,state.col))); C.saveCollections(state.col); renderFishing(); return; }
+  if(n1){ const u=NOTICE_UPGRADES_T1.find(x=>x.id===n1.dataset.fn1); const cur=C.getFishLv(state.col,'notice',u.id); C.setFishLv(state.col,'notice',u.id,applyStoredDelta(cur,n1.dataset.d,noticeT1Max(u,state.col))); C.saveCollections(state.col); renderFishing(); return; }
   const n2=e.target.closest('[data-fn2]');
-  if(n2){ const u=NOTICE_UPGRADES_T2.find(x=>x.id===n2.dataset.fn2); C.setFishLv(state.col,'notice',u.id,applyDelta(C.getFishLv(state.col,'notice',u.id),n2.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
+  if(n2){ const u=NOTICE_UPGRADES_T2.find(x=>x.id===n2.dataset.fn2); const cur=C.getFishLv(state.col,'notice',u.id); C.setFishLv(state.col,'notice',u.id,applyStoredDelta(cur,n2.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
   const u1=e.target.closest('[data-fu1]');
-  if(u1){ const u=FISH_UPGRADES_T1.find(x=>x.id===u1.dataset.fu1); C.setFishLv(state.col,'upgrades',u.id,applyDelta(C.getFishLv(state.col,'upgrades',u.id),u1.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
+  if(u1){ const u=FISH_UPGRADES_T1.find(x=>x.id===u1.dataset.fu1); const cur=C.getFishLv(state.col,'upgrades',u.id); C.setFishLv(state.col,'upgrades',u.id,applyStoredDelta(cur,u1.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
   const u2=e.target.closest('[data-fu2]');
-  if(u2){ const u=FISH_UPGRADES_T2.find(x=>x.id===u2.dataset.fu2); C.setFishLv(state.col,'upgrades',u.id,applyDelta(C.getFishLv(state.col,'upgrades',u.id),u2.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
+  if(u2){ const u=FISH_UPGRADES_T2.find(x=>x.id===u2.dataset.fu2); const cur=C.getFishLv(state.col,'upgrades',u.id); C.setFishLv(state.col,'upgrades',u.id,applyStoredDelta(cur,u2.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
   const e1=e.target.closest('[data-fe1]');
-  if(e1){ const u=ENHANCE_T1.find(x=>x.id===e1.dataset.fe1); C.setFishLv(state.col,'enhance',u.id,applyDelta(C.getFishLv(state.col,'enhance',u.id),e1.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
+  if(e1){ const u=ENHANCE_T1.find(x=>x.id===e1.dataset.fe1); const cur=C.getFishLv(state.col,'enhance',u.id); C.setFishLv(state.col,'enhance',u.id,applyStoredDelta(cur,e1.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
   const e2=e.target.closest('[data-fe2]');
-  if(e2){ const u=ENHANCE_T2.find(x=>x.id===e2.dataset.fe2); C.setFishLv(state.col,'enhance',u.id,applyDelta(C.getFishLv(state.col,'enhance',u.id),e2.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
+  if(e2){ const u=ENHANCE_T2.find(x=>x.id===e2.dataset.fe2); const cur=C.getFishLv(state.col,'enhance',u.id); C.setFishLv(state.col,'enhance',u.id,applyStoredDelta(cur,e2.dataset.d,u.max)); C.saveCollections(state.col); renderFishing(); return; }
   const lg=e.target.closest('[data-fleg]');
   if(lg){ C.setFishLv(state.col,'legendary',lg.dataset.fleg,applyDelta(C.getFishLv(state.col,'legendary',lg.dataset.fleg),lg.dataset.d,2)); C.saveCollections(state.col); renderFishing(); touchCaps(); }
 });
@@ -459,15 +478,15 @@ function renderArchaeology(){
       +'</div>';
     return;
   }
-  if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · max wiki par idole`;
+  if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · lues dans idols_array · le niveau importé peut dépasser le max wiki`;
   box.innerHTML='<div class="tier-block t3">'+blockHead('Idols','arch_idols')+ARCH_IDOLS.map(idol=>{
-    const mx=idolMax(idol);
-    const lv=Math.min(mx, C.getArchLv(state.col,'idols',idol.id));
+    const stored=C.getArchLv(state.col,'idols',idol.id);
+    const mx=levelCeiling(idolMax(idol), stored);
     const icon=`assets/cards/${idol.name}_Idol.png`;
     const snap=snapNow();
     const tip=idol.id==='minos'?snap.gemUpgrade.tooltip
       :(idol.id==='hera'||idol.id==='hermes')?snap.contract.tooltip:'';
-    return lvRow(icon,idol.name,idol.note||'',lv,mx,'aidol',idol.id,{ tip });
+    return lvRow(icon,idol.name,idol.note||'',stored,mx,'aidol',idol.id,{ tip });
   }).join('')+'</div>';
 }
 document.addEventListener('click',e=>{
@@ -478,7 +497,8 @@ document.addEventListener('click',e=>{
   const id=e.target.closest('[data-aidol]');
   if(id){
     const idol=ARCH_IDOLS.find(x=>x.id===id.dataset.aidol);
-    C.setArchLv(state.col,'idols',id.dataset.aidol,applyDelta(C.getArchLv(state.col,'idols',id.dataset.aidol),id.dataset.d,idolMax(idol)));
+    const cur=C.getArchLv(state.col,'idols',id.dataset.aidol);
+    C.setArchLv(state.col,'idols',id.dataset.aidol,applyStoredDelta(cur,id.dataset.d,idolMax(idol)));
     C.saveCollections(state.col); renderArchaeology(); touchCaps();
   }
 });
@@ -591,7 +611,7 @@ function renderPets(){
   const owned=(state.col.petUnlocks)||{};
   box.innerHTML=PETS_FULL.map(p=>{
     const lv=C.getPetLevel(state.col,p.id);
-    const max=petEffectiveMax(p, state.col, statsNow());
+    const max=levelCeiling(petEffectiveMax(p, state.col, statsNow()), lv);
     const hard=petHardMax(p, state.col, statsNow());
     const locked = p.unlockTotal>0 && total<p.unlockTotal && lv===0;
     const skinOn=owned['skin_'+p.id];
@@ -626,8 +646,9 @@ function renderPets(){
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-pet]');if(!b)return;
   const pet=PETS_FULL.find(p=>p.id===b.dataset.pet);
-  const max=petEffectiveMax(pet, state.col, statsNow());
-  C.setPetLevel(state.col,b.dataset.pet,applyDelta(C.getPetLevel(state.col,b.dataset.pet),b.dataset.d,max));
+  const cur=C.getPetLevel(state.col,b.dataset.pet);
+  const formula=petEffectiveMax(pet, state.col, statsNow());
+  C.setPetLevel(state.col,b.dataset.pet,applyStoredDelta(cur,b.dataset.d,formula));
   C.saveCollections(state.col);renderPets();renderDash();touchCaps();
 });
 document.addEventListener('click',e=>{
@@ -719,9 +740,10 @@ function renderWorkshop(){
 
   let html='<div class="tier-block t1">'+blockHead('Workshop Upgrades','ws');
   for(const u of WORKSHOP_UPGRADES){
-    const max=workshopMax(u);
+    const stored=C.getWorkshopLevel(state.col,u.id);
+    const max=levelCeiling(workshopMax(u), stored);
     const hard=workshopHardMax(u);
-    const lv=Math.min(max, C.getWorkshopLevel(state.col,u.id));
+    const lv=stored;
     const bonus=formatWorkshopBonus(u,lv);
     const maxed=lv>=max;
     const lock=u.world4?' <span class="muted">(W4)</span>':'';
@@ -737,12 +759,16 @@ function renderWorkshop(){
 }
 function setWsLevel(id,lv){
   const u=WORKSHOP_UPGRADES.find(x=>x.id===id); if(!u)return;
-  C.setWorkshopLevel(state.col,id,Math.min(workshopMax(u),Math.max(0,lv|0)));
+  C.setWorkshopLevel(state.col,id,Math.max(0,lv|0));
   C.saveCollections(state.col);renderWorkshop();
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-ws]');
-  if(b){ setWsLevel(b.dataset.ws, applyDelta(C.getWorkshopLevel(state.col,b.dataset.ws), b.dataset.d, workshopMax(WORKSHOP_UPGRADES.find(x=>x.id===b.dataset.ws)))); return; }
+  if(b){
+    const u=WORKSHOP_UPGRADES.find(x=>x.id===b.dataset.ws);
+    const cur=C.getWorkshopLevel(state.col,u.id);
+    setWsLevel(u.id, applyStoredDelta(cur, b.dataset.d, workshopMax(u)));
+  }
 });
 $('#btnWsMaxAll')?.addEventListener('click',()=>{
   for(const u of WORKSHOP_UPGRADES) C.setWorkshopLevel(state.col,u.id,workshopMax(u));
@@ -777,7 +803,9 @@ function renderSkills(){
   const box=$('#skillList'); if(!box) return;
   const owned=SKILLS.filter(s=>C.getSkillLevel(state.col,s.id)>0).length;
   const hint=$('#skillHint');
-  if(hint) hint.textContent=`${owned}/${SKILLS.length} · layout wiki Skill-Tree#Skills`;
+  const extra=listUnmappedSkillNodes(state.parsed?.stats||{});
+  const extraTxt=extra.length?` · hors arbre : ${extra.map(e=>`${e.name} ${e.level}`).join(', ')}`:'';
+  if(hint) hint.textContent=`${owned}/${SKILLS.length} · layout wiki Skill-Tree#Skills${extraTxt}`;
   box.innerHTML=`<div class="skill-tree">${SKILL_TREE_ROWS.map(row=>{
     const filled=row.filter(Boolean).length;
     if(filled===1){
@@ -855,14 +883,16 @@ function renderDrones(){
     }).join('');
     html+='</div><div class="tier-block t2" style="margin-top:12px">'+blockHead('Suit Upgrades','drone_suit');
     html+=DRONE_SUITS.map(s=>{
-      const lv=Math.min(cap, C.getDroneSuitLv(state.col,s.id));
-      const maxed=lv>=cap;
+      const stored=C.getDroneSuitLv(state.col,s.id);
+      const max=levelCeiling(cap, stored);
+      const lv=stored;
+      const maxed=lv>=max;
       const bonus=s.perLevel*lv;
       const tot=s.unit==='s'?`${bonus}s`:`${bonus>=0?'+':''}${bonus}${s.unit}`;
       return `<div class="art-row">
         <div class="art-ico">${artIco(s.icon,'🤖')}</div>
         <div class="art-desc"><b>${s.name}</b> — ${s.ability}<br><span class="muted">${s.upgrade} → ${tot}</span></div>
-        ${capCell(lv, cap)}
+        ${capCell(lv, max)}
         ${lvActionsHtml('dsuit', s.id, maxed)}
       </div>`;
     }).join('')+'</div>';
@@ -892,8 +922,9 @@ document.addEventListener('click',e=>{
   }
   const s=e.target.closest('[data-dsuit]');
   if(s){
+    const cur=C.getDroneSuitLv(state.col,s.dataset.dsuit);
     const cap=suitCapFromExport(state.parsed?.stats||{}, C.getCaps(state.col));
-    C.setDroneSuitLv(state.col,s.dataset.dsuit,applyDelta(C.getDroneSuitLv(state.col,s.dataset.dsuit),s.dataset.d,cap));
+    C.setDroneSuitLv(state.col,s.dataset.dsuit,applyStoredDelta(cur,s.dataset.d,cap));
     C.saveCollections(state.col);renderDrones(); return;
   }
   const f=e.target.closest('[data-dfuel]');
@@ -1236,9 +1267,10 @@ function renderStars(){
     if(hint) hint.textContent=`${owned}/${STARS_FULL.length} unlocked · telescope ${C.getStarUpgrade(state.col,'telescope')}/21`;
     box.innerHTML='<div class="tier-block t1">'+blockHead('Stars','star_stars')+STARS_FULL.map(s=>{
       const cap=starCapInfo(s, state.col);
-      const max=cap.current;
+      const stored=C.getStarLevel(state.col,s.id);
+      const max=levelCeiling(cap.current, stored);
       const hard=cap.hard;
-      const lv=Math.min(max, C.getStarLevel(state.col,s.id));
+      const lv=stored;
       const maxed=lv>=max && lv>0;
       const icon=`assets/cards/${s.name}.png`;
       return `<div class="art-row">
@@ -1249,31 +1281,36 @@ function renderStars(){
       </div>`;
     }).join('')+'</div>';
   } else if(starTab==='upgrades'){
-    if(hint) hint.textContent='Stargazing Upgrades (wiki)';
+    if(hint) hint.textContent='Stargazing Upgrades (wiki) · lus à l\'import';
     box.innerHTML='<div class="tier-block t1">'+blockHead('Stargazing Upgrades','star_upg')+STAR_UPGRADES.map(u=>{
-      const lv=Math.min(u.max, C.getStarUpgrade(state.col,u.id));
-      const maxed=lv>=u.max;
+      const stored=C.getStarUpgrade(state.col,u.id);
+      const max=levelCeiling(u.max, stored);
+      const lv=stored;
+      const maxed=lv>=max && lv>0;
       return `<div class="art-row">
         <div class="art-ico">${artIco('assets/stargazing/Telescope.png','🔭')}</div>
         <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
-        ${capCell(lv, u.max)}
+        ${capCell(lv, max)}
         ${lvActionsHtml('supg', u.id, maxed)}
       </div>`;
     }).join('')+'</div>';
   } else if(starTab==='super'){
     if(hint) hint.textContent='Super Stars upgrades';
     box.innerHTML='<div class="tier-block t2">'+blockHead('Super Stars','star_super')+SUPER_STAR_UPGRADES.map(u=>{
-      const lv=Math.min(u.max, C.getSuperStarUpgrade(state.col,u.id));
-      const maxed=lv>=u.max;
-      return `<div class="art-row">
-        <div class="art-ico">${artIco('assets/stargazing/Super_Star.png','✨')}</div>
-        <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
-        ${capCell(lv, u.max)}
-        ${lvActionsHtml('ssupg', u.id, maxed)}
+    const stored=C.getSuperStarUpgrade(state.col,u.id);
+    const max=levelCeiling(u.max, stored);
+    const lv=stored;
+    const maxed=lv>=max;
+    return `<div class="art-row">
+      <div class="art-ico">${artIco('assets/stargazing/Super_Star.png','✨')}</div>
+      <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
+      ${capCell(lv, max)}
+      ${lvActionsHtml('ssupg', u.id, maxed)}
       </div>`;
     }).join('')+'</div>';
   } else {
-    if(hint) hint.textContent='Black Hole blessings (toggle)';
+    const bhLv=state.profile?.blackHoleLevel;
+    if(hint) hint.textContent=bhLv!=null?`Black Hole niveau ${bhLv} — l'export ne liste pas les blessings`:'Black Hole blessings (toggle)';
     box.innerHTML='<div class="tier-block t4">'+blockHead('Black Hole Blessings','star_bh')+BLACK_HOLE_BLESSINGS.map(b=>{
       const on=C.hasBlackHoleBlessing(state.col,b.id);
       return `<div class="art-row">
@@ -1292,20 +1329,23 @@ document.addEventListener('click',e=>{
   const sl=e.target.closest('[data-starlv]');
   if(sl){
     const s=STARS_FULL.find(x=>x.id===sl.dataset.starlv);
-    const cap=starCapInfo(s, state.col);
-    C.setStarLevel(state.col,s.id,applyDelta(C.getStarLevel(state.col,s.id),sl.dataset.d,cap.current));
+    const cur=C.getStarLevel(state.col,s.id);
+    const formula=starCapInfo(s, state.col).current;
+    C.setStarLevel(state.col,s.id,applyStoredDelta(cur,sl.dataset.d,formula));
     C.saveCollections(state.col);renderStars();touchCaps(); return;
   }
   const u=e.target.closest('[data-supg]');
   if(u){
     const row=STAR_UPGRADES.find(x=>x.id===u.dataset.supg);
-    C.setStarUpgrade(state.col,row.id,applyDelta(C.getStarUpgrade(state.col,row.id),u.dataset.d,row.max));
+    const cur=C.getStarUpgrade(state.col,row.id);
+    C.setStarUpgrade(state.col,row.id,applyStoredDelta(cur,u.dataset.d,row.max));
     C.saveCollections(state.col);renderStars(); return;
   }
   const ss=e.target.closest('[data-ssupg]');
   if(ss){
     const row=SUPER_STAR_UPGRADES.find(x=>x.id===ss.dataset.ssupg);
-    C.setSuperStarUpgrade(state.col,row.id,applyDelta(C.getSuperStarUpgrade(state.col,row.id),ss.dataset.d,row.max));
+    const cur=C.getSuperStarUpgrade(state.col,row.id);
+    C.setSuperStarUpgrade(state.col,row.id,applyStoredDelta(cur,ss.dataset.d,row.max));
     C.saveCollections(state.col);renderStars();touchCaps(); return;
   }
   const bh=e.target.closest('[data-bh]');
@@ -1452,7 +1492,7 @@ function renderHistory(){
   const oldIdx=histSelected===0?1:histSelected;
   const d=diffExports(h[oldIdx],h[0]);
   let html=`<h3>Évolutions — ${new Date(h[oldIdx].importedAt).toLocaleString('fr')} → plus récent</h3>`;
-  for(const c of d.changed.slice(0,30))html+=`<div class="statline"><span>${c.key}</span><b>${fmtNum(c.from)} → ${fmtNum(c.to)} ${c.dir==='up'?'📈':'📉'}</b></div>`;
+  for(const c of d.changed.slice(0,30))html+=`<div class="statline"><span>${c.key}</span><b>${fmtStat(c.from)} → ${fmtStat(c.to)} ${c.dir==='up'?'📈':'📉'}</b></div>`;
   if(!d.changed.length) html+='<p class="muted">Aucune stat numérique n\'a changé.</p>';
   if(d.added.length)html+=`<h3 class="ok">Nouvelles stats (${d.added.length})</h3><p class="ok" style="font-size:8px">${d.added.map(a=>a.key).join(', ')}</p>`;
   out.innerHTML=html;
@@ -1473,6 +1513,9 @@ $('#histSelect')?.addEventListener('change',e=>{
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
   }
   if(h[0]?.stats) C.applyExportFishing(state.col, h[0].stats);
+  if(h[0]?.stats?.skill_tree_nodes_array && !Object.keys(state.col.skills||{}).length){
+    applyExportArrays(state.col, h[0].stats); C.saveCollections(state.col);
+  }
 })();
 renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderStore();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderDashCaps();
 show('export');

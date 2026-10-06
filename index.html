@@ -368,7 +368,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- WORKSHOP (= anvil, niveaux manuels — absents de l'export) -->
 <section id="page-workshop" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Les niveaux Workshop ne sont pas dans exportstats — note-les ici. Le max courant suit tes caps (export + pets/statues/skills…). Infobulle sur 25/35 (Max 52).</p>
+    <p class="prestige-hint">Niveaux lus dans <code>workshop_array</code> à l'import (v2.2.20+). Le max courant suit tes caps (export + pets/statues/skills…). Infobulle sur 25/35 (Max 52).</p>
     <div class="prestige-toolbar">
       <button class="pixbtn gold" id="btnWsMaxAll">TOUT MAXER</button>
       <button class="pixbtn ghost" id="btnWsClear">TOUT À 0</button>
@@ -381,7 +381,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- SKILLS -->
 <section id="page-skills" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Affichage comme <a href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki Skill-Tree#Skills</a> — clic gauche : +1 · clic droit : −1 (comme les cartes et statues). Pas dans l'export.</p>
+    <p class="prestige-hint">Affichage comme <a href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki Skill-Tree#Skills</a> — clic gauche : +1 · clic droit : −1. L'import v2.2.20+ remplit les niveaux.</p>
     <div class="prestige-toolbar">
       <button class="pixbtn gold" id="btnSkillMaxS">MAX PRIORITAIRES</button>
       <button class="pixbtn ghost" id="btnSkillClear">TOUT À 0</button>
@@ -395,7 +395,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- DRONES -->
 <section id="page-drones" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Comme le jeu : <b>Upgrades</b> (cores + suits) et <b>Drone Level</b> (grades). Cores & grades se remplissent depuis l'export.</p>
+    <p class="prestige-hint">Comme le jeu : <b>Upgrades</b> (cores + suits) et <b>Drone Level</b> (grades). Cores, suits et grades se remplissent depuis l'export.</p>
     <div class="tab-row" id="droneTabs">
       <button class="pixbtn on" data-dronetab="upgrades">Upgrades</button>
       <button class="pixbtn ghost" data-dronetab="levels">Drone Level</button>
@@ -408,6 +408,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- CHALLENGES (+ Shop coins) -->
 <section id="page-challenges" class="page hidden">
   <div class="panel">
+    <p class="prestige-hint">Regular / Extreme / Divine. L'onglet Shop est rempli depuis <code>challenge_upgrades_array</code> (v2.2.20+).</p>
     <div class="chal-overlay" id="chalOverlay"></div>
     <div class="tab-row" id="chalTabs">
       <button class="pixbtn on" data-chaltab="regular">Regular</button>
@@ -458,7 +459,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- STARGAZING -->
 <section id="page-stars" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Stargazing wiki v2.2.6 — niveaux manuels (pas dans l'export). Caps de base ; ajoute + via Super Stars si besoin.</p>
+    <p class="prestige-hint">Niveaux, upgrades et super stars lus à l'import. Le Black Hole exporte son niveau, pas la liste des blessings.</p>
     <div class="tab-row" id="starTabs">
       <button class="pixbtn on" data-startab="stars">Stars</button>
       <button class="pixbtn ghost" data-startab="upgrades">Upgrades</button>
@@ -497,7 +498,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- ARCHAEOLOGY -->
 <section id="page-archaeology" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Archaeology (OB30+) — Upgrades Ascension 0 + Idols. (Skills / Ascension plus tard.)</p>
+    <p class="prestige-hint">Archaeology (OB30+) — idoles lues dans <code>idols_array</code>. Upgrades d'ascension toujours manuels.</p>
     <div class="tab-row" id="archTabs">
       <button class="pixbtn on" data-archtab="upgrades">Upgrades</button>
       <button class="pixbtn ghost" data-archtab="idols">Idols</button>

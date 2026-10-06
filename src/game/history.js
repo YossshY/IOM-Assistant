@@ -36,15 +36,32 @@ export function saveProfileStore(p) {
  *   removed: [keys]
  * }
  */
+function statEqual(a, b) {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+  return a === b;
+}
+
 export function diffExports(a, b) {
   const sa = a?.stats || {}, sb = b?.stats || {};
   const changed = [], added = [], removed = [];
   for (const k of Object.keys(sb)) {
     if (!(k in sa)) { added.push({ key:k, value:sb[k] }); continue; }
-    if (sa[k] !== sb[k]) changed.push({ key:k, label:k, from:sa[k], to:sb[k], dir: sb[k] > sa[k] ? 'up' : 'down' });
+    if (!statEqual(sa[k], sb[k])) changed.push({ key:k, label:k, from:sa[k], to:sb[k], dir: sb[k] > sa[k] ? 'up' : 'down' });
   }
   for (const k of Object.keys(sa)) if (!(k in sb)) removed.push(k);
   return { changed, added, removed };
+}
+
+/** Affiche un scalaire ou un tableau d'export sans le déplier. */
+export function fmtStat(v) {
+  if (Array.isArray(v)) return `[${v.length}]`;
+  if (typeof v === 'boolean') return v ? 'oui' : 'non';
+  if (typeof v === 'number') return fmtNum(v);
+  return String(v);
 }
 
 /** Formate un nombre à la community (k/m/b/t/q/...) pour l'affichage. */
