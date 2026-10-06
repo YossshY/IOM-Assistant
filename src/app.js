@@ -540,7 +540,7 @@ function renderFishing(){
     return;
   }
   if(fishTab==='upgrades'){
-    if(hint) hint.textContent='Fishing Upgrades (fish) + docks';
+    if(hint) hint.textContent='Fishing Upgrades (fish). Les quais suivent le niveau du bateau à l\'import.';
     let html='<div class="tier-block t1">'+blockHead('Tier 1 Upgrades','fish_u1')
       +FISH_UPGRADES_T1.map(u=>lvRow('🐟',u.name,u.per,C.getFishLv(state.col,'upgrades',u.id),u.max,'fu1',u.id)).join('')
       +'</div><div class="tier-block t2" style="margin-top:12px">'+blockHead('Tier 2 Upgrades','fish_u2')
@@ -1116,7 +1116,7 @@ function renderChallenges(){
     if(btnAll) btnAll.textContent='TOUT MAXER';
     if(btnClr) btnClr.textContent='TOUT À 0';
     const hint=$('#chalHint');
-    if(hint) hint.textContent='Shop coins Regular / Extreme / Divine — pas dans l\'export';
+    if(hint) hint.textContent='Shop coins Regular / Extreme / Divine — niveaux depuis challenge_upgrades_array';
     box.innerHTML=renderShopHtml();
     return;
   }
@@ -1141,7 +1141,7 @@ function renderChallenges(){
   const hint=$('#chalHint');
   const list=CHALLENGES[chalTab]||[];
   const done=list.filter(c=>C.isChallengeDone(state.col,c.id)).length;
-  if(hint) hint.textContent=`${done}/${list.length} done · +10 coins each`;
+  if(hint) hint.textContent=`${done}/${list.length} cochés · les complétions ne sont pas dans l'export`;
   box.innerHTML=list.map(c=>{
     const ok=C.isChallengeDone(state.col,c.id);
     return `<div class="art-row">

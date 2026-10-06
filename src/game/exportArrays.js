@@ -12,15 +12,16 @@ import {
   FISH_UPGRADES_T1, FISH_UPGRADES_T2,
   ENHANCE_T1, ENHANCE_T2, LEGENDARY_FISH,
 } from './fishingData.js';
-import { LEGENDARY_FISH_CARDS } from './cardsData.js';
+import { FISH_CARDS, LEGENDARY_FISH_CARDS } from './cardsData.js';
 import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES } from './starsData.js';
 import { ARCH_IDOLS } from './archaeologyData.js';
 import { DRONE_SUITS } from './dronesData.js';
 import { RESEARCH_VEINS } from './constructData.js';
 import { CHALLENGE_SHOP } from './challengesData.js';
+import { BOAT_T1, BOAT_T2 } from './progress/fragments/docks.js';
 import {
   setSkillLevel, setWorkshopLevel, setPetLevel, setPetQuestRank,
-  setFishLv, setDockUnlocked, setStarLevel, setStarUpgrade, setSuperStarUpgrade,
+  setFishLv, getFishLv, setDockUnlocked, setStarLevel, setStarUpgrade, setSuperStarUpgrade,
   setArchLv, setDroneSuitLv, setResearchUnlock, setResearchSpawn, setChallengeShop,
 } from './collections.js';
 
@@ -78,6 +79,23 @@ function asList(v) {
 function nAt(arr, i) {
   const v = Number(arr?.[i]);
   return Number.isFinite(v) ? Math.round(v) : 0;
+}
+
+function cardRank(raw) {
+  return Math.max(0, Math.min(4, raw));
+}
+
+/** Quai ouvert par le palier de bateau déjà écrit dans les upgrades. N'enlève pas un quai. */
+function unlockDocksFromBoat(col) {
+  const t1 = getFishLv(col, 'upgrades', 'u1_boat');
+  const t2 = getFishLv(col, 'upgrades', 'u2_boat');
+  if (t1 > 0 || t2 > 0) setDockUnlocked(col, 'lake', true);
+  for (const row of BOAT_T1) {
+    if (t1 >= row.level) setDockUnlocked(col, row.dock, true);
+  }
+  for (const row of BOAT_T2) {
+    if (t2 >= row.level) setDockUnlocked(col, row.dock, true);
+  }
 }
 
 function applyIndexed(arr, items, setLevel) {
@@ -152,11 +170,17 @@ export function applyExportArrays(col, stats = {}) {
     ENHANCE_T1.forEach((u, i) => setFishLv(col, 'enhance', u.id, nAt(enhance, i)));
     ENHANCE_T2.forEach((u, i) => setFishLv(col, 'enhance', u.id, nAt(enhance, ENHANCE_T1.length + i)));
   }
+  const regCards = asList(stats.fishing_regular_card_array);
   const legCards = asList(stats.fishing_legendary_card_levels_array);
+  if (regCards || legCards) col.cards = { ...(col.cards || {}) };
+  if (regCards) {
+    FISH_CARDS.forEach((c, i) => {
+      col.cards[c.id] = cardRank(nAt(regCards, i));
+    });
+  }
   if (legCards) {
-    col.cards = { ...(col.cards || {}) };
     LEGENDARY_FISH_CARDS.forEach((c, i) => {
-      col.cards[c.id] = Math.max(0, Math.min(4, nAt(legCards, i)));
+      col.cards[c.id] = cardRank(nAt(legCards, i));
     });
   }
   const legTrib = asList(stats.fishing_legendary_tribute_levels_array);
@@ -168,6 +192,7 @@ export function applyExportArrays(col, stats = {}) {
       setDockUnlocked(col, f.dock, raw >= 1);
     });
   }
+  if (fishUp || legTrib) unlockDocksFromBoat(col);
 
   const starLv = asList(stats.stars_star_level_array);
   if (starLv) STARS_FULL.forEach((s, i) => setStarLevel(col, s.id, nAt(starLv, i)));

@@ -189,20 +189,57 @@ export const LEGENDARY_FISH_CARDS = [
     effect:['Super Stonks Chance +0.15%','+0.30%','+0.60%','+0.20x/+0.001x'], legendary:true },
 ];
 
-export const FISH_CARDS = [
-  C('fish','guppy','Guppy',2,'Guppy.png'),
-  C('fish','golden_trout','Golden Trout',2,'Golden_Trout.png'),
-  C('fish','catfish','Catfish',2,'Catfish.png'),
-  C('fish','gammangler','Gammangler Fish',2,'Gammangler_Fish.png'),
-  C('fish','lantern','Lanternfish Comet',2,'Lanternfish_Comet.png'),
-  C('fish','lunar','Lunar Sunfish',2,'Lunar_Sunfish.png'),
-  C('fish','molten','Molten Archerfish',2,'Molten_Archerfish.png'),
-  C('fish','planetary','Planetary Jellyfish',3,'Planetary_Jellyfish.png'),
-  C('fish','shock','Shocksailfish',3,'Shocksailfish.png'),
-  C('fish','frost_spear','Frostdrip Spearfish',3,'Frostdrip_Spearfish.png'),
-  C('fish','frost_crab','Frostshell Crab',2,'Frostshell_Crab.png'),
-  C('fish','scarab','Scarabshoe Crab',2,'Scarabshoe_Crab.png'),
+/* Aquarium wiki, 4 poissons par dock.
+   L'index est celui de fishing_regular_card_array (Lake 0–3 … Galaxy 40–43).
+   Les ids déjà utilisés (guppy, catfish, …) sont conservés. */
+const FISH_EXPORT_ROWS = [
+  ['guppy', 'Guppy', 2, 'Guppy.png'],
+  ['bass', 'Bass', 2, 'Bass.png'],
+  ['catfish', 'Catfish', 2, 'Catfish.png'],
+  ['golden_trout', 'Golden Trout', 2, 'Golden_Trout.png'],
+  ['sandscale', 'Sandscale Carp', 2, 'Sandscale_Carp.png'],
+  ['armored_roller', 'Armored Roller', 2, 'Armored_Roller.png'],
+  ['spiny_puffer', 'Spiny Puffer', 2, 'Spiny_Puffer.png'],
+  ['scarab', 'Scarabshoe Crab', 2, 'Scarabshoe_Crab.png'],
+  ['snow_swarmer', 'Snow-bellied Swarmer', 2, 'Snow-bellied_Swarmer.png'],
+  ['frost_crab', 'Frostshell Crab', 2, 'Frostshell_Crab.png'],
+  ['frost_spear', 'Frostdrip Spearfish', 2, 'Frostdrip_Spearfish.png'],
+  ['auroreel', 'Auroreel', 2, 'Auroreel.png'],
+  ['coralstar', 'Coralstar', 2, 'Coralstar.png'],
+  ['anchorfin', 'Anchorfin Stingray', 2, 'Anchorfin_Stingray.png'],
+  ['pearlescent', 'Pearlescent Tetra', 2, 'Pearlescent_Tetra.png'],
+  ['gem_whale', 'Gem Whale', 2, 'Gem_Whale.png'],
+  ['ionizing_eel', 'Ionizing Eel', 2, 'Ionizing_Eel.png'],
+  ['gammangler', 'Gammangler Fish', 2, 'Gammangler_Fish.png'],
+  ['elephants_blob', "Elephant's Blob", 2, 'Elephants_Blob.png'],
+  ['wastefish', 'Wastefish', 2, 'Wastefish.png'],
+  ['hadal_crusher', 'Hadal Crusher', 2, 'Hadal_Crusher.png'],
+  ['live_sea_mine', 'Live Sea Mine', 2, 'Live_Sea_Mine.png'],
+  ['ventilator_remora', 'Ventilator Remora', 2, 'Ventilator_Remora.png'],
+  ['wreckshell', 'Wreckshell Pilferer', 2, 'Wreckshell_Pilferer.png'],
+  ['stonescale', 'Stonescale Carp', 3, 'Stonescale_Carp.png'],
+  ['sturgem', 'Sturgem', 3, 'Sturgem.png'],
+  ['conductive_eel', 'Conductive Eel', 3, 'Conductive_Eel.png'],
+  ['arapaim_al', 'Arapaim-al', 3, 'Arapaim-al.png'],
+  ['molten', 'Molten Archerfish', 3, 'Molten_Archerfish.png'],
+  ['lava_snail', 'Lava Snail', 3, 'Lava_Snail.png'],
+  ['obsidian_barracuda', 'Obsidian-Tooth Barracuda', 3, 'Obsidian-Tooth_Barracuda.png'],
+  ['basalturtle', 'Basalturtle', 3, 'Basalturtle.png'],
+  ['sunglazed', 'Sunglazed Flying Fish', 3, 'Sunglazed_Flying_Fish.png'],
+  ['cloudcutter', 'Cloudcutter Manta', 3, 'Cloudcutter_Manta.png'],
+  ['shock', 'Shocksailfish', 3, 'Shocksailfish.png'],
+  ['lunar', 'Lunar Sunfish', 3, 'Lunar_Sunfish.png'],
+  ['lantern', 'Lanternfish Comet', 4, 'Lanternfish_Comet.png'],
+  ['ufo', 'UFO', 4, 'UFO.png'],
+  ['sub_solar', 'Sub-Solar Squid', 4, 'Sub-Solar_Squid.png'],
+  ['planetary', 'Planetary Jellyfish', 4, 'Planetary_Jellyfish.png'],
+  ['heliocentric', 'Heliocentric Clam', 4, 'Heliocentric_Clam.png'],
+  ['gamma_shrimp', 'Gamma Rayburst Shrimp', 4, 'Gamma_Rayburst_Shrimp.png'],
+  ['galaxia_whale', 'Galaxia Whale', 4, 'Galaxia_Whale.png'],
+  ['dark_dragon', 'Dark Matter Blackdragon', 4, 'Dark_Matter_Blackdragon.png'],
 ];
+
+export const FISH_CARDS = FISH_EXPORT_ROWS.map(([id, name, world, file]) => C('fish', id, name, world, file));
 
 /* Effets wiki Cards v2.2.6 */
 export const DRONE_CARDS = [
