@@ -193,3 +193,16 @@ export function setStoreUpgrade(col, id, lv){
   col.store||={}; col.store.gemUpgrades||={};
   col.store.gemUpgrades[id]=Math.max(0,lv|0);
 }
+
+/** Stocks absents de l’export (SP, gemmes, poissons…). */
+export function getStock(col, id){
+  const n = Number((col.stocks || {})[id]);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+export function setStock(col, id, n){
+  col.stocks ||= {};
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) delete col.stocks[id];
+  else col.stocks[id] = v;
+  return getStock(col, id);
+}

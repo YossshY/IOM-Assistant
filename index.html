@@ -79,7 +79,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .msg{margin-top:8px;font-size:9px}.msg.err{color:var(--red)}.msg.ok{color:var(--green)}
 
 /* ---- grille cards : dos jeu, icône haute, texte bas ---- */
-.cardgrid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:12px}
+.cardgrid{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:12px}
 @media(max-width:1100px){.cardgrid{grid-template-columns:repeat(6,minmax(0,1fr))}}
 @media(max-width:800px){.cardgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:520px){.cardgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -242,6 +242,25 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 .bar{height:14px;background:#120d16;border:3px solid var(--line);max-width:400px;margin-top:6px}
 .bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--green) 0 8px,#63c46d 8px 16px)}
 .blocked{color:var(--red);font-size:8px;margin-top:10px}
+.plan-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.plan-toolbar label{color:var(--muted);font-size:8px}
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.stock-field{display:flex;flex-direction:column;gap:4px;color:var(--ink);font-size:8px}
+.stock-field small{color:var(--muted);font-size:7px}
+.stock-field input{width:100%}
+.plan-eval{background:#120d16;border:3px solid var(--line);border-radius:6px;padding:10px 12px;margin:0 0 12px}
+.plan-eval .st{display:block;font-size:8px;margin-bottom:6px}
+.plan-eval p{margin:0;color:var(--ink);font-size:8px;line-height:1.6}
+.plan-eval .now{color:var(--green);margin-top:6px}
+.st-unlocked{color:var(--green)} .st-available{color:var(--cyan)} .st-locked{color:var(--amber)}
+.st-blocked{color:var(--red)} .st-incomplete{color:var(--violet)} .st-unknown{color:var(--muted)}
+.plan-tree{list-style:none;margin:0;padding:0}
+.plan-tree ul{list-style:none;margin:6px 0 0;padding:0 0 0 14px;border-left:2px solid var(--line)}
+.plan-step{margin:0 0 8px;font-size:8px;line-height:1.5;color:var(--ink)}
+.plan-step b{color:var(--amber);margin-right:6px}
+.plan-step.actionable b{color:var(--green)}
+.ov-row{cursor:pointer}
+.ov-row.on{outline:2px solid var(--amber);background:#2a1a2088}
 .page.hidden{display:none}
 .statline{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:2px solid #4a3a40;font-size:8px}
 .statline span{color:var(--muted);word-break:break-all}
@@ -300,9 +319,29 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
     <p class="muted" style="margin:0 0 10px">En cours = max(export, sources notées). Max = toutes les sources wiki. Survole une carte pour le détail.</p>
     <div id="dashCaps"></div>
   </div>
+  <div class="panel"><h2>Stocks (absents de l'export)</h2>
+    <p class="muted">SP, gemmes et poissons ne sont pas dans exportstats. Saisie manuelle — aucun producteur inventé.</p>
+    <div class="stock-grid" id="stockFields"></div>
+  </div>
+  <div class="panel"><h2>Progression (graphe)</h2>
+    <p class="muted">Évaluation et plan du moteur.</p>
+    <div class="plan-toolbar">
+      <label for="progressGoal">Objectif</label>
+      <select id="progressGoal"></select>
+    </div>
+    <div id="progressOut"></div>
+  </div>
   <div class="panel"><h2>Estimateurs (wiki + export)</h2><div id="dashMath"></div></div>
-  <div class="panel"><h2>Mon prochain objectif</h2><div id="roadList"></div>
-    <p class="muted">🟢 Confirmé · 🟡 Probable · 🔴 Données insuffisantes</p></div>
+  <div class="panel"><h2>Reco</h2>
+    <div class="tab-row" style="margin:0 0 12px">
+      <button type="button" class="pixbtn on" data-recomode="graph">Graphe</button>
+      <button type="button" class="pixbtn ghost" data-recomode="hints">Hints</button>
+    </div>
+    <p class="muted" id="recoGraphLegend">Objectifs du graphe, ordre source — pas un ranking farm. Clique une ligne pour ouvrir le plan.</p>
+    <div id="graphOverview"></div>
+    <div id="roadList" hidden></div>
+    <p class="muted" id="recoHintLegend" hidden>🟢 Confirmé · 🟡 Probable · 🔴 Données insuffisantes · hors graphe</p>
+  </div>
   <div class="panel"><h2>Calculateurs communautaires</h2>
     <p class="muted" style="margin:0 0 10px">On ne réinvente pas leurs sims — liens vers les outils existants (wiki Discord + ObeliskFarm).</p>
     <div class="tool-links" id="dashTools"></div>

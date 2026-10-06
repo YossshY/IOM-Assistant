@@ -34,6 +34,9 @@ import {
 } from './game/storeData.js';
 import { exportSiteData, importSiteData, resetSiteData } from './game/siteBackup.js';
 import { applyExportArrays, listUnmappedSkillNodes } from './game/exportArrays.js';
+import { DASHBOARD_GOALS, DEFAULT_PROGRESS_GOAL, progressSnapshot, progressOverview } from './game/progress/dashboard.js';
+import { ACTIONABLE_NOW } from './game/progress/phrases.js';
+import { MANUAL_STOCKS } from './game/progress/stocks.js';
 
 /** Durée du run prestige (raw.time) — pas le lifetime du compte. */
 function fmtRunDuration(sec){
@@ -133,6 +136,13 @@ function formatArtBonus(a, lv){
 
 const $ = s => document.querySelector(s);
 let state = { parsed:null, profile:{}, history:[], col:C.loadCollections() };
+let selectedProgressGoal = DEFAULT_PROGRESS_GOAL;
+let recoMode = 'graph';
+try { if (localStorage.getItem('iom-reco-mode') === 'hints') recoMode = 'hints'; } catch {}
+
+function esc(s){
+  return String(s??'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
 
 /* ---------- navigation : menu principal + onglets ---------- */
 function show(page){
@@ -230,7 +240,7 @@ function renderTop(){
 /* ---------- dashboard ---------- */
 function renderDash(){
   const g=$('#dashProfile');
-  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();renderDashCaps();return;}
+  if(!state.parsed){g.innerHTML='<p class="muted">Aucun import.</p>';renderDashTools();renderDashMath();renderDashCaps();renderStocks();renderProgress();return;}
   const p=state.profile;
   const nextA=p.nextObeliskArmor;
   g.innerHTML=[
@@ -250,6 +260,8 @@ function renderDash(){
   renderDashTools();
   renderDashMath();
   renderDashCaps();
+  renderStocks();
+  renderProgress();
 }
 function renderDashCaps(){
   const box=$('#dashCaps'); if(!box) return;
@@ -311,9 +323,107 @@ function renderDashTools(){
   }).join('');
 }
 
-/* ---------- roadmap ---------- */
-function renderRoadmap(){
+function renderStocks(){
+  const box=$('#stockFields');
+  if(!box)return;
+  if(!box.dataset.ready){
+    box.innerHTML=MANUAL_STOCKS.map(s=>`<label class="stock-field">${esc(s.label)}
+      <small>${esc(s.hint)}</small>
+      <input type="number" min="0" step="any" inputmode="decimal" placeholder="0" data-stock="${esc(s.id)}">
+    </label>`).join('');
+    box.dataset.ready='1';
+  }
+  box.querySelectorAll('[data-stock]').forEach(el=>{
+    if(document.activeElement===el) return;
+    const n=C.getStock(state.col, el.dataset.stock);
+    el.value=n>0?String(n):'';
+  });
+}
+
+document.addEventListener('change',e=>{
+  const inp=e.target.closest('[data-stock]');
+  if(!inp) return;
+  C.setStock(state.col, inp.dataset.stock, inp.value);
+  C.saveCollections(state.col);
+  renderProgress();
+  renderRoadmap();
+});
+
+function fillProgressGoalSelect(){
+  const sel=$('#progressGoal');
+  if(!sel)return;
+  if(!sel.options.length){
+    sel.innerHTML=DASHBOARD_GOALS.map(g=>`<option value="${esc(g.id)}">${esc(g.label)}</option>`).join('');
+  }
+  if(!DASHBOARD_GOALS.some(g=>g.id===selectedProgressGoal)) selectedProgressGoal=DEFAULT_PROGRESS_GOAL;
+  sel.value=selectedProgressGoal;
+}
+
+function planTreeHtml(steps){
+  if(!steps?.length) return '';
+  const item=s=>{
+    const cls=['plan-step', s.actionable?'actionable':''].filter(Boolean).join(' ');
+    const now=s.actionable?` · ${esc(ACTIONABLE_NOW)}`:'';
+    const why=s.reason?` <code>${esc(s.reason)}</code>`:'';
+    let h=`<li class="${cls}"><b>${esc(s.step)}</b> ${esc(s.caption)}${now}${why}`;
+    if(s.children?.length) h+=`<ul>${s.children.map(item).join('')}</ul>`;
+    return h+'</li>';
+  };
+  return `<ul class="plan-tree">${steps.map(item).join('')}</ul>`;
+}
+
+function renderProgress(){
+  const box=$('#progressOut');
+  if(!box)return;
+  fillProgressGoalSelect();
+  if(!state.parsed){
+    box.innerHTML='<p class="muted">Importe un exportstats pour évaluer le graphe.</p>';
+    if(recoMode==='graph') renderGraphOverview();
+    return;
+  }
+  const snap=progressSnapshot({
+    parsed:state.parsed,
+    profile:state.profile,
+    collections:state.col,
+    goalId:selectedProgressGoal,
+  });
+  const ev=snap.evaluation;
+  const stCls='st-'+ev.status;
+  box.innerHTML=`<div class="plan-eval">
+    <span class="st ${stCls}">${esc(ev.status)} · ${esc(ev.confidenceLabel)}</span>
+    <p>${esc(ev.phrase)}</p>
+    ${ev.nowPhrase?`<p class="now">${esc(ev.nowPhrase)}</p>`:''}
+  </div>${planTreeHtml(snap.steps)}`;
+  if(recoMode==='graph') renderGraphOverview();
+}
+
+$('#progressGoal')?.addEventListener('change',e=>{
+  selectedProgressGoal=e.target.value;
+  renderProgress();
+  if(recoMode==='graph') renderGraphOverview();
+});
+
+function renderGraphOverview(){
+  const box=$('#graphOverview');
+  if(!box)return;
+  if(!state.parsed){box.innerHTML='<p class="muted">Importe un exportstats.</p>';return;}
+  const rows=progressOverview({ parsed:state.parsed, profile:state.profile, collections:state.col });
+  box.innerHTML=rows.map((r,i)=>{
+    const ev=r.evaluation;
+    const doCap=r.actionable[0]?esc(r.actionable[0].caption):'';
+    const now=ev.nowPhrase?`<p class="now">${esc(ev.nowPhrase)}${doCap?` · ${doCap}`:''}</p>`:'';
+    const on=r.goal.id===selectedProgressGoal?' on':'';
+    return `<div class="rec ov-row${on}" data-ovgoal="${esc(r.goal.id)}">
+      <div class="rank">${i+1}</div>
+      <div><strong>${esc(r.goal.label)}</strong>
+      <span class="conf st-${esc(ev.status)}">${esc(ev.status)} · ${esc(ev.confidenceLabel)}</span>
+      <p>${esc(ev.phrase)}</p>${now}</div></div>`;
+  }).join('');
+}
+
+function renderHintList(){
   const box=$('#roadList');
+  if(!box)return;
   if(!state.parsed){box.innerHTML='<p class="muted">Après l\'import.</p>';return;}
   const recs=generateRecommendations(state.parsed.stats,state.profile,state.col);
   let h='',i=1;
@@ -332,6 +442,39 @@ function renderRoadmap(){
     h+=`<p class="warn" style="margin-top:10px">À compléter : ${gaps.map(g=>g.label).join(' · ')}</p>`;
   box.innerHTML=h||'<p class="muted">Rien à signaler.</p>';
 }
+
+/* ---------- roadmap ---------- */
+function renderRoadmap(){
+  document.querySelectorAll('[data-recomode]').forEach(b=>{
+    const on=b.dataset.recomode===recoMode;
+    b.classList.toggle('on', on);
+    b.classList.toggle('ghost', !on);
+  });
+  const ov=$('#graphOverview'), road=$('#roadList');
+  const hintLeg=$('#recoHintLegend'), graphLeg=$('#recoGraphLegend');
+  if(ov) ov.hidden=recoMode!=='graph';
+  if(road) road.hidden=recoMode!=='hints';
+  if(graphLeg) graphLeg.hidden=recoMode!=='graph';
+  if(hintLeg) hintLeg.hidden=recoMode!=='hints';
+  if(recoMode==='graph') renderGraphOverview();
+  else renderHintList();
+}
+
+document.addEventListener('click',e=>{
+  const mode=e.target.closest('[data-recomode]');
+  if(mode){
+    recoMode=mode.dataset.recomode==='hints'?'hints':'graph';
+    try{ localStorage.setItem('iom-reco-mode', recoMode); }catch{}
+    renderRoadmap();
+    return;
+  }
+  const row=e.target.closest('[data-ovgoal]');
+  if(row){
+    selectedProgressGoal=row.dataset.ovgoal;
+    renderProgress();
+    renderGraphOverview();
+  }
+});
 
 /* ---------- toutes les stats ---------- */
 function renderAllStats(){
@@ -362,6 +505,7 @@ function lvRow(icon, title, sub, lv, max, dataAttr, id, extra={}){
 }
 function renderFishing(){
   const box=$('#fishingStats'); if(!box) return;
+  renderProgress();
   document.querySelectorAll('[data-fishtab]').forEach(b=>{
     b.classList.toggle('on', b.dataset.fishtab===fishTab);
     b.classList.toggle('ghost', b.dataset.fishtab!==fishTab);
@@ -392,8 +536,7 @@ function renderFishing(){
       +NOTICE_UPGRADES_T2.map(u=>{
         const stored=C.getFishLv(state.col,'notice',u.id);
         return lvRow('📋',u.name,u.per,stored,levelCeiling(u.max,stored),'fn2',u.id);
-      }).join('')
-      +'</div>';
+      }).join('')      +'</div>';
     return;
   }
   if(fishTab==='upgrades'){
@@ -424,8 +567,7 @@ function renderFishing(){
   box.innerHTML='<div class="tier-block t2">'+blockHead('Legendary Fish','fish_leg')+LEGENDARY_FISH.map(f=>{
     const lv=Math.min(2, C.getFishLv(state.col,'legendary',f.id));
     return lvRow(f.icon||'🐟',f.name,`${f.dock} · ${f.card}`,lv,2,'fleg',f.id);
-  }).join('')+'</div>';
-}
+  }).join('')+'</div>';}
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-fishtab]');
   if(t){ fishTab=t.dataset.fishtab; renderFishing(); return; }
@@ -448,8 +590,7 @@ document.addEventListener('click',e=>{
 });
 $('#btnFishMaxTab')?.addEventListener('click',()=>{
   if(fishTab==='notices'){ for(const u of NOTICE_UPGRADES_T1) C.setFishLv(state.col,'notice',u.id,noticeT1Max(u,state.col)); for(const u of NOTICE_UPGRADES_T2) C.setFishLv(state.col,'notice',u.id,u.max); }
-  else if(fishTab==='stats'){ /* export read-only */ }
-  else if(fishTab==='upgrades'){ for(const u of FISH_UPGRADES_T1) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const u of FISH_UPGRADES_T2) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,true); }
+  else if(fishTab==='stats'){ /* export read-only */ }  else if(fishTab==='upgrades'){ for(const u of FISH_UPGRADES_T1) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const u of FISH_UPGRADES_T2) C.setFishLv(state.col,'upgrades',u.id,u.max); for(const d of FISHING_DOCKS) C.setDockUnlocked(state.col,d.id,true); }
   else if(fishTab==='enhance'){ for(const u of ENHANCE_T1) C.setFishLv(state.col,'enhance',u.id,u.max); for(const u of ENHANCE_T2) C.setFishLv(state.col,'enhance',u.id,u.max); }
   else if(fishTab==='legendary') for(const f of LEGENDARY_FISH) C.setFishLv(state.col,'legendary',f.id,2);
   C.saveCollections(state.col);renderFishing();touchCaps();
@@ -486,8 +627,7 @@ function renderArchaeology(){
     const snap=snapNow();
     const tip=idol.id==='minos'?snap.gemUpgrade.tooltip
       :(idol.id==='hera'||idol.id==='hermes')?snap.contract.tooltip:'';
-    return lvRow(icon,idol.name,idol.note||'',stored,mx,'aidol',idol.id,{ tip });
-  }).join('')+'</div>';
+    return lvRow(icon,idol.name,idol.note||'',stored,mx,'aidol',idol.id,{ tip });  }).join('')+'</div>';
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-archtab]');
@@ -500,8 +640,7 @@ document.addEventListener('click',e=>{
     const cur=C.getArchLv(state.col,'idols',id.dataset.aidol);
     C.setArchLv(state.col,'idols',id.dataset.aidol,applyStoredDelta(cur,id.dataset.d,idolMax(idol)));
     C.saveCollections(state.col); renderArchaeology(); touchCaps();
-  }
-});
+  }});
 $('#btnArchMaxTab')?.addEventListener('click',()=>{
   if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,u.max);
   else if(archTab==='idols') for(const i of ARCH_IDOLS) C.setArchLv(state.col,'idols',i.id,idolMax(i));
@@ -611,15 +750,13 @@ function renderPets(){
   const owned=(state.col.petUnlocks)||{};
   box.innerHTML=PETS_FULL.map(p=>{
     const lv=C.getPetLevel(state.col,p.id);
-    const max=levelCeiling(petEffectiveMax(p, state.col, statsNow()), lv);
-    const hard=petHardMax(p, state.col, statsNow());
+    const max=levelCeiling(petEffectiveMax(p, state.col, statsNow()), lv);    const hard=petHardMax(p, state.col, statsNow());
     const locked = p.unlockTotal>0 && total<p.unlockTotal && lv===0;
     const skinOn=owned['skin_'+p.id];
     const qRank=C.getPetQuestRank(state.col,p.id);
     const questOn=qRank>0 || owned['quest_'+p.id];
     const cap=petCapInfo(p, state.col, statsNow());
-    const petTip=cap.tooltip;
-    return `<div class="petrow ${locked?'locked':''}">
+    const petTip=cap.tooltip;    return `<div class="petrow ${locked?'locked':''}">
       <img class="pet-em" src="${p.iconDefault}" alt="" loading="lazy"
         onerror="this.style.display='none'">
       <div class="pet-info">
@@ -649,8 +786,7 @@ document.addEventListener('click',e=>{
   const cur=C.getPetLevel(state.col,b.dataset.pet);
   const formula=petEffectiveMax(pet, state.col, statsNow());
   C.setPetLevel(state.col,b.dataset.pet,applyStoredDelta(cur,b.dataset.d,formula));
-  C.saveCollections(state.col);renderPets();renderDash();touchCaps();
-});
+  C.saveCollections(state.col);renderPets();renderDash();touchCaps();});
 document.addEventListener('click',e=>{
   const c=e.target.closest('[data-petunlock]');if(!c)return;
   state.col.petUnlocks=state.col.petUnlocks||{};
@@ -673,8 +809,7 @@ function renderArtifacts(){
     const t1h=artifactHardMax(ARTIFACTS.find(a=>a.id==='pick_t1'));
     const t4a=artifactMax(ARTIFACTS.find(a=>a.id==='statue_dmg'));
     const t4b=artifactMax(ARTIFACTS.find(a=>a.id==='omega_crit'));
-    hint.textContent=`Caps : artefacts +${snap.artifact.current} (max +${snap.artifact.potential}) · T4 +${snap.artifactT4.current} (max +${snap.artifactT4.potential}) → T1 ${t1}${t1h>t1?`/${t1h}`:''} · T4 ${t4a}/${t4b}`;
-    hint.title=snap.artifact.tooltip+'\n\n'+snap.artifactT4.tooltip;
+    hint.textContent=`Caps : artefacts +${snap.artifact.current} (max +${snap.artifact.potential}) · T4 +${snap.artifactT4.current} (max +${snap.artifactT4.potential}) → T1 ${t1}${t1h>t1?`/${t1h}`:''} · T4 ${t4a}/${t4b}`;    hint.title=snap.artifact.tooltip+'\n\n'+snap.artifactT4.tooltip;
   }
 
   let html='';
@@ -734,8 +869,7 @@ function renderWorkshop(){
   const snap=snapNow();
   const hint=$('#wsCapHint');
   if(hint){
-    hint.textContent=`Workshop cap +${snap.workshop.current} (max +${snap.workshop.potential}) · export ${snap.workshop.exportVal}`;
-    hint.title=snap.workshop.tooltip;
+    hint.textContent=`Workshop cap +${snap.workshop.current} (max +${snap.workshop.potential}) · export ${snap.workshop.exportVal}`;    hint.title=snap.workshop.tooltip;
   }
 
   let html='<div class="tier-block t1">'+blockHead('Workshop Upgrades','ws');
@@ -743,8 +877,7 @@ function renderWorkshop(){
     const stored=C.getWorkshopLevel(state.col,u.id);
     const max=levelCeiling(workshopMax(u), stored);
     const hard=workshopHardMax(u);
-    const lv=stored;
-    const bonus=formatWorkshopBonus(u,lv);
+    const lv=stored;    const bonus=formatWorkshopBonus(u,lv);
     const maxed=lv>=max;
     const lock=u.world4?' <span class="muted">(W4)</span>':'';
     html+=`<div class="art-row">
@@ -768,8 +901,7 @@ document.addEventListener('click',e=>{
     const u=WORKSHOP_UPGRADES.find(x=>x.id===b.dataset.ws);
     const cur=C.getWorkshopLevel(state.col,u.id);
     setWsLevel(u.id, applyStoredDelta(cur, b.dataset.d, workshopMax(u)));
-  }
-});
+  }});
 $('#btnWsMaxAll')?.addEventListener('click',()=>{
   for(const u of WORKSHOP_UPGRADES) C.setWorkshopLevel(state.col,u.id,workshopMax(u));
   C.saveCollections(state.col);renderWorkshop();
@@ -827,6 +959,7 @@ function renderSkills(){
     d.innerHTML=`<b style="color:var(--amber)">${sk.name}</b><br>${sk.effect||''}<br><span class="muted">Cost: ${cost} SP · Level ${C.getSkillLevel(state.col,sk.id)}/${skillMaxLevels(sk)} · clic gauche +1 · clic droit −1</span>
       <a class="muted" href="https://shminer.miraheze.org/wiki/Skill-Tree#Skills" target="_blank" rel="noopener">wiki ↗</a>`;
   }
+  renderProgress();
 }
 function setSkillLv(id,lv){
   const s=SKILLS.find(x=>x.id===id); if(!s)return;
@@ -892,8 +1025,7 @@ function renderDrones(){
       return `<div class="art-row">
         <div class="art-ico">${artIco(s.icon,'🤖')}</div>
         <div class="art-desc"><b>${s.name}</b> — ${s.ability}<br><span class="muted">${s.upgrade} → ${tot}</span></div>
-        ${capCell(lv, max)}
-        ${lvActionsHtml('dsuit', s.id, maxed)}
+        ${capCell(lv, max)}        ${lvActionsHtml('dsuit', s.id, maxed)}
       </div>`;
     }).join('')+'</div>';
     box.innerHTML=html;
@@ -924,8 +1056,7 @@ document.addEventListener('click',e=>{
   if(s){
     const cur=C.getDroneSuitLv(state.col,s.dataset.dsuit);
     const cap=suitCapFromExport(state.parsed?.stats||{}, C.getCaps(state.col));
-    C.setDroneSuitLv(state.col,s.dataset.dsuit,applyStoredDelta(cur,s.dataset.d,cap));
-    C.saveCollections(state.col);renderDrones(); return;
+    C.setDroneSuitLv(state.col,s.dataset.dsuit,applyStoredDelta(cur,s.dataset.d,cap));    C.saveCollections(state.col);renderDrones(); return;
   }
   const f=e.target.closest('[data-dfuel]');
   if(f){
@@ -1072,8 +1203,7 @@ document.addEventListener('click',e=>{
     const all=[...CHALLENGE_SHOP.regular,...CHALLENGE_SHOP.extreme,...CHALLENGE_SHOP.divine];
     const u=all.find(x=>x.id===s.dataset.cshop);
     C.setChallengeShop(state.col,u.id,applyDelta(C.getChallengeShop(state.col,u.id),s.dataset.d,u.max));
-    C.saveCollections(state.col);renderChallenges();touchCaps();
-  }
+    C.saveCollections(state.col);renderChallenges();touchCaps();  }
 });
 
 /* ================= STORE ================= */
@@ -1199,6 +1329,7 @@ function renderConstructStatuesHtml(){
 }
 function renderConstruct(){
   const body=$('#constructBody'); if(!body) return;
+  renderProgress();
   document.querySelectorAll('[data-constructtab]').forEach(b=>{
     b.classList.toggle('on', b.dataset.constructtab===constructTab);
     b.classList.toggle('ghost', b.dataset.constructtab!==constructTab);
@@ -1270,8 +1401,7 @@ function renderStars(){
       const stored=C.getStarLevel(state.col,s.id);
       const max=levelCeiling(cap.current, stored);
       const hard=cap.hard;
-      const lv=stored;
-      const maxed=lv>=max && lv>0;
+      const lv=stored;      const maxed=lv>=max && lv>0;
       const icon=`assets/cards/${s.name}.png`;
       return `<div class="art-row">
         <div class="art-ico"><img src="${icon}" alt="" loading="lazy" style="width:28px;height:28px;image-rendering:pixelated" onerror="this.parentNode.textContent='⭐'"></div>
@@ -1290,8 +1420,7 @@ function renderStars(){
       return `<div class="art-row">
         <div class="art-ico">${artIco('assets/stargazing/Telescope.png','🔭')}</div>
         <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
-        ${capCell(lv, max)}
-        ${lvActionsHtml('supg', u.id, maxed)}
+        ${capCell(lv, max)}        ${lvActionsHtml('supg', u.id, maxed)}
       </div>`;
     }).join('')+'</div>';
   } else if(starTab==='super'){
@@ -1311,8 +1440,7 @@ function renderStars(){
   } else {
     const bhLv=state.profile?.blackHoleLevel;
     if(hint) hint.textContent=bhLv!=null?`Black Hole niveau ${bhLv} — l'export ne liste pas les blessings`:'Black Hole blessings (toggle)';
-    box.innerHTML='<div class="tier-block t4">'+blockHead('Black Hole Blessings','star_bh')+BLACK_HOLE_BLESSINGS.map(b=>{
-      const on=C.hasBlackHoleBlessing(state.col,b.id);
+    box.innerHTML='<div class="tier-block t4">'+blockHead('Black Hole Blessings','star_bh')+BLACK_HOLE_BLESSINGS.map(b=>{      const on=C.hasBlackHoleBlessing(state.col,b.id);
       return `<div class="art-row">
         <div class="art-ico">${artIco('assets/stargazing/BlackHole.png','🕳️')}</div>
         <div class="art-desc">${b.name}</div>
@@ -1332,22 +1460,19 @@ document.addEventListener('click',e=>{
     const cur=C.getStarLevel(state.col,s.id);
     const formula=starCapInfo(s, state.col).current;
     C.setStarLevel(state.col,s.id,applyStoredDelta(cur,sl.dataset.d,formula));
-    C.saveCollections(state.col);renderStars();touchCaps(); return;
-  }
+    C.saveCollections(state.col);renderStars();touchCaps(); return;  }
   const u=e.target.closest('[data-supg]');
   if(u){
     const row=STAR_UPGRADES.find(x=>x.id===u.dataset.supg);
     const cur=C.getStarUpgrade(state.col,row.id);
-    C.setStarUpgrade(state.col,row.id,applyStoredDelta(cur,u.dataset.d,row.max));
-    C.saveCollections(state.col);renderStars(); return;
+    C.setStarUpgrade(state.col,row.id,applyStoredDelta(cur,u.dataset.d,row.max));    C.saveCollections(state.col);renderStars(); return;
   }
   const ss=e.target.closest('[data-ssupg]');
   if(ss){
     const row=SUPER_STAR_UPGRADES.find(x=>x.id===ss.dataset.ssupg);
     const cur=C.getSuperStarUpgrade(state.col,row.id);
     C.setSuperStarUpgrade(state.col,row.id,applyStoredDelta(cur,ss.dataset.d,row.max));
-    C.saveCollections(state.col);renderStars();touchCaps(); return;
-  }
+    C.saveCollections(state.col);renderStars();touchCaps(); return;  }
   const bh=e.target.closest('[data-bh]');
   if(bh){ C.toggleBlackHoleBlessing(state.col,bh.dataset.bh); C.saveCollections(state.col); renderStars(); touchCaps(); }
 });
@@ -1517,5 +1642,5 @@ $('#histSelect')?.addEventListener('change',e=>{
     applyExportArrays(state.col, h[0].stats); C.saveCollections(state.col);
   }
 })();
-renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderStore();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderDashCaps();
+renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderStore();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();renderDashCaps();renderStocks();renderProgress();renderRoadmap();
 show('export');
