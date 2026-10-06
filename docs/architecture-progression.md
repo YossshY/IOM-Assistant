@@ -620,8 +620,8 @@ Pas de nouveau fragment. Inventaire du graphe compilé `buildProgressGraph()` (a
 | `producersOf` / `progressorsOf` | vides | `Acquire` / `Reach` + `UnknownStep` |
 | Skills catalogue | 68 / 68 | tous ont un parent wiki (plus de `skill-tree-parent`) |
 | Docks / légendaires | 11 / 11 | Lake starter + 10 bateaux |
-| Cartes catalogue | 308 | **pas** de nœud `card.*` (gates seulement) |
-| `FISH_CARDS` | 12 | incomplet vs aquarium wiki → poly×4 par dock reste `unknown` |
+| Cartes catalogue | 345 | **pas** de nœud `card.*` (gates seulement) |
+| `FISH_CARDS` | 44 | ordre aquarium (index export). Le graphe laisse quand même poly×4 par dock en `unknown` |
 
 Préfixes : `skill.*` 68 · `research.vein.*` 21 · `cards.infernal_set.*` 15 · `fish.legendary.*` 11 · `fish.dock.*` 11 · `fish.upgrade.boat.*` 10 · `fish.tribute.*` 22 (dont 2 stubs C) · `monument.w2–w4` · features cards/construct/fishing.
 

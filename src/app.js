@@ -21,7 +21,7 @@ import {
   ENHANCE_T1, ENHANCE_T2, LEGENDARY_FISH, FISHING_EXPORT_KEYS,
   FISH_UPGRADES_T1, FISH_UPGRADES_T2,
 } from './game/fishingData.js';
-import { ARCH_UPGRADES, ARCH_IDOLS, idolMax } from './game/archaeologyData.js';
+import { ARCH_UPGRADES, ARCH_IDOLS, ARCH_IDOL_RARITIES, ARCH_IDOL_RARITY_LABEL, idolMax } from './game/archaeologyData.js';
 import { RESEARCH_VEINS, MONUMENTS } from './game/constructData.js';
 import * as C from './game/collections.js';
 import {
@@ -540,7 +540,7 @@ function renderFishing(){
     return;
   }
   if(fishTab==='upgrades'){
-    if(hint) hint.textContent='Fishing Upgrades (fish) + docks';
+    if(hint) hint.textContent='Fishing Upgrades (fish). Les quais suivent le niveau du bateau à l\'import.';
     let html='<div class="tier-block t1">'+blockHead('Tier 1 Upgrades','fish_u1')
       +FISH_UPGRADES_T1.map(u=>lvRow('🐟',u.name,u.per,C.getFishLv(state.col,'upgrades',u.id),u.max,'fu1',u.id)).join('')
       +'</div><div class="tier-block t2" style="margin-top:12px">'+blockHead('Tier 2 Upgrades','fish_u2')
@@ -613,21 +613,37 @@ function renderArchaeology(){
   });
   const hint=$('#archHint');
   if(archTab==='upgrades'){
-    if(hint) hint.textContent='Ascension 0 upgrades';
+    if(hint) hint.textContent='Ces upgrades ne sont pas dans l\'export — aucun tableau. Les niveaux restent à noter à la main.';
     box.innerHTML='<div class="tier-block t1">'+blockHead('Archaeology Upgrades','arch_upg')
       +ARCH_UPGRADES.map(u=>lvRow('🦴',u.name,u.per,C.getArchLv(state.col,'upgrades',u.id),u.max,'aupg',u.id)).join('')
       +'</div>';
     return;
   }
-  if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · lues dans idols_array · le niveau importé peut dépasser le max wiki`;
-  box.innerHTML='<div class="tier-block t3">'+blockHead('Idols','arch_idols')+ARCH_IDOLS.map(idol=>{
-    const stored=C.getArchLv(state.col,'idols',idol.id);
-    const mx=levelCeiling(idolMax(idol), stored);
-    const icon=`assets/cards/${idol.name}_Idol.png`;
-    const snap=snapNow();
-    const tip=idol.id==='minos'?snap.gemUpgrade.tooltip
-      :(idol.id==='hera'||idol.id==='hermes')?snap.contract.tooltip:'';
-    return lvRow(icon,idol.name,idol.note||'',stored,mx,'aidol',idol.id,{ tip });  }).join('')+'</div>';
+  const rawIdols=state.parsed?.stats?.idols_array;
+  const ascTail=Array.isArray(rawIdols)?rawIdols.slice(24):null;
+  const ascSum=ascTail?ascTail.reduce((a,b)=>a+(+b||0),0):0;
+  if(hint){
+    hint.textContent=ascTail
+      ? (ascSum>0
+        ? 'Ordre du jeu. Ascension 0 importée. Les 13 idoles d\'obélisque 66 ont des niveaux dans le fichier, mais l\'ordre de ces cases n\'est pas connu — elles restent à 0 ici.'
+        : 'Ordre du jeu. Les 24 idoles d\'ascension 0 viennent de idols_array. Hestia, Hermes et les 11 autres idoles d\'obélisque 66 sont à 0 dans le fichier.')
+      : 'Ordre du jeu, par rareté. Importe un export pour remplir les niveaux d\'ascension 0.';
+  }
+  const snap=snapNow();
+  let idolsHtml='<div class="tier-block t3">'+blockHead('Idols','arch_idols');
+  for(const rarity of ARCH_IDOL_RARITIES){
+    const list=ARCH_IDOLS.filter(i=>i.rarity===rarity);
+    idolsHtml+=`<div class="tier-head"><div class="th-l">${ARCH_IDOL_RARITY_LABEL[rarity]}</div></div>`;
+    idolsHtml+=list.map(idol=>{
+      const stored=C.getArchLv(state.col,'idols',idol.id);
+      const mx=levelCeiling(idolMax(idol), stored);
+      const icon=`assets/cards/${idol.name}_Idol.png`;
+      const tip=idol.id==='minos'?snap.gemUpgrade.tooltip
+        :(idol.id==='hera'||idol.id==='hermes')?snap.contract.tooltip:'';
+      return lvRow(icon,idol.name,idol.note||'',stored,mx,'aidol',idol.id,{ tip });
+    }).join('');
+  }
+  box.innerHTML=idolsHtml+'</div>';
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-archtab]');
@@ -670,7 +686,7 @@ function renderCards(){
   const box=$('#cardSets');
   const maxW=maxWorldUnlocked();
   const cards=visibleCards(maxW);
-  let h=`<p class="muted">Monde max détecté : <b>${maxW}</b> — les cartes des mondes supérieurs sont masquées (coche tes Monuments dans Construct ou importe un exportstats pour les révéler). Ordre = <a href="https://shminer.miraheze.org/wiki/Cards/Card_Effects" target="_blank" rel="noopener">wiki Card Effects</a>.</p>`;
+  let h=`<p class="muted">Monde max détecté : <b>${maxW}</b> — les cartes des mondes supérieurs sont masquées (coche tes Monuments dans Construct ou importe un exportstats pour les révéler). Ordre = <a href="https://shminer.miraheze.org/wiki/Cards/Card_Effects" target="_blank" rel="noopener">wiki Card Effects</a>. L'export ne donne le rang que des cartes poissons (aquarium + légendaires). Minerais, lingots, pets, drones et étoiles restent à noter à la main.</p>`;
 
   for(const set of CARD_SETS){
     const setCards=cards.filter(c=>c.cat===set.id);
@@ -1116,7 +1132,7 @@ function renderChallenges(){
     if(btnAll) btnAll.textContent='TOUT MAXER';
     if(btnClr) btnClr.textContent='TOUT À 0';
     const hint=$('#chalHint');
-    if(hint) hint.textContent='Shop coins Regular / Extreme / Divine — pas dans l\'export';
+    if(hint) hint.textContent='Shop coins Regular / Extreme / Divine — niveaux depuis challenge_upgrades_array';
     box.innerHTML=renderShopHtml();
     return;
   }
@@ -1141,7 +1157,7 @@ function renderChallenges(){
   const hint=$('#chalHint');
   const list=CHALLENGES[chalTab]||[];
   const done=list.filter(c=>C.isChallengeDone(state.col,c.id)).length;
-  if(hint) hint.textContent=`${done}/${list.length} done · +10 coins each`;
+  if(hint) hint.textContent=`${done}/${list.length} cochés · les complétions ne sont pas dans l'export`;
   box.innerHTML=list.map(c=>{
     const ok=C.isChallengeDone(state.col,c.id);
     return `<div class="art-row">
@@ -1439,7 +1455,8 @@ function renderStars(){
     }).join('')+'</div>';
   } else {
     const bhLv=state.profile?.blackHoleLevel;
-    if(hint) hint.textContent=bhLv!=null?`Black Hole niveau ${bhLv} — l'export ne liste pas les blessings`:'Black Hole blessings (toggle)';
+    const owned=bhLv!=null?Math.min(bhLv, BLACK_HOLE_BLESSINGS.length):0;
+    if(hint) hint.textContent=bhLv!=null?`Black Hole niveau ${bhLv} — les ${owned} premiers paliers sont débloqués`:'Black Hole blessings (toggle)';
     box.innerHTML='<div class="tier-block t4">'+blockHead('Black Hole Blessings','star_bh')+BLACK_HOLE_BLESSINGS.map(b=>{      const on=C.hasBlackHoleBlessing(state.col,b.id);
       return `<div class="art-row">
         <div class="art-ico">${artIco('assets/stargazing/BlackHole.png','🕳️')}</div>

@@ -79,4 +79,4 @@ export const STORE_VALUE_PACKS = [
 ];
 
 export const STORE_EXPORT_NOTE =
-  "Les niveaux Store (perks, unlocks, gem upgrades, value packs) ne sont pas dans exportstats. Seul le total gem_upgrade_cap_increase y figure.";
+  "gem_upgrades_array a 6 niveaux, tous au cap sur un export maxé, mais deux upgrades partagent chaque cap : l'ordre des cases n'est pas celui du wiki, donc on ne les attribue pas. Perks, unlocks et value packs ne sont pas dans l'export. Seul gem_upgrade_cap_increase est fiable.";

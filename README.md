@@ -4,7 +4,7 @@
 
 ## Fonctionnalités
 - Import du JSON `exportstats` (collage ou fichier) avec parsing dynamique — les stats inconnues des futures versions sont conservées et affichées
-- À partir des exports v2.2.20+ (tableaux), l'import remplit Skill-Tree, Workshop, pêche, pets, étoiles, idoles, suits de drones, veines et la boutique de challenges
+- À partir des exports v2.2.20+ (tableaux), l'import remplit Skill-Tree, Workshop, pêche (notices, upgrades, quais selon le bateau, cartes poissons et légendaires), pets, étoiles, idoles, suits de drones, veines et la boutique de challenges
 - Dashboard profil (Obelisk level dérivé, cap XP, dégâts, multi PP, **temps du run prestige** — pas le lifetime du compte)
 - **Feuille de route priorisée** avec niveaux de confiance 🟢 Confirmé / 🟡 Probable / 🔴 Données insuffisantes — jamais de conseil inventé
 - **Cards** : catalogue wiki v2.2.6 — **86 ores** (dont 9 sans bar), **77 bars**, **45 misc**, bombs, drones, pets, **21 veins** (Volcano incluse), stars, fish / legendary fish

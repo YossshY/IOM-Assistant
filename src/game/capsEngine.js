@@ -317,9 +317,11 @@ export function noticeT1Pack(col = {}) {
 }
 
 export function noticeT1Max(u, col = {}) {
+  if (u.fixed) return u.max || 0;
   return (u.max || 0) + noticeT1Pack(col).current;
 }
 
 export function noticeT1Hard(u, col = {}) {
+  if (u.fixed) return u.max || 0;
   return (u.max || 0) + noticeT1Pack(col).potential;
 }

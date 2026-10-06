@@ -8,8 +8,10 @@ import { generateRecommendations } from './src/game/recommendationEngine.js';
 import { OBELISK, ARTIFACTS, artifactEffectiveMax } from './src/game/knowledgeBase.js';
 import { workshopEffectiveMax, WORKSHOP_UPGRADES } from './src/game/workshopData.js';
 import { estimateFreebieGemEv, estimatePickaxeGap } from './src/game/playerMath.js';
-import { ORE_CARDS, BAR_CARDS, MISC_CARDS, VEIN_CARDS, ALL_CARDS } from './src/game/cardsData.js';
-import { computeCapSnapshot, liveCaps, petEffectiveMax, petHardMax, PET_LEVEL_BASE, starCapInfo } from './src/game/capsEngine.js';
+import { ORE_CARDS, BAR_CARDS, MISC_CARDS, VEIN_CARDS, FISH_CARDS, ALL_CARDS } from './src/game/cardsData.js';
+import { computeCapSnapshot, liveCaps, petEffectiveMax, petHardMax, PET_LEVEL_BASE, starCapInfo, noticeT1Max } from './src/game/capsEngine.js';
+import { NOTICE_UPGRADES_T1 } from './src/game/fishingData.js';
+import { ARCH_IDOLS } from './src/game/archaeologyData.js';
 import { STORE_GEM_UPGRADES, STORE_GEM_UNLOCKS, STORE_PERKS } from './src/game/storeData.js';
 import { PETS_FULL } from './src/game/petsData.js';
 import { STARS_FULL } from './src/game/starsData.js';
@@ -17,7 +19,7 @@ import { SITE_STORAGE_KEYS } from './src/game/siteBackup.js';
 import { CHALLENGES } from './src/game/challengesData.js';
 import { applyExportArrays, listUnmappedSkillNodes, SKILL_EXPORT_ORDER, DRONE_SUIT_EXPORT_INDEX } from './src/game/exportArrays.js';
 import { SKILL_NODES } from './src/game/skillsData.js';
-import { getSkillLevel, getWorkshopLevel, getPetLevel, getFishLv, getCardState, getStarLevel, getStarUpgrade, getDroneSuitLv, getArchLv, hasResearchUnlock, getChallengeShop } from './src/game/collections.js';
+import { getSkillLevel, getWorkshopLevel, getPetLevel, getFishLv, getCardState, getStarLevel, getStarUpgrade, getDroneSuitLv, getArchLv, hasResearchUnlock, getChallengeShop, isDockUnlocked, hasBlackHoleBlessing } from './src/game/collections.js';
 
 const raw = readFileSync('./samples/exportstats-v2.2.6.json', 'utf8');
 const parsed = parseExportStats(raw);
@@ -178,21 +180,70 @@ assert(getWorkshopLevel(col30, 'bomb_dmg_w2') === 38, 'w2 bomb remapped');
 assert(getWorkshopLevel(col30, 'basic_chain_dmg') === 26, 'chain dmg');
 assert(getWorkshopLevel(col30, 'wizard_loot') === 0, 'wizard still 0');
 assert(getPetLevel(col30, 'Leprechaun') === 25, 'leprechaun 25');
+assert(FISH_CARDS.length === 44, `44 fish cards, got ${FISH_CARDS.length}`);
+assert(FISH_CARDS[0].id === 'fish_guppy' && FISH_CARDS[7].id === 'fish_scarab', 'fish export order lake/desert');
+assert(FISH_CARDS[36].id === 'fish_lantern' && FISH_CARDS[43].id === 'fish_dark_dragon', 'fish export order solaris/galaxy');
+assert(getCardState(col30, 'fish_guppy') === 3, 'guppy poly');
+assert(getCardState(col30, 'fish_molten') === 3, 'molten poly');
+assert(getCardState(col30, 'fish_lantern') === 2, 'lantern gilded');
+assert(getCardState(col30, 'fish_dark_dragon') === 2, 'galaxy fish gilded');
 assert(getCardState(col30, 'fish_radioactive_slug') === 3, 'slug poly');
+assert(isDockUnlocked(col30, 'cave'), 'cave dock via T2 boat');
+assert(isDockUnlocked(col30, 'sky'), 'sky dock via T2 boat');
+assert(isDockUnlocked(col30, 'solaris'), 'solaris dock via T2 boat');
+assert(isDockUnlocked(col30, 'galaxy'), 'galaxy dock via T2 boat');
 assert(getFishLv(col30, 'legendary', 'radioactive_slug') === 2, 'slug tribute 2');
 assert(getFishLv(col30, 'notice', 'n1_pick_bomb') === 28, 'notice pick');
+assert(getFishLv(col30, 'notice', 'n1_exp') === 30, 'notice exp 30');
+assert(getFishLv(col30, 'notice', 'n1_pet_lvl') === 20, 'notice pet 20');
+{
+  const byId = id => NOTICE_UPGRADES_T1.find(u => u.id === id);
+  assert(noticeT1Max(byId('n1_exp'), col30) === 33, 'exp cap 33');
+  assert(noticeT1Max(byId('n1_pet_lvl'), col30) === 23, 'pet cap 23');
+  assert(noticeT1Max(byId('n1_pick_bomb'), col30) === 28, 'pick live cap 28');
+  assert(noticeT1Max(byId('n1_rainbow_floor'), col30) === 1, 'rainbow floor cap stays 1');
+}
 assert(getFishLv(col30, 'notice', 'n2_midas') === 1, 'midas notice');
 assert(getFishLv(col30, 'upgrades', 'u1_rod') === 60, 'rod upgrade');
 assert(getStarLevel(col30, 'cancer') === 48, 'cancer 48');
 assert(getStarUpgrade(col30, 'ss_spawn') === 25, 'ss spawn over base cap');
 assert(getDroneSuitLv(col30, 'elixir') === 15, 'elixir suit');
 assert(getDroneSuitLv(col30, 'prism') === 0, 'prism suit');
-assert(getArchLv(col30, 'idols', 'minos') === 500, 'minos 500');
+{
+  const idxs = ARCH_IDOLS.map(i => i.exportIndex).filter(i => i != null);
+  assert(new Set(idxs).size === 24 && idxs.length === 24, '24 idol export indexes');
+}
+assert(getArchLv(col30, 'idols', 'athena') === 500, 'athena 500');
+assert(getArchLv(col30, 'idols', 'cassandra') === 150, 'cassandra');
+assert(getArchLv(col30, 'idols', 'eros') === 50, 'eros');
+assert(getArchLv(col30, 'idols', 'hera') === 3, 'hera 3');
+assert(getArchLv(col30, 'idols', 'astraeus') === 1000, 'astraeus');
+assert(getArchLv(col30, 'idols', 'minos') === 5, 'minos 5');
+assert(getArchLv(col30, 'idols', 'chione') === 800, 'chione');
+assert(getArchLv(col30, 'idols', 'talos') === 750, 'talos');
+assert(getArchLv(col30, 'idols', 'aphrodite') === 800, 'aphrodite');
+assert(getArchLv(col30, 'idols', 'tethys') === 800, 'tethys');
+assert(getArchLv(col30, 'idols', 'hestia') === 0, 'hestia ob66');
+assert(getArchLv(col30, 'idols', 'hermes') === 0, 'hermes ob66');
+assert(hasBlackHoleBlessing(col30, 'bh_frogger'), 'bh tier 1');
+assert(hasBlackHoleBlessing(col30, 'bh_t2_dock'), 'bh tier 10');
+assert(!hasBlackHoleBlessing(col30, 'bh_rainbow_void'), 'bh tier 11 still locked');
 assert(hasResearchUnlock(col30, 'wonderland') === true, 'wonderland researched');
 assert(hasResearchUnlock(col30, 'pirate') === false, 'pirate not researched');
 assert(getChallengeShop(col30, 'r_bomb_cap') === 1, 'challenge bomb cap');
 assert(getChallengeShop(col30, 'r_bar_craft') === 2, 'challenge bar craft');
 assert(getChallengeShop(col30, 'e_gold_floor') === 2, 'extreme gold floor');
+
+const dockProbe = {};
+applyExportArrays(dockProbe, {
+  fishing_upgrades_array: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
+  fishing_legendary_tribute_levels_array: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+});
+assert(isDockUnlocked(dockProbe, 'lake'), 'lake via boat');
+assert(isDockUnlocked(dockProbe, 'desert'), 'desert at boat 1');
+assert(!isDockUnlocked(dockProbe, 'tundra'), 'tundra still locked at boat 1');
+assert(isDockUnlocked(dockProbe, 'volcano'), 'volcano at T2 boat 2');
+assert(!isDockUnlocked(dockProbe, 'sky'), 'sky locked at T2 boat 2');
 
 const suitProbe = {};
 applyExportArrays(suitProbe, { drones_suit_level_array: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] });
@@ -206,6 +257,7 @@ const titles30 = recs30.map(r => r.title);
 assert(titles30.some(t => /Statues World 4/i.test(t)), 'should push W4 statues');
 assert(!titles30.some(t => /Monument World 4/i.test(t)), 'monument already unlocked');
 assert(!titles30.some(t => /Polychromer Radioactive Slug/i.test(t)), 'slug already poly');
+assert(!titles30.some(t => /Notice Pickaxe & Bomb/i.test(t)), 'pick notice already at live cap');
 
 console.log('OK v2.2.30');
 console.log('OB', profile30.obeliskLevel, 'floor', profile30.currentFloor, 'W', profile30.maxWorld, 'BH', profile30.blackHoleLevel);
