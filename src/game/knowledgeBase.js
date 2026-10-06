@@ -1,14 +1,17 @@
 /* ============================================================
    knowledgeBase.js — Base de connaissances Idle Obelisk Miner
-   Source : wiki officiel (shminer.miraheze.org, v2.2.6) + EXPORTSTATS réel.
+   Source : wiki officiel (shminer.miraheze.org) + EXPORTSTATS réel.
+   Scalaires calibrés sur v2.2.6 ; tableaux de menus sur v2.2.30
+   (guide Working With ExportStats).
    ============================================================ */
 
 export const GAME_VERSIONS = {
+  'v2.2.30': { released: '2026-09-30', notes: 'Export des menus (skills, workshop, pêche, pets, étoiles, idoles, veines)' },
   'v2.2.6': { released: '2026-07-28', notes: 'Arcanist updates, fixes' },
   'v2.2.5': { released: '2026-07-20', notes: 'Battery drain fixes, Arcanist balancing' },
   'v2.2.3': { released: '2026-07-15', notes: 'Gilded statues fixes, Lootfrog adjustments' },
 };
-export const LATEST_KNOWN_VERSION = 'v2.2.6';
+export const LATEST_KNOWN_VERSION = 'v2.2.30';
 
 /* ---------- Obelisk : armure & santé (wiki "Obelisk") ----------
    OB1 exception : half expected → round(5 * 2.8^(L-1)) via special case.
@@ -213,6 +216,7 @@ export const STATS_CATALOG = {
   floors: {
     golden_floor_chance:'Golden floor %', golden_floor_multi:'Golden floor multi',
     rainbow_floor_chance:'Rainbow floor %', rainbow_floor_multi:'Rainbow floor multi',
+    rainbow_ore_chance:'Rainbow ore %', rainbow_ore_multi:'Rainbow ore multi',
     galactic_floor_chance:'Galactic floor %', galactic_floor_multi:'Galactic floor multi',
     prismatic_floor_chance:'Prismatic floor %', prismatic_floor_multi:'Prismatic floor multi',
     all_floor_multipliers:'All floor multi', multi_rock_chance:'Multi rock %',
@@ -241,6 +245,7 @@ export const STATS_CATALOG = {
     super_star_supernova_chance:'SS supernova %', super_star_supernova_multi:'SS supernova multi',
     super_star_radiant_chance:'SS radiant %', super_star_radiant_multi:'SS radiant multi',
     all_star_multi:'All star multi', novagiant_combo_multi:'Novagiant combo',
+    black_hole_level:'Black Hole niveau',
   },
   fishing: {
     fishing_rod_power:'Rod power', fishing_income_multi:'Fish income',
@@ -289,6 +294,36 @@ export const STATS_CATALOG = {
     chest_meter_multi:'Chest meter multi', gem_upgrade_cap_increase:'Gem upgrade cap +',
     pet_levelup_chance_multi:'Pet level-up multi', infernal_card_multi:'Infernal card multi',
     steak_eaten:'Steaks', candy_eaten:'Candies', pizzas_eaten:'Pizzas',
+  },
+  progression: {
+    current_floor:'Étage actuel', worlds_unlocked:'Mondes débloqués',
+    world_4_quest_progress:'Quêtes World 4',
+  },
+  /* Tableaux de menus (v2.2.20+). Décodés dans exportArrays.js. */
+  menus: {
+    skill_tree_nodes_array:'Skill-Tree',
+    workshop_array:'Workshop',
+    pet_array:'Niveaux pets', pet_quest_array:'Quêtes pets',
+    pet_skin_set_a_array:'Skins pets', pet_skin_set_b_array:'Skins quête pets',
+    fishing_notices_array:'Notices pêche', fishing_upgrades_array:'Upgrades pêche',
+    fishing_enhance_array:'Enhance pêche',
+    fishing_legendary_card_levels_array:'Cartes légendaires',
+    fishing_legendary_tribute_levels_array:'Tributes légendaires',
+    fishing_regular_card_array:'Cartes poissons',
+    stars_star_level_array:'Niveaux étoiles',
+    stars_regular_upgrades_array:'Upgrades étoiles',
+    stars_super_star_upgrades_array:'Upgrades super étoiles',
+    idols_array:'Idoles',
+    drones_suit_level_array:'Niveaux de suits', drones_suit_owned_array:'Suits possédés',
+    vein_researched_array:'Veines recherchées', vein_2x_spawn_array:'Veines spawn 2×',
+    challenge_upgrades_array:'Boutique challenges',
+    relics_array:'Reliques',
+    gem_upgrades_array:'Gem upgrades',
+    regular_upgrades_array:'Upgrades du run',
+    contracts_array:'Contrats',
+    stickers_array:'Stickers',
+    item_uptime_array:'Uptime items',
+    lootbug_and_elixir_uptime_array:'Uptime buffs',
   },
   statues: {
     statue_0_set1:'Statue 0 W1', statue_1_set1:'Statue 1 W1', statue_2_set1:'Statue 2 W1',

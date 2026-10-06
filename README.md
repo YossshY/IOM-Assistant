@@ -4,6 +4,7 @@
 
 ## Fonctionnalités
 - Import du JSON `exportstats` (collage ou fichier) avec parsing dynamique — les stats inconnues des futures versions sont conservées et affichées
+- À partir des exports v2.2.20+ (tableaux), l'import remplit Skill-Tree, Workshop, pêche, pets, étoiles, idoles, suits de drones, veines et la boutique de challenges
 - Dashboard profil (Obelisk level dérivé, cap XP, dégâts, multi PP, temps de jeu)
 - **Feuille de route priorisée** avec niveaux de confiance 🟢 Confirmé / 🟡 Probable / 🔴 Données insuffisantes — jamais de conseil inventé
 - **Cards** : 195 cartes individuelles (77 ores, 77 bars, 41 misc) avec icônes du wiki, dos de carte officiels (Standard/Gilded/Polychrome/Infernal), masquage par monde débloqué, bulk par famille
@@ -37,7 +38,8 @@ src/
     ├── cardsData.js / petsData.js / statuesData.js
     ├── collections.js          # état local (Prestige, skills…)
     └── history.js
-samples/exportstats-v2.2.6.json # export réel de référence
+samples/exportstats-v2.2.6.json # export scalaire de référence
+samples/exportstats-v2.2.30.json # export avec tableaux de menus
 ```
 
 Prestige = artefacts (comme dans le jeu). Construct = statues auto-remplies depuis `statue_N_set1/2/3`.

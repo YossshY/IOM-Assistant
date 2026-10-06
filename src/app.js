@@ -4,7 +4,7 @@
 import { parseExportStats, deriveProfile } from './game/statsParser.js';
 import { detectMissingInformation } from './game/missingInfo.js';
 import { generateRecommendations, CONFIDENCE } from './game/recommendationEngine.js';
-import { loadHistory, saveImport, diffExports, fmtNum } from './game/history.js';
+import { loadHistory, saveImport, diffExports, fmtNum, fmtStat } from './game/history.js';
 import { CARD_STATES, CARD_SETS } from './game/cards.js';
 import { ORE_CARDS, BAR_CARDS, MISC_CARDS, visibleCards } from './game/cardsData.js';
 import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS, starEffectiveMax } from './game/starsData.js';
@@ -24,6 +24,7 @@ import {
 import { ARCH_UPGRADES, ARCH_IDOLS, ARCH_IDOL_MAX } from './game/archaeologyData.js';
 import { RESEARCH_VEINS, MONUMENTS } from './game/constructData.js';
 import * as C from './game/collections.js';
+import { applyExportArrays, listUnmappedSkillNodes } from './game/exportArrays.js';
 
 /** Durée du run prestige (raw.time) — pas le lifetime du compte. */
 function fmtRunDuration(sec){
@@ -90,9 +91,11 @@ function doImport(text){
   state.col=C.applyExportProgress(state.col,state.profile);
   state.col=C.applyExportCaps(state.col,parsed.stats);
   applyDronesFromExport(parsed.stats);
+  applyExportArrays(state.col, parsed.stats);
   C.saveCollections(state.col);
   state.history=saveImport(parsed);
-  el.innerHTML=`✅ ${parsed.version} — ${parsed.statCount} stats`+(parsed.unknownKeys.length?` · <span class="warn">${parsed.unknownKeys.length} inconnues</span>`:'')+` · OB ${state.profile.obeliskLevel??'?'} · W${state.profile.maxWorld??'?'}`;
+  const menus=parsed.stats.skill_tree_nodes_array?' · menus importés':'';
+  el.innerHTML=`✅ ${parsed.version} — ${parsed.statCount} stats`+(parsed.unknownKeys.length?` · <span class="warn">${parsed.unknownKeys.length} inconnues</span>`:'')+menus+` · OB ${state.profile.obeliskLevel??'?'} · W${state.profile.maxWorld??'?'}`;
   el.className='msg ok';
   renderAll();
   show('dashboard');
@@ -131,6 +134,9 @@ function renderDash(){
   g.innerHTML=[
     ['Version',p.version],['Obelisk Level',p.obeliskLevel??'?'],['Cap XP',p.xpLevelCap??'?'],
     ['Monde max',p.maxWorld??'?'],
+    ['Étage',p.currentFloor??'—'],
+    ['Black Hole',p.blackHoleLevel??'—'],
+    ['Quêtes W4',p.w4QuestProgress??'—'],
     ['Temps du run',fmtRunDuration(p.runSeconds)],
     ['Pickaxe Damage',fmtNum(p.pickaxeDamage)],
     ['Armure OB+1 (eff.)',nextA!=null?fmtNum(nextA):'—'],
@@ -212,7 +218,7 @@ function renderAllStats(){
   if(!state.parsed){box.innerHTML='<p class="muted">—</p>';return;}
   const s=state.parsed.stats;
   box.innerHTML=Object.entries(s).map(([k,v])=>
-    `<div class="statline"><span>${k}</span><b>${typeof v==='number'?fmtNum(v):v}</b></div>`).join('');
+    `<div class="statline"><span>${k}</span><b>${fmtStat(v)}</b></div>`).join('');
 }
 
 /* ================= FISHING ================= */
@@ -332,9 +338,10 @@ function renderArchaeology(){
   }
   if(hint) hint.textContent=`${ARCH_IDOLS.length} idols · niveau 0–${ARCH_IDOL_MAX}`;
   box.innerHTML=ARCH_IDOLS.map(idol=>{
-    const lv=Math.min(ARCH_IDOL_MAX, C.getArchLv(state.col,'idols',idol.id));
+    const lv=C.getArchLv(state.col,'idols',idol.id);
+    const max=Math.max(ARCH_IDOL_MAX, lv);
     const icon=`assets/cards/${idol.name}_Idol.png`;
-    return lvRow(icon,idol.name,idol.note||'',lv,ARCH_IDOL_MAX,'aidol',idol.id);
+    return lvRow(icon,idol.name,idol.note||'',lv,max,'aidol',idol.id);
   }).join('');
 }
 document.addEventListener('click',e=>{
@@ -343,7 +350,12 @@ document.addEventListener('click',e=>{
   const up=e.target.closest('[data-aupg]');
   if(up){ const u=ARCH_UPGRADES.find(x=>x.id===up.dataset.aupg); C.setArchLv(state.col,'upgrades',u.id,Math.min(u.max,Math.max(0,C.getArchLv(state.col,'upgrades',u.id)+ +up.dataset.d))); C.saveCollections(state.col); renderArchaeology(); return; }
   const id=e.target.closest('[data-aidol]');
-  if(id){ C.setArchLv(state.col,'idols',id.dataset.aidol,Math.min(ARCH_IDOL_MAX,Math.max(0,C.getArchLv(state.col,'idols',id.dataset.aidol)+ +id.dataset.d))); C.saveCollections(state.col); renderArchaeology(); }
+  if(id){
+    const cur=C.getArchLv(state.col,'idols',id.dataset.aidol);
+    const max=Math.max(ARCH_IDOL_MAX, cur);
+    C.setArchLv(state.col,'idols',id.dataset.aidol,Math.min(max,Math.max(0,cur+ +id.dataset.d)));
+    C.saveCollections(state.col); renderArchaeology();
+  }
 });
 $('#btnArchMaxTab')?.addEventListener('click',()=>{
   if(archTab==='upgrades') for(const u of ARCH_UPGRADES) C.setArchLv(state.col,'upgrades',u.id,u.max);
@@ -453,7 +465,9 @@ function renderPets(){
   const total=totalPetLevels();
   const owned=(state.col.petUnlocks)||{};
   box.innerHTML=PETS_FULL.map(p=>{
-    const lv=C.getPetLevel(state.col,p.id);
+    const stored=C.getPetLevel(state.col,p.id);
+    const lv=stored;
+    const petMax=Math.max(p.maxLevel, lv);
     const locked = p.unlockTotal>0 && total<p.unlockTotal && lv===0;
     const skinOn=owned['skin_'+p.id];
     const qRank=C.getPetQuestRank(state.col,p.id);
@@ -478,7 +492,7 @@ function renderPets(){
       </div>
       <div class="lvbtns">
         <button class="pixbtn ghost" data-pet="${p.id}" data-d="-1">−</button>
-        <span class="lvval">${lv}/${p.maxLevel}</span>
+        <span class="lvval">${lv}/${petMax}</span>
         <button class="pixbtn" data-pet="${p.id}" data-d="1">+</button>
       </div></div>`;
   }).join('')+`<p class="muted" style="margin-top:10px">Total niveaux : ${total} · Quest ranks 0–10 (screens Crab/Dwarf/Duck 10/10). Skins = bonus même non équipé.</p>`;
@@ -486,7 +500,8 @@ function renderPets(){
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-pet]');if(!b)return;
   const pet=PETS_FULL.find(p=>p.id===b.dataset.pet);
-  C.setPetLevel(state.col,b.dataset.pet,Math.min(pet.maxLevel,Math.max(0,C.getPetLevel(state.col,b.dataset.pet)+ +b.dataset.d)));
+  const cur=C.getPetLevel(state.col,b.dataset.pet);
+  C.setPetLevel(state.col,b.dataset.pet,Math.min(Math.max(pet.maxLevel,cur),Math.max(0,cur+ +b.dataset.d)));
   C.saveCollections(state.col);renderPets();renderDash();
 });
 document.addEventListener('click',e=>{
@@ -656,7 +671,9 @@ function renderSkills(){
   const box=$('#skillList'); if(!box) return;
   const owned=SKILLS.filter(s=>C.getSkillLevel(state.col,s.id)>0).length;
   const hint=$('#skillHint');
-  if(hint) hint.textContent=`${owned}/${SKILLS.length} · layout wiki Skill-Tree#Skills`;
+  const extra=listUnmappedSkillNodes(state.parsed?.stats||{});
+  const extraTxt=extra.length?` · hors arbre : ${extra.map(e=>`${e.name} ${e.level}`).join(', ')}`:'';
+  if(hint) hint.textContent=`${owned}/${SKILLS.length} · layout wiki Skill-Tree#Skills${extraTxt}`;
   box.innerHTML=`<div class="skill-tree">${SKILL_TREE_ROWS.map(row=>{
     const filled=row.filter(Boolean).length;
     if(filled===1){
@@ -1020,8 +1037,9 @@ function renderStars(){
     const owned=STARS_FULL.filter(s=>C.getStarLevel(state.col,s.id)>0).length;
     if(hint) hint.textContent=`${owned}/${STARS_FULL.length} unlocked · telescope ${C.getStarUpgrade(state.col,'telescope')}/21`;
     box.innerHTML=STARS_FULL.map(s=>{
-      const max=starEffectiveMax(s, starExtraCap(s.id));
-      const lv=Math.min(max, C.getStarLevel(state.col,s.id));
+      const stored=C.getStarLevel(state.col,s.id);
+      const max=Math.max(starEffectiveMax(s, starExtraCap(s.id)), stored);
+      const lv=stored;
       const maxed=lv>=max && lv>0;
       const icon=`assets/cards/${s.name}.png`;
       return `<div class="art-row">
@@ -1038,15 +1056,16 @@ function renderStars(){
   } else if(starTab==='upgrades'){
     if(hint) hint.textContent='Stargazing Upgrades (wiki)';
     box.innerHTML=STAR_UPGRADES.map(u=>{
-      const lv=Math.min(u.max, C.getStarUpgrade(state.col,u.id));
-      const maxed=lv>=u.max;
+      const stored=C.getStarUpgrade(state.col,u.id);
+      const lv=stored;
+      const maxShown=Math.max(u.max, stored);
       return `<div class="art-row">
         <div class="art-ico">${artIco('assets/stargazing/Telescope.png','🔭')}</div>
         <div class="art-desc"><b>${u.name}</b> — ${u.per}${u.telescope?` <span class="muted">(tel ${u.telescope}+)</span>`:''}</div>
-        <div class="art-stats"><span class="lv">${lv}/${u.max}</span></div>
+        <div class="art-stats"><span class="lv">${lv}/${maxShown}</span></div>
         <div class="art-actions">
           <button class="pixbtn ghost" data-supg="${u.id}" data-d="-1">−</button>
-          ${maxed?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-supg="${u.id}" data-d="1">+</button>`}
+          ${lv>=maxShown?`<span class="btn-maxed">Maxed</span>`:`<button class="pixbtn" data-supg="${u.id}" data-d="1">+</button>`}
         </div>
       </div>`;
     }).join('');
@@ -1066,7 +1085,8 @@ function renderStars(){
       </div>`;
     }).join('');
   } else {
-    if(hint) hint.textContent='Black Hole blessings (toggle)';
+    const bhLv=state.profile?.blackHoleLevel;
+    if(hint) hint.textContent=bhLv!=null?`Black Hole niveau ${bhLv} — l'export ne liste pas les blessings`:'Black Hole blessings (toggle)';
     box.innerHTML=BLACK_HOLE_BLESSINGS.map(b=>{
       const on=C.hasBlackHoleBlessing(state.col,b.id);
       return `<div class="art-row">
@@ -1085,8 +1105,9 @@ document.addEventListener('click',e=>{
   const sl=e.target.closest('[data-starlv]');
   if(sl){
     const s=STARS_FULL.find(x=>x.id===sl.dataset.starlv);
-    const max=starEffectiveMax(s, starExtraCap(s.id));
-    C.setStarLevel(state.col,s.id,Math.min(max,Math.max(0,C.getStarLevel(state.col,s.id)+ +sl.dataset.d)));
+    const cur=C.getStarLevel(state.col,s.id);
+    const max=Math.max(starEffectiveMax(s, starExtraCap(s.id)), cur);
+    C.setStarLevel(state.col,s.id,Math.min(max,Math.max(0,cur+ +sl.dataset.d)));
     C.saveCollections(state.col);renderStars(); return;
   }
   const sm=e.target.closest('[data-starmax]');
@@ -1098,7 +1119,8 @@ document.addEventListener('click',e=>{
   const u=e.target.closest('[data-supg]');
   if(u){
     const row=STAR_UPGRADES.find(x=>x.id===u.dataset.supg);
-    C.setStarUpgrade(state.col,row.id,Math.min(row.max,Math.max(0,C.getStarUpgrade(state.col,row.id)+ +u.dataset.d)));
+    const cur=C.getStarUpgrade(state.col,row.id);
+    C.setStarUpgrade(state.col,row.id,Math.min(Math.max(row.max,cur),Math.max(0,cur+ +u.dataset.d)));
     C.saveCollections(state.col);renderStars(); return;
   }
   const ss=e.target.closest('[data-ssupg]');
@@ -1132,7 +1154,7 @@ function renderHistory(){
   out.innerHTML=h.length<2?'<p class="muted">Importe un 2e export pour comparer.</p>':'';
   if(h.length>=2){
     const d=diffExports(h[1],h[0]);let html='<h3>Évolutions</h3>';
-    for(const c of d.changed.slice(0,30))html+=`<div class="statline"><span>${c.key}</span><b>${fmtNum(c.from)} → ${fmtNum(c.to)} ${c.dir==='up'?'📈':'📉'}</b></div>`;
+    for(const c of d.changed.slice(0,30))html+=`<div class="statline"><span>${c.key}</span><b>${fmtStat(c.from)} → ${fmtStat(c.to)} ${c.dir==='up'?'📈':'📉'}</b></div>`;
     if(d.added.length)html+=`<h3 class="ok">Nouvelles stats (${d.added.length})</h3><p class="ok" style="font-size:8px">${d.added.map(a=>a.key).join(', ')}</p>`;
     out.innerHTML=html;
   }
@@ -1147,6 +1169,9 @@ function renderHistory(){
   }
   if(h[0]?.stats && !Object.keys(state.col.droneCore||{}).length){
     applyDronesFromExport(h[0].stats); C.saveCollections(state.col);
+  }
+  if(h[0]?.stats?.skill_tree_nodes_array && !Object.keys(state.col.skills||{}).length){
+    applyExportArrays(state.col, h[0].stats); C.saveCollections(state.col);
   }
 })();
 renderCards();renderPets();renderArtifacts();renderWorkshop();renderSkills();renderDrones();renderChallenges();renderShop();renderConstruct();renderStars();renderFishing();renderArchaeology();renderHistory();renderDashTools();

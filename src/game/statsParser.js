@@ -93,6 +93,16 @@ export function inferWorldProgress(stats, statueStates) {
   if (monuments[2]) maxWorld = 2;
   if (monuments[3]) maxWorld = 3;
   if (monuments[4]) maxWorld = 4;
+
+  /* v2.2.20+ : worlds_unlocked est le nombre de mondes, plus fiable que les signaux. */
+  if (stats.worlds_unlocked != null && Number.isFinite(+stats.worlds_unlocked)) {
+    const n = Math.max(1, Math.min(4, Math.round(+stats.worlds_unlocked)));
+    return {
+      monuments: { 2: n >= 2, 3: n >= 3, 4: n >= 4 },
+      maxWorld: n,
+      w4Open: n >= 4,
+    };
+  }
   return { monuments, maxWorld, w4Open: !!w4Signal };
 }
 
@@ -125,5 +135,9 @@ export function deriveProfile(parsed) {
     maxWorld: worlds.maxWorld,
     w4Open: worlds.w4Open,
     hasStonks: (s.stonks_chance ?? 0) > 0,
+    currentFloor: s.current_floor != null ? Math.round(+s.current_floor) : null,
+    worldsUnlocked: s.worlds_unlocked != null ? Math.round(+s.worlds_unlocked) : null,
+    blackHoleLevel: s.black_hole_level != null ? Math.round(+s.black_hole_level) : null,
+    w4QuestProgress: s.world_4_quest_progress != null ? Math.round(+s.world_4_quest_progress) : null,
   };
 }

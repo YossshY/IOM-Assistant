@@ -1,6 +1,6 @@
 /* ============================================================
    workshopData.js — upgrades Workshop (wiki Obelisk Miner v2.2.6)
-   Niveaux PAS dans exportstats → saisie manuelle.
+   Niveaux lus dans workshop_array (export v2.2.20+, voir exportArrays.js).
    Max affiché = maxWiki − (WORKSHOP_WIKI_REF_CAP − bomb_workshop_cap_increase)
    (screens: +17 → max = wiki−5 ; ex. Hamburger 47→42, Chain 30→25).
    ============================================================ */

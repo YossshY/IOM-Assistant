@@ -25,7 +25,7 @@ export function detectMissingInformation(parsed, profile) {
       question: 'Gem Bomb / Auto-Bomber / Free? / Stonks ?',
       type: 'bools',
       relevantWhen: () => true,
-      reason: 'Le Skill-Tree n\'apparaît pas dans exportstats.',
+      reason: 'Aucun signal Stonks. Les exports récents remplissent le Skill-Tree via skill_tree_nodes_array.',
     });
   }
 
