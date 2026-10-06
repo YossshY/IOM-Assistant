@@ -5,7 +5,7 @@
    ============================================================ */
 import { OBELISK, ARTIFACTS, SKILLS, DRONES, SOURCES, EXTERNAL_TOOLS, artifactEffectiveMax } from './knowledgeBase.js';
 import { getArtifactLevel, hasSkill, getStatueState, getCardState, getFishLv } from './collections.js';
-import { liveCaps } from './capsEngine.js';
+import { liveCaps, noticeT1Max } from './capsEngine.js';
 import { LEGENDARY_FISH_CARDS } from './cardsData.js';
 import { LEGENDARY_FISH, NOTICE_UPGRADES_T1 } from './fishingData.js';
 import { estimateFreebieGemEv, estimateLootbug2xWorth, estimatePickaxeGap } from './playerMath.js';
@@ -269,29 +269,30 @@ function pushArmorUnlockLevers(recs, col, stats, profile, gapRatio, fishes, armo
   const noticeBucket = (col.fishing || {}).notice || {};
   const noticeNoted = Object.prototype.hasOwnProperty.call(noticeBucket, 'n1_pick_bomb');
   const noticeLv = noticeNoted ? (noticeBucket.n1_pick_bomb | 0) : 0;
-  if (noticePick && noticeLv < noticePick.max) {
+  const noticeCap = noticePick ? noticeT1Max(noticePick, col) : 0;
+  if (noticePick && noticeLv < noticeCap) {
     const needMore = pickGap?.blocked
       ? Math.max(0, (pickGap.noticeLevelsNeeded || 0) - noticeLv)
       : 0;
     if (noticeNoted) {
       const target = needMore > 0
-        ? Math.min(noticePick.max, noticeLv + needMore)
-        : Math.min(noticePick.max, noticeLv + 1);
+        ? Math.min(noticeCap, noticeLv + needMore)
+        : Math.min(noticeCap, noticeLv + 1);
       recs.push({
         priority: 1, category: 'fishing',
         title: needMore > 0
-          ? `Notice Pickaxe & Bomb → ${target}/${noticePick.max} (~${needMore} niv. pour l'armure)`
-          : `Notice Pickaxe & Bomb Damage → ${Math.min(noticePick.max, noticeLv + 1)}/${noticePick.max}`,
+          ? `Notice Pickaxe & Bomb → ${target}/${noticeCap} (~${needMore} niv. pour l'armure)`
+          : `Notice Pickaxe & Bomb Damage → ${Math.min(noticeCap, noticeLv + 1)}/${noticeCap}`,
         reason: `${noticePick.per} / niveau — multi pioche + bombes. ${needMore > 0 ? `Estimateur : ~${pickGap.noticeLevelsNeeded} niv. depuis 0 pour ×${pickGap.needMulti}.` : ''} Gem Guide OB60–65.${gapHint}`,
         confidence: 'confirmed',
-        progress: noticeLv / noticePick.max,
+        progress: noticeCap > 0 ? noticeLv / noticeCap : 0,
         source: SOURCES.wiki_fishing,
       });
     } else if (fishes) {
       recs.push({
         priority: 2, category: 'fishing',
         title: 'Noter Notice « Pickaxe & Bomb Damage »',
-        reason: `Tu fishes (rod power export > 0). Ce notice est ${noticePick.per}/niv jusqu'à ${noticePick.max}${pickGap?.blocked ? ` — estimateur : ~${pickGap.noticeLevelsNeeded} niv. pour combler ×${pickGap.needMulti}` : ''}. Menu Fishing → Notices.`,
+        reason: `Tu fishes (rod power export > 0). Ce notice est ${noticePick.per}/niv jusqu'à ${noticeCap}${pickGap?.blocked ? ` — estimateur : ~${pickGap.noticeLevelsNeeded} niv. pour combler ×${pickGap.needMulti}` : ''}. Menu Fishing → Notices.`,
         confidence: 'insufficient',
         source: SOURCES.wiki_fishing,
       });

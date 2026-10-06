@@ -17,22 +17,24 @@ export const FISHING_DOCKS = [
   { id:'galaxy', name:'Galaxy', ticks:80, tier:2 },
 ];
 
+/** max = base wiki (avant GetT1NoticeCap). Le cap affiché ajoute le pack live.
+ *  fixed : le cap bonus ne s'applique pas (reste à 1). */
 export const NOTICE_UPGRADES_T1 = [
-  { id:'n1_gold_floor', name:'Golden Floor Multiplier', per:'1.02x', max:40 },
-  { id:'n1_rainbow_vein', name:'Rainbow Vein Multiplier', per:'1.05x', max:40 },
-  { id:'n1_pick_bomb', name:'Pickaxe & Bomb Damage', per:'1.15x', max:40 },
-  { id:'n1_all_star', name:'All Star Multiplier', per:'+1%', max:35 },
-  { id:'n1_rainbow_floor', name:'Rainbow Floor Chance', per:'+2%', max:1 },
-  { id:'n1_exp', name:'Experience Gain', per:'1.20x', max:45 },
-  { id:'n1_triple_contract', name:'Triple Contract Chance', per:'+1%', max:30 },
-  { id:'n1_pet_lvl', name:'Pet Level Up Chance', per:'+0.50%', max:35 },
-  { id:'n1_ss_supernova', name:'Super Star Supernova Multi', per:'+4%', max:30 },
-  { id:'n1_all_floor', name:'All Floor Multiplier', per:'+20%', max:1 },
-  { id:'n1_bomb_recharge', name:'Bomb Recharge Rate', per:'+0.50%', max:35 },
-  { id:'n1_gold_vein', name:'Golden Vein Multiplier', per:'1.04x', max:40 },
-  { id:'n1_supernova', name:'Star Supernova Multiplier', per:'+1x', max:18 },
-  { id:'n1_10x_craft', name:'10x Craft Chance', per:'+0.5%', max:25 },
-  { id:'n1_w3_speed', name:'Remove World 3 -30% Game Speed', per:'+30%', max:1 },
+  { id:'n1_gold_floor', name:'Golden Floor Multiplier', per:'1.02x', max:25 },
+  { id:'n1_rainbow_vein', name:'Rainbow Vein Multiplier', per:'1.05x', max:25 },
+  { id:'n1_pick_bomb', name:'Pickaxe & Bomb Damage', per:'1.15x', max:25 },
+  { id:'n1_all_star', name:'All Star Multiplier', per:'+1%', max:20 },
+  { id:'n1_rainbow_floor', name:'Rainbow Floor Chance', per:'+2%', max:1, fixed:true },
+  { id:'n1_exp', name:'Experience Gain', per:'1.20x', max:30 },
+  { id:'n1_triple_contract', name:'Triple Contract Chance', per:'+1%', max:15 },
+  { id:'n1_pet_lvl', name:'Pet Level Up Chance', per:'+0.50%', max:20 },
+  { id:'n1_ss_supernova', name:'Super Star Supernova Multi', per:'+4%', max:15 },
+  { id:'n1_all_floor', name:'All Floor Multiplier', per:'+20%', max:1, fixed:true },
+  { id:'n1_bomb_recharge', name:'Bomb Recharge Rate', per:'+0.50%', max:20 },
+  { id:'n1_gold_vein', name:'Golden Vein Multiplier', per:'1.04x', max:25 },
+  { id:'n1_supernova', name:'Star Supernova Multiplier', per:'+1x', max:3 },
+  { id:'n1_10x_craft', name:'10x Craft Chance', per:'+0.5%', max:10 },
+  { id:'n1_w3_speed', name:'Remove World 3 -30% Game Speed', per:'+30%', max:1, fixed:true },
 ];
 
 export const NOTICE_UPGRADES_T2 = [

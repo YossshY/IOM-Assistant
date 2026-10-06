@@ -394,7 +394,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- PRESTIGE (= artefacts, layout jeu) -->
 <section id="page-prestige" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Higher Level Cap = the more PP you can gain per run!</p>
+    <p class="prestige-hint">Les niveaux d'artefacts ne sont pas dans l'export — seulement les caps. <code>regular_upgrades_array</code> ce sont les upgrades du run (lingots / or), remises à zéro au prestige, pas cette page.</p>
     <div class="prestige-toolbar">
       <button class="pixbtn gold" id="btnArtMaxAll">TOUT MAXER</button>
       <button class="pixbtn ghost" id="btnArtClear">TOUT À 0</button>
@@ -469,7 +469,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
   <div class="panel">
     <p class="prestige-hint">Store du jeu : Special (Value Packs), Perk, Gem Unlocks, Gem Upgrades.
       <a href="https://shminer.miraheze.org/wiki/Store#Gem_Upgrades" target="_blank" rel="noopener">wiki Store</a>
-      — les niveaux ne sont pas dans exportstats (seul <code>gem_upgrade_cap_increase</code> l'est).</p>
+      — <code>gem_upgrades_array</code> existe, mais deux upgrades partagent chaque cap, donc l'ordre des 6 cases n'est pas identifiable. Perks, unlocks et packs restent manuels. Seul <code>gem_upgrade_cap_increase</code> est appliqué.</p>
     <div class="tab-row" id="storeTabs">
       <button class="pixbtn on" data-storetab="special">Special</button>
       <button class="pixbtn ghost" data-storetab="perk">Perk</button>
@@ -498,7 +498,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- STARGAZING -->
 <section id="page-stars" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Niveaux, upgrades et super stars lus à l'import. Le Black Hole exporte son niveau, pas la liste des blessings.</p>
+    <p class="prestige-hint">Niveaux, upgrades et super stars lus à l'import. Le Black Hole exporte son niveau : les N premiers paliers sont cochés.</p>
     <div class="tab-row" id="starTabs">
       <button class="pixbtn on" data-startab="stars">Stars</button>
       <button class="pixbtn ghost" data-startab="upgrades">Upgrades</button>
@@ -537,7 +537,7 @@ input[type=number],input[type=text],select{background:#120d16;color:var(--ink);b
 <!-- ARCHAEOLOGY -->
 <section id="page-archaeology" class="page hidden">
   <div class="panel">
-    <p class="prestige-hint">Archaeology (OB30+) — idoles lues dans <code>idols_array</code>. Upgrades d'ascension toujours manuels.</p>
+    <p class="prestige-hint">Archaeology (OB30+) — idoles d'ascension 0 lues dans <code>idols_array</code>, groupées comme dans le jeu. Upgrades d'ascension absents de l'export. Hestia et Hermes se débloquent à l'obélisque 66.</p>
     <div class="tab-row" id="archTabs">
       <button class="pixbtn on" data-archtab="upgrades">Upgrades</button>
       <button class="pixbtn ghost" data-archtab="idols">Idols</button>

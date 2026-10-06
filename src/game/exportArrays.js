@@ -13,7 +13,7 @@ import {
   ENHANCE_T1, ENHANCE_T2, LEGENDARY_FISH,
 } from './fishingData.js';
 import { FISH_CARDS, LEGENDARY_FISH_CARDS } from './cardsData.js';
-import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES } from './starsData.js';
+import { STARS_FULL, STAR_UPGRADES, SUPER_STAR_UPGRADES, BLACK_HOLE_BLESSINGS } from './starsData.js';
 import { ARCH_IDOLS } from './archaeologyData.js';
 import { DRONE_SUITS } from './dronesData.js';
 import { RESEARCH_VEINS } from './constructData.js';
@@ -202,7 +202,21 @@ export function applyExportArrays(col, stats = {}) {
   if (ssUp) SUPER_STAR_UPGRADES.forEach((u, i) => setSuperStarUpgrade(col, u.id, nAt(ssUp, i)));
 
   const idols = asList(stats.idols_array);
-  if (idols) ARCH_IDOLS.forEach((idol, i) => setArchLv(col, 'idols', idol.id, nAt(idols, i)));
+  if (idols) {
+    col.arch = { ...(col.arch || {}), idols: {} };
+    for (const idol of ARCH_IDOLS) {
+      if (idol.exportIndex == null) continue;
+      setArchLv(col, 'idols', idol.id, nAt(idols, idol.exportIndex));
+    }
+  }
+
+  if (stats.black_hole_level != null) {
+    const owned = Math.max(0, Math.round(+stats.black_hole_level));
+    col.blackHole = {};
+    BLACK_HOLE_BLESSINGS.forEach((b, i) => {
+      if (i < owned) col.blackHole[b.id] = true;
+    });
+  }
 
   const suitLv = asList(stats.drones_suit_level_array);
   if (suitLv) {

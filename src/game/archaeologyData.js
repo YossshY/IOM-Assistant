@@ -48,46 +48,71 @@ export const ARCH_UPGRADES = [
   { id:'a0_exp_cap', name:'Exp Gain / Stat Point Caps', per:'2.00x / +5', max:1 },
 ];
 
-/** Idols — max wiki Cap colonne (défaut 10 si inconnu). */
+/**
+ * Idoles dans l'ordre d'affichage du jeu (rareté, puis déblocage).
+ * exportIndex = case de idols_array. Prouvé sur deux exports maxés :
+ * cases 0–18 = les 19 idoles d'ascension 0 d'origine (Astraeus, Chione,
+ * Talos, Aphrodite et Tethys ont été ajoutées après, cases 19–23, dans
+ * l'ordre d'obélisque 46 → 54). Cases 24–36 = les 13 idoles d'ascension
+ * (obélisque 66) ; leur ordre interne n'est pas calé, on ne les relie pas.
+ * max = cap wiki de base. Astraeus/Chione +50 et Aphrodite/Tethys +30
+ * par rang de quête Dino (le niveau importé peut dépasser ce max).
+ */
+const OB66 = 'Débloqué à l\'obélisque 66';
+export const ARCH_IDOL_RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic', 'divine'];
+export const ARCH_IDOL_RARITY_LABEL = {
+  common: 'Common Idol',
+  rare: 'Rare Idol',
+  epic: 'Epic Idol',
+  legendary: 'Legendary Idol',
+  mythic: 'Mythic Idol',
+  divine: 'Divine Idol',
+};
+
 export const ARCH_IDOLS = [
-  { id:'minos', name:'Minos', note:'Gem Upgrade Cap +1/niv', max:5 },
-  { id:'dionysus', name:'Dionysus', note:'Early priority · drone/coal caps' },
-  { id:'hades', name:'Hades' },
-  { id:'hestia', name:'Hestia' },
-  { id:'aphrodite', name:'Aphrodite' },
-  { id:'tethys', name:'Tethys' },
-  { id:'astraeus', name:'Astraeus' },
-  { id:'chione', name:'Chione' },
-  { id:'nyx', name:'Nyx' },
-  { id:'castor', name:'Castor' },
-  { id:'mnemosyne', name:'Mnemosyne' },
-  { id:'zeus', name:'Zeus' },
-  { id:'hera', name:'Hera', note:'Contract Upgrade Cap +1/niv', max:3 },
-  { id:'poseidon', name:'Poseidon' },
-  { id:'demeter', name:'Demeter' },
-  { id:'athena', name:'Athena' },
-  { id:'apollo', name:'Apollo' },
-  { id:'ares', name:'Ares' },
-  { id:'hephaestus', name:'Hephaestus' },
-  { id:'hermes', name:'Hermes', note:'Contract Upgrade Cap +1/niv', max:1000 },
-  { id:'eros', name:'Eros' },
-  { id:'prometheus', name:'Prometheus' },
-  { id:'atlas', name:'Atlas' },
-  { id:'hyperion', name:'Hyperion' },
-  { id:'cronus', name:'Cronus' },
-  { id:'themis', name:'Themis' },
-  { id:'leto', name:'Leto' },
-  { id:'iris', name:'Iris' },
-  { id:'pandora', name:'Pandora' },
-  { id:'sisyphus', name:'Sisyphus' },
-  { id:'theseus', name:'Theseus' },
-  { id:'talos', name:'Talos' },
-  { id:'charon', name:'Charon' },
-  { id:'cephalus', name:'Cephalus' },
-  { id:'cassandra', name:'Cassandra' },
-  { id:'andromeda', name:'Andromeda' },
-  { id:'xanthe', name:'Xanthe' },
-].map(x => ({ ...x, max: x.max ?? 10 }));
+  { id:'athena', name:'Athena', rarity:'common', exportIndex:0, max:500 },
+  { id:'cassandra', name:'Cassandra', rarity:'common', exportIndex:1, max:150 },
+  { id:'demeter', name:'Demeter', rarity:'common', exportIndex:2, max:100 },
+  { id:'eros', name:'Eros', rarity:'common', exportIndex:3, max:50 },
+  { id:'hera', name:'Hera', rarity:'common', exportIndex:4, max:3, note:'Contract Upgrade Cap +1/niv' },
+  { id:'astraeus', name:'Astraeus', rarity:'common', exportIndex:19, max:500, note:'Cap +50 / rang quête Dino' },
+  { id:'hestia', name:'Hestia', rarity:'common', max:3000, note:OB66 },
+  { id:'hermes', name:'Hermes', rarity:'common', max:1000, note:OB66 + ' · Contract Upgrade Cap +1/niv' },
+
+  { id:'apollo', name:'Apollo', rarity:'rare', exportIndex:5, max:500 },
+  { id:'iris', name:'Iris', rarity:'rare', exportIndex:6, max:100 },
+  { id:'minos', name:'Minos', rarity:'rare', exportIndex:7, max:5, note:'Gem Upgrade Cap +1/niv' },
+  { id:'leto', name:'Leto', rarity:'rare', exportIndex:8, max:10 },
+  { id:'poseidon', name:'Poseidon', rarity:'rare', exportIndex:9, max:20 },
+  { id:'chione', name:'Chione', rarity:'rare', exportIndex:20, max:300, note:'Cap +50 / rang quête Dino' },
+  { id:'ares', name:'Ares', rarity:'rare', max:5000, note:OB66 },
+  { id:'theseus', name:'Theseus', rarity:'rare', max:3000, note:OB66 },
+
+  { id:'pandora', name:'Pandora', rarity:'epic', exportIndex:10, max:500 },
+  { id:'cephalus', name:'Cephalus', rarity:'epic', exportIndex:11, max:100 },
+  { id:'dionysus', name:'Dionysus', rarity:'epic', exportIndex:12, max:5, note:'Coal Upgrade Cap +1 · Drone Grade Cap +1' },
+  { id:'talos', name:'Talos', rarity:'epic', exportIndex:21, max:750 },
+  { id:'hephaestus', name:'Hephaestus', rarity:'epic', max:3000, note:OB66 },
+  { id:'mnemosyne', name:'Mnemosyne', rarity:'epic', max:5000, note:OB66 },
+
+  { id:'andromeda', name:'Andromeda', rarity:'legendary', exportIndex:13, max:300 },
+  { id:'nyx', name:'Nyx', rarity:'legendary', exportIndex:14, max:20 },
+  { id:'castor', name:'Castor', rarity:'legendary', exportIndex:15, max:5, note:'Aquarius / Cancer Star Cap' },
+  { id:'aphrodite', name:'Aphrodite', rarity:'legendary', exportIndex:22, max:500, note:'Cap +30 / rang quête Dino' },
+  { id:'hyperion', name:'Hyperion', rarity:'legendary', max:2500, note:OB66 },
+  { id:'themis', name:'Themis', rarity:'legendary', max:5000, note:OB66 },
+
+  { id:'zeus', name:'Zeus', rarity:'mythic', exportIndex:16, max:150 },
+  { id:'atlas', name:'Atlas', rarity:'mythic', exportIndex:17, max:10 },
+  { id:'xanthe', name:'Xanthe', rarity:'mythic', exportIndex:18, max:5 },
+  { id:'tethys', name:'Tethys', rarity:'mythic', exportIndex:23, max:500, note:'Cap +30 / rang quête Dino' },
+  { id:'cronus', name:'Cronus', rarity:'mythic', max:2000, note:OB66 },
+  { id:'charon', name:'Charon', rarity:'mythic', max:3000, note:OB66 },
+
+  { id:'hades', name:'Hades', rarity:'divine', max:6666, note:OB66 },
+  { id:'prometheus', name:'Prometheus', rarity:'divine', max:1000, note:OB66 },
+  { id:'sisyphus', name:'Sisyphus', rarity:'divine', max:7777, note:OB66 },
+];
 
 export const ARCH_IDOL_MAX = 10;
 export function idolMax(idol){ return idol.max ?? ARCH_IDOL_MAX; }
